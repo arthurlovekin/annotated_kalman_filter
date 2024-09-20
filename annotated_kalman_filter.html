@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Annotated Kalman Filter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .interactive-element {
+            margin-bottom: 30px;
+        }
+        .hover-explanation {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .naming-convention {
+            display: flex;
+            align-items: center;
+        }
+        .naming-convention input {
+            margin-right: 10px;
+        }
+        .matrix-input {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+        }
+        .matrix-input input {
+            width: 50px;
+        }
+        #plot-container {
+            width: 100%;
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>The Annotated Kalman Filter</h1>
+
+        <div class="interactive-element">
+            <h2>Variable Descriptions</h2>
+            <p>The state <span data-variable="state" data-variable-attribute="label"></span> can be described as <span data-variable="state" data-variable-attribute="description"></span>.</p>
+
+
+            <select id="naming-convention">
+                <option value="wikipedia">wikipedia</option>
+                <option value="alt1">alt1</option>
+            </select>
+
+            <table id="variable-descriptions-table">
+                <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody id="variable-descriptions-body">
+                    <!-- Table rows will be dynamically populated using JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        class Variable {
+            constructor(display_name, description, example, label) {
+                this.display_name = display_name;
+                this.description = description;
+                this.example = example;
+                this.label = label;
+            }
+
+            change_label(new_label) {
+                this.label = new_label;
+            }
+        }
+
+        const naming_conventions = {
+            wikipedia: {
+                state: "x",
+                control_input: "u",
+                state_transition_matrix: "F",
+                control_transition_matrix: "B",
+                process_noise: "Q",
+                measurement: "z",
+                measurement_model_matrix: "H",
+                measurement_noise: "R",
+                kalman_gain: "K",
+                state_covariance: "P",
+                measurement_covariance: "R",
+                process_noise_covariance: "Q",
+            },
+            alt1: {
+                state: "x",
+                control_input: "u",
+                state_transition_matrix: "A",
+                control_transition_matrix: "B",
+                process_noise: "Q",
+                measurement: "z",
+                measurement_model_matrix: "C",
+                measurement_noise: "R",
+                kalman_gain: "K",
+                state_covariance: "P",
+                measurement_covariance: "R",
+                process_noise_covariance: "Q",
+            }
+        }
+
+        const variables = {
+            state: new Variable("state", "The state of the system", "The position and velocity of a moving object", "x"),
+            control_input: new Variable("control input", "The control input to the system", "The force applied to a moving object", "u"),
+            state_transition_matrix: new Variable("state transition matrix", "The state transition matrix of the system", "The matrix that transforms the state estimate to the next state", "F"),
+            control_transition_matrix: new Variable("control matrix", "The control matrix of the system", "The matrix that transforms the control input to the state", "B"),
+            process_noise: new Variable("process noise", "The process noise of the system", "The noise in the system", "Q"),
+            measurement: new Variable("measurement", "The measurement of the system", "The position of a moving object as measured by a sensor", "z"),
+            measurement_model_matrix: new Variable("measurement model matrix", "The measurement model matrix of the system", "The matrix that transforms the state estimate to the measurement", "H"),
+            measurement_noise: new Variable("measurement noise", "The measurement noise of the system", "The noise in the measurement", "R"),
+            kalman_gain: new Variable("kalman gain", "The Kalman gain of the system", "The gain that determines the weight of the measurement in the state estimate", "K"),
+            state_covariance: new Variable("state covariance", "The state covariance of the system", "The covariance of the state estimate", "P"),
+            measurement_covariance: new Variable("measurement noise covariance", "The measurement noise covariance of the system", "The covariance of the measurement noise", "R"),
+            process_noise_covariance: new Variable("process noise covariance", "The process noise covariance of the system", "The covariance of the process noise", "Q"),
+        }
+
+        // Populate the variable descriptions table
+        const variableTableBody = document.getElementById('variable-descriptions-body');
+        for (const [v, v_object] of Object.entries(variables)) {
+            const row = document.createElement('tr');
+
+            function add_cell(v_attribute_key) {
+                const cell = document.createElement('td');
+                cell.textContent = v_object[v_attribute_key];
+                cell.setAttribute('data-variable', v);
+                cell.setAttribute('data-variable-attribute', v_attribute_key);
+                row.appendChild(cell);
+            }
+            add_cell('label');
+            add_cell('display_name');
+            add_cell('description');
+            add_cell('example');
+
+            variableTableBody.appendChild(row);   
+        }
+
+        function update_variables() {
+            const elements = document.querySelectorAll('[data-variable]');
+            elements.forEach(element => {
+                const variable_name = element.getAttribute('data-variable');
+                const variable_attribute = element.getAttribute('data-variable-attribute');
+                if(variables[variable_name]) {
+                    element.textContent = variables[variable_name][variable_attribute];
+                }
+                else {
+                    console.warn(`Variable "${variable_name}" not found in variables object.`)
+                }
+            });
+        }
+
+        update_variables();
+
+        // Handle the naming convention change
+        document.getElementById('naming-convention').addEventListener('change', function(event) {
+            const convention = event.target.value;
+            for (const [v, new_label] of Object.entries(naming_conventions[convention])) {
+                variables[v].change_label(new_label);
+            }
+
+            update_variables();
+        });
+
+    </script>
+</body>
+</html>
