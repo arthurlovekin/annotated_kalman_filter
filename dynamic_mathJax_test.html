@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Annotated Kalman Filter</title>
+
+    <!-- MathJax not loaded async because don't want to let functions in the body call before MathJax is loaded -->
+    <script id="MathJax-script"
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+</head>
+<body>
+    <div class="container">
+        <select id="naming-convention">
+            <option value="alt0">Alt0</option>
+            <option value="alt1">Alt1</option>
+        </select>
+
+        <h1>Formatter User Input test</h1>
+        <p>We denote the state with <span id="state">\(a\)</span>.</p>
+        <p id="state-model"></p>
+        <p id="measurement-model"></p>
+
+        <script>
+
+            class Variable {
+                constructor(display_name, description, example, labels) {
+                    this.display_name = display_name;
+                    this.description = description;
+                    this.example = example;
+                    this.labels = labels;
+                }
+
+                // retrieve a string in MathJax format based on the naming convention
+                str(convention) {
+                    if (convention in this.labels) {
+                        return this.labels[convention];
+                    } else {
+                        return Object.values(this.labels)[0];
+                    }
+                }
+            }
+
+            class Formula {
+                constructor(div_name, variables, strFunction) {
+                    this.div_name = div_name;
+                    this.variables = variables;
+                    this.strFunction = strFunction;
+                }
+
+                render_typesetting(convention) {
+                    const formulaDiv = document.getElementById(this.div_name);
+                    formulaDiv.innerHTML = this.str(convention);
+                    MathJax.typesetClear([formulaDiv]);
+                    MathJax.typesetPromise([formulaDiv]).then(() => {
+                        console.log('MathJax has finished typesetting');
+                    }).catch((err) => console.log('MathJax typesetting failed: ' + err.message));
+                }
+
+                str(convention) {
+                    return this.strFunction(this.variables, convention);
+                }
+            }
+
+            const variables = {
+                state: new Variable("state", 
+                    "The state of the system", 
+                    "The position and velocity of a moving object", 
+                    {'alt0': "\\mathbf{x}", 'alt1': "\\mathbf{s}"}),
+                control_input: new Variable("control input", 
+                    "The control input to the system", 
+                    "The force applied to a moving object", 
+                    {'alt0': "\\mathbf{u}"}),
+                state_transition: new Variable("state transition matrix", 
+                    "The state transition matrix of the system", 
+                    "The matrix that transforms the state estimate to the next state", 
+                    {'alt0': "F", 'alt1': "A"}),
+                control_transition: new Variable("control transition matrix", 
+                    "The control transition matrix of the system", 
+                    "The matrix that transforms the control input to the state", 
+                    {'alt0': "B"}),
+                process_noise: new Variable("process noise", 
+                    "The process noise of the system", 
+                    "The noise in the system", 
+                    {'alt0': "w"}),
+                measurement: new Variable("measurement", 
+                    "The measurement of the system", 
+                    "The position of a moving object as measured by a sensor", 
+                    {'alt0': "\\mathbf{z}"}),
+                measurement_model: new Variable("measurement model matrix", 
+                    "The measurement model matrix of the system", 
+                    "The matrix that transforms the state estimate to the measurement", 
+                    {'alt0': "H", 'alt1': "C"}),
+                measurement_noise: new Variable("measurement noise", 
+                    "The measurement noise of the system", 
+                    "The noise in the measurement", 
+                    {'alt0': "\\mathbf{v}"}),
+                kalman_gain: new Variable("kalman gain", 
+                    "The kalman gain of the system", 
+                    "The gain that is used to update the state estimate", 
+                    {'alt0': "K"}), 
+                state_covariance: new Variable("state covariance", 
+                    "The state covariance of the system", 
+                    "The covariance of the state estimate", 
+                    {'alt0': "P"}),
+                measurement_covariance: new Variable("measurement covariance", 
+                    "The measurement covariance of the system", 
+                    "The covariance of the measurement", 
+                    {'alt0': "R"}), 
+                process_noise_covariance: new Variable("process noise covariance", 
+                    "The process noise covariance of the system", 
+                    "The covariance of the process noise", 
+                    {'alt0': "Q"})
+            }
+
+            const formulas = {
+                state_model: new Formula("state-model", 
+                    variables, 
+                    (v,c) => `$$${v.state.str(c)}_t = ${v.state_transition.str(c)} ${v.state.str(c)}_{t-1} + ${v.control_transition.str(c)} ${v.control_input.str(c)} + ${v.process_noise.str(c)}$$`),
+                measurement_model: new Formula("measurement-model", 
+                    variables, 
+                    (v,c) => `$$${v.measurement.str(c)}_t = ${v.measurement_model.str(c)} ${v.state.str(c)}_t + ${v.measurement_noise.str(c)}$$`)
+            }
+
+
+            function update_formulas(convention) {
+                for (const [f, f_object] of Object.entries(formulas)) {
+                    f_object.render_typesetting('alt0');
+                }
+            }
+
+            document.getElementById('naming-convention').addEventListener('change', function(event) {
+                const convention = event.target.value;
+                update_formulas(convention);
+            });
+
+            update_formulas('alt0');
+
+
+        </script>
+
+    </div>
+    <script>
+
+    </script>
+</body>
+</html>
+
+<!--Notes:
+Tried to update individual variables within the formula but I couldn't get it to work.
+I tried writing formulas like $$<span id="state">x</state> = ...$$ but MathJax wouldn't recognize
+    this as an equation to render. 
+Reversing this, doing <span id="state">$$x$$</state> $$=$$ <span id="control_input">$$u$$</span>
+also didn't work since a new line was made for each $$
+Finally, I tried using MathJax macros so I could write $$\state = F \state$$ but this
+    didn't work because when I tried to redefine the macros, it would no longer apply to the html
+    (I think the html might have been changed on first rendering so a second pass didn't see the \state anymore)
+
+It wasn't clear how to define the relationship between the Variables and the naming_convention, 
+so I decided to use the variables as my single source of truth. 
+-->
