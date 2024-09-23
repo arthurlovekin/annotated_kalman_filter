@@ -126,7 +126,7 @@
 
             function update_formulas(convention) {
                 for (const [f, f_object] of Object.entries(formulas)) {
-                    f_object.render_typesetting('alt0');
+                    f_object.render_typesetting(convention);
                 }
             }
 
@@ -148,6 +148,7 @@
 </html>
 
 <!--Notes:
+Consider using KaTeX instead of MathJax. It's not as feature-rich, but may be faster to load.
 Tried to update individual variables within the formula but I couldn't get it to work.
 I tried writing formulas like $$<span id="state">x</state> = ...$$ but MathJax wouldn't recognize
     this as an equation to render. 
