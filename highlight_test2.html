@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Formula with MathJax and Tippy.js</title>
+
+    <!-- MathJax for LaTeX rendering -->
+    <script type="text/javascript" id="MathJax-script" async
+            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            loader: {load: ['[tex]/html']}, //Enable macros \class, \cssId, \href, \style
+            tex: {packages: {'[+]': ['html']}}
+        };
+    </script>
+    
+    <!-- Tippy.js for hover tooltips -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/scale.css">
+    
+    <style>
+        /* Highlight on hover */
+        .mjx-i.state-covariance:hover {
+            background-color: rgba(255, 255, 0, 0.8); /* Darker yellow on hover */
+        }
+        /* Styling for Tippy.js tooltips */
+        .tippy-box {
+            font-size: 14px;
+            color: #333;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Interactive Formula with Hoverable Highlights</h1>
+
+    <p class="mjx-i state-covariance">
+        Test of tippy
+    </p>
+    <p>
+        $$\class{state-covariance}{P}=\class{propagate-covariance}{ \class{state-transition}{F} \class{state-covariance}{P} \class{state-transition}{F}^T} + \class{process-noise-covariance}{Q}$$
+    </p>
+
+
+    <script>
+
+        function initializeTippy() {
+            // Remove existing tooltips
+            const existingInstances = document.querySelectorAll('[data-tippy-root]');
+            existingInstances.forEach(instance => instance._tippy.destroy());
+
+            // Initialize new tooltips
+            tippy('[class*="state-covariance"], [class*="propagate-covariance"]', {
+                placement: 'top',
+                animation: 'scale',
+                theme: 'light',
+                content: (reference) => {
+                    if (reference.classList.contains('state-covariance')) {
+                        return 'State covariance';
+                    } else if (reference.classList.contains('propagate-covariance')) {
+                        return 'Propagate covariance';
+                    }
+                }
+            });
+        }
+
+        let typeset_promise = MathJax.startup.promise;
+        function typeset_wait() {
+            typeset_promise = typeset_promise.then(() => {
+                initializeTippy();
+                console.log('MathJax has finished typesetting');
+            }).catch((err) => console.log('MathJax typesetting failed: ' + err.message));
+        }
+
+        typeset_wait();
+    </script>
+
+</body>
+</html>
+
