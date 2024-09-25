@@ -4,180 +4,223 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Annotated Kalman Filter</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .interactive-element {
-            margin-bottom: 30px;
-        }
-        .hover-explanation {
-            background-color: #f0f0f0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .naming-convention {
-            display: flex;
-            align-items: center;
-        }
-        .naming-convention input {
-            margin-right: 10px;
-        }
-        .matrix-input {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
-        }
-        .matrix-input input {
-            width: 50px;
-        }
-        #plot-container {
-            width: 100%;
-            height: 400px;
-        }
-    </style>
+
+    <!-- put window.MathJax script before importing the rest of MathJax 
+     https://docs.mathjax.org/en/latest/web/configuration.html describes async vs defer for loading
+     https://docs.mathjax.org/en/latest/web/configuration.html#performing-actions-after-typesetting 
+     describes how to perform actions after typesetting-->
+    <script>
+        window.MathJax = {
+            //Enable macros \class, \cssId, \href, \style
+            loader: {load: ['[tex]/html']}, 
+            tex: {packages: {'[+]': ['html']}},
+        };
+    </script>
+    <script id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+
 </head>
 <body>
-    <div class="container">
-        <h1>The Annotated Kalman Filter</h1>
+    <select id="naming-convention">
+        <option value="alt0">Alt0</option>
+        <option value="alt1">Alt1</option>
+    </select>
 
-        <div class="interactive-element">
-            <h2>Variable Descriptions</h2>
-            <p>The state <span data-variable="state" data-variable-attribute="label"></span> can be described as <span data-variable="state" data-variable-attribute="description"></span>.</p>
+    <table id="variable-description-table">
+        <thead>
+            <tr>
+                <th>Variable</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody id="variable-description-table-body">
+            <tr id="state-model-row">
+                <td id="state"></td>
+                <td id="state-model-name"></td>
+                <td id="state-model-description"></td>
+                <td id="state-model-example"></td>
+            </tr>
+            <tr id="state-transition-matrix-row">
+                <td id="state-transition-matrix"></td>
+                <td id="state-transition-matrix-name"></td>
+                <td id="state-transition-matrix-description"></td>
+                <td id="state-transition-matrix-example"></td>
+            </tr>
+            <tr id="state-covariance-row">
+                <td id="state-covariance"></td>
+                <td id="state-covariance-name"></td>
+                <td id="state-covariance-description"></td>
+                <td id="state-covariance-example"></td>
+            </tr>
+        </tbody>
+    </table>
 
-
-            <select id="naming-convention">
-                <option value="wikipedia">wikipedia</option>
-                <option value="alt1">alt1</option>
-            </select>
-
-            <table id="variable-descriptions-table">
-                <thead>
-                    <tr>
-                        <th>Variable</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Example</th>
-                    </tr>
-                </thead>
-                <tbody id="variable-descriptions-body">
-                    <!-- Table rows will be dynamically populated using JavaScript -->
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <p id="state-model"></p>
+    <!-- <p id="measurement-model"></p> -->
 
     <script>
-        class Variable {
-            constructor(display_name, description, example, label) {
-                this.display_name = display_name;
-                this.description = description;
+        class FormulaElement {
+            constructor(div_name,
+                        display_name, 
+                        description, 
+                        example, 
+                        naming_convention) {
+                this.div_name = div_name; // eg. state-model
+                this.display_name = display_name; // eg. State Model Equation
+                this.description = description; 
                 this.example = example;
-                this.label = label;
-            }
-
-            change_label(new_label) {
-                this.label = new_label;
+                this.naming_convention = naming_convention; // eg. alt0 (affects how string is rendered)
             }
         }
 
-        const naming_conventions = {
-            wikipedia: {
-                state: "x",
-                control_input: "u",
-                state_transition_matrix: "F",
-                control_transition_matrix: "B",
-                process_noise: "Q",
-                measurement: "z",
-                measurement_model_matrix: "H",
-                measurement_noise: "R",
-                kalman_gain: "K",
-                state_covariance: "P",
-                measurement_covariance: "R",
-                process_noise_covariance: "Q",
-            },
-            alt1: {
-                state: "x",
-                control_input: "u",
-                state_transition_matrix: "A",
-                control_transition_matrix: "B",
-                process_noise: "Q",
-                measurement: "z",
-                measurement_model_matrix: "C",
-                measurement_noise: "R",
-                kalman_gain: "K",
-                state_covariance: "P",
-                measurement_covariance: "R",
-                process_noise_covariance: "Q",
+        class Variable extends FormulaElement {
+            constructor(div_name,
+                        display_name, 
+                        description, 
+                        example, 
+                        naming_conventions) {
+                super(div_name, 
+                    display_name, 
+                    description, 
+                    example, 
+                    Object.keys(naming_conventions)[0]);
+                this.naming_conventions = naming_conventions;
+            }
+
+            update_naming_convention(convention) {
+                if (this.naming_conventions.hasOwnProperty(convention)) {
+                    this.naming_convention = convention;
+                }
+                else {
+                    console.log(`Naming convention ${convention} not found for ${this.div_name}`);
+                }
+            }
+
+            str(delimiter="") {
+                // Escaping the \ is necessary because this string will be passed into another string before being rendered
+                return `${delimiter}\\class{${this.div_name}}{${this.naming_conventions[this.naming_convention]}}${delimiter}`;
+            }
+        }
+
+        class Formula extends FormulaElement {
+            constructor(div_name,
+                        display_name, 
+                        description, 
+                        example, 
+                        naming_convention, 
+                        child_elements,
+                        strFunction) {
+                super(div_name,
+                        display_name, 
+                        description, 
+                        example, 
+                        naming_convention, 
+                )
+                this.child_elements = child_elements;
+                this.strFunction = strFunction;
+            }
+
+            update_naming_convention(convention) {
+                this.naming_convention = convention;
+                for (const child of Object.values(this.child_elements)) {
+                    child.update_naming_convention(convention);
+                }
+            }
+
+            str(delimiter="") {
+                return delimiter + this.strFunction(this.child_elements) + delimiter;
             }
         }
 
         const variables = {
-            state: new Variable("state", "The state of the system", "The position and velocity of a moving object", "x"),
-            control_input: new Variable("control input", "The control input to the system", "The force applied to a moving object", "u"),
-            state_transition_matrix: new Variable("state transition matrix", "The state transition matrix of the system", "The matrix that transforms the state estimate to the next state", "F"),
-            control_transition_matrix: new Variable("control matrix", "The control matrix of the system", "The matrix that transforms the control input to the state", "B"),
-            process_noise: new Variable("process noise", "The process noise of the system", "The noise in the system", "Q"),
-            measurement: new Variable("measurement", "The measurement of the system", "The position of a moving object as measured by a sensor", "z"),
-            measurement_model_matrix: new Variable("measurement model matrix", "The measurement model matrix of the system", "The matrix that transforms the state estimate to the measurement", "H"),
-            measurement_noise: new Variable("measurement noise", "The measurement noise of the system", "The noise in the measurement", "R"),
-            kalman_gain: new Variable("kalman gain", "The Kalman gain of the system", "The gain that determines the weight of the measurement in the state estimate", "K"),
-            state_covariance: new Variable("state covariance", "The state covariance of the system", "The covariance of the state estimate", "P"),
-            measurement_covariance: new Variable("measurement noise covariance", "The measurement noise covariance of the system", "The covariance of the measurement noise", "R"),
-            process_noise_covariance: new Variable("process noise covariance", "The process noise covariance of the system", "The covariance of the process noise", "Q"),
+            state: new Variable("state", 
+                "State",
+                "The state of the system", 
+                "The position and velocity of a moving object", 
+                {'alt0': `\\mathbf{x}`, 'alt1': `\\mathbf{s}`}
+            ),
+            state_transition: new Variable("state-transition-matrix", 
+                "State Transition Matrix", 
+                "The matrix that transforms the state estimate to the next state", 
+                "Velocity matrix",
+                {'alt0': "\\mathbf{F}", 'alt1': "\\mathbf{A}"}
+            ),
+            state_covariance: new Variable("state-covariance", 
+                "State Covariance", 
+                "The covariance of the state estimate", 
+                "The uncertainty in the state estimate",
+                {'alt0': "\\mathbf{P}"}
+            ),
         }
 
-        // Populate the variable descriptions table
-        const variableTableBody = document.getElementById('variable-descriptions-body');
-        for (const [v, v_object] of Object.entries(variables)) {
-            const row = document.createElement('tr');
+        // All of the formulas that should be wrapped in $$ and typeset
+        const formulas = {
+            state_model: new Formula("state-model", 
+                "State Model",
+                "The state model of the system", 
+                "The position and velocity of a moving object", 
+                "alt0",
+                variables, 
+                (v) => `${v.state.str()}_t = ${v.state_transition.str()} ${v.state.str()}_{t-1}`)
+         }
 
-            function add_cell(v_attribute_key) {
-                const cell = document.createElement('td');
-                cell.textContent = v_object[v_attribute_key];
-                cell.setAttribute('data-variable', v);
-                cell.setAttribute('data-variable-attribute', v_attribute_key);
-                row.appendChild(cell);
+        function set_naming_convention(convention) {
+            let elements_to_typeset = [];
+            for (const object of [...Object.values(formulas), ...Object.values(variables)]) {
+                const formulaDiv = document.getElementById(object.div_name);
+                object.update_naming_convention(convention);
+                formulaDiv.innerHTML = object.str("$$");
+                elements_to_typeset.push(formulaDiv);
             }
-            add_cell('label');
-            add_cell('display_name');
-            add_cell('description');
-            add_cell('example');
-
-            variableTableBody.appendChild(row);   
+            return elements_to_typeset;
         }
 
-        function update_variables() {
-            const elements = document.querySelectorAll('[data-variable]');
-            elements.forEach(element => {
-                const variable_name = element.getAttribute('data-variable');
-                const variable_attribute = element.getAttribute('data-variable-attribute');
-                if(variables[variable_name]) {
-                    element.textContent = variables[variable_name][variable_attribute];
-                }
-                else {
-                    console.warn(`Variable "${variable_name}" not found in variables object.`)
-                }
-            });
+        // safe version of MathJax.typesetPromise that doesn't throw an error when MathJax is not yet loaded and logs errors
+        function safeTypesetPromise(elements_to_typeset) {
+            MathJax.startup.promise = MathJax.startup.promise
+                .then(() => {
+                    MathJax.typesetPromise(elements_to_typeset);
+                    console.log("MathJax Typeset success");
+                })
+                .catch((err) => console.log('MathJax typeset() failed: ' + err.message));
+            return MathJax.startup.promise;
         }
 
-        update_variables();
+        // set all of the non-formula text descriptions
+        function set_text_descriptions() {
+            for (const object of [...Object.values(formulas), ...Object.values(variables)]) {
+                display_div = document.getElementById(`${object.div_name}-name`);
+                if (display_div) {
+                    display_div.textContent = object.display_name;
+                }
 
-        // Handle the naming convention change
+                description_div = document.getElementById(`${object.div_name}-description`);
+                if (description_div) {
+                    description_div.textContent = object.description;
+                }
+
+                example_div = document.getElementById(`${object.div_name}-example`);
+                if (example_div) {
+                    example_div.textContent = object.example;
+                }
+            }
+        }
+
+        set_naming_convention('alt0');
+        set_text_descriptions();
+        // calling the typeset function here fails because MathJax is not defined yet. 
+        // It's ok to not call it because by default, MathJax waits for the HTML to load 
+        // (including the set_naming_convention() function which fills in all the divs)
+        // and then typesets the entire page.
+        // safeTypesetPromise();
+
         document.getElementById('naming-convention').addEventListener('change', function(event) {
             const convention = event.target.value;
-            for (const [v, new_label] of Object.entries(naming_conventions[convention])) {
-                variables[v].change_label(new_label);
-            }
-
-            update_variables();
+            elements_to_typeset = set_naming_convention(convention);
+            safeTypesetPromise(elements_to_typeset);
         });
 
     </script>
