@@ -157,7 +157,8 @@ also didn't work since a new line was made for each $$
 Finally, I tried using MathJax macros so I could write $$\state = F \state$$ but this
     didn't work because when I tried to redefine the macros, it would no longer apply to the html
     (I think the html might have been changed on first rendering so a second pass didn't see the \state anymore)
-
+    (a closer read of https://docs.mathjax.org/en/latest/web/configuration.html#configuring-mathjax-after-it-is-loaded
+    might make it possible to use macros)
 It wasn't clear how to define the relationship between the Variables and the naming_convention, 
 so I decided to use the variables as my single source of truth. 
 -->
