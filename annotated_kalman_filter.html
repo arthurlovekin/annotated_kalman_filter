@@ -10,17 +10,17 @@
      https://docs.mathjax.org/en/latest/web/configuration.html#performing-actions-after-typesetting 
      describes how to perform actions after typesetting-->
     <script>
-        function create_tooltips(formula_elements) {
+        function create_all_tooltips(formula_elements) {
             // must be called AFTER MathJax typesets everything and generates the divs
             for (const object of formula_elements) {
                 object.create_tooltip();
             }
         }
 
-        function create_highlights(formula_elements) {
+        function create_all_hover_effects(formula_elements) {
             // must be called AFTER MathJax typesets everything and generates the divs
             for (const object of formula_elements) {
-                object.create_highlight();
+                object.create_mouse_hover_effects();
             }
         }
 
@@ -33,8 +33,8 @@
                 ready: () => {
                     MathJax.startup.defaultReady();
                     MathJax.startup.promise.then(() => {
-                        create_tooltips([...Object.values(formulas), ...Object.values(variables)]);
-                        create_highlights([...Object.values(formulas), ...Object.values(variables)]);
+                        create_all_tooltips([...Object.values(formulas), ...Object.values(variables)]);
+                        create_all_hover_effects([...Object.values(formulas), ...Object.values(variables)]);
                     });
                 }
             }
@@ -96,18 +96,24 @@
             // find the currently_hovered_element with the smallest width
             let smallest_width = Infinity;
             let smallest_width_element = null;
-            for (const el_color_pair of currently_hovered_elements) {
-                if (el_color_pair.element.offsetWidth < smallest_width) {
-                    smallest_width = el_color_pair.element.offsetWidth;
-                    smallest_width_element = el_color_pair.element;
+            for (const el_color_tooltip of currently_hovered_elements) {
+                if (el_color_tooltip.element.offsetWidth < smallest_width) {
+                    smallest_width = el_color_tooltip.element.offsetWidth;
+                    smallest_width_element = el_color_tooltip.element;
                 }
             }
-            for (const el_color_pair of currently_hovered_elements) {
-                if (el_color_pair.element === smallest_width_element) {
-                    el_color_pair.element.style.backgroundColor = el_color_pair.color;
+            for (const el_color_tooltip of currently_hovered_elements) {
+                if (el_color_tooltip.element === smallest_width_element) {
+                    el_color_tooltip.element.style.backgroundColor = el_color_tooltip.color;
+                    // TODO: Padding and margin changes the MathJax formatting which is suboptimal but maybe unnoticeable.
+                    el_color_tooltip.element.style.padding = '3px 0';
+                    el_color_tooltip.element.style.margin = '-3px 0';
+                    el_color_tooltip.element.style.borderRadius = '3px';
+                    el_color_tooltip.tooltip.show();
                 }
                 else {
-                    el_color_pair.element.style.backgroundColor = '';
+                    el_color_tooltip.element.style.backgroundColor = '';
+                    el_color_tooltip.tooltip.hide();
                 }
             }
         }
@@ -131,7 +137,7 @@
             }
 
             create_tooltip() {
-                this.tooltip = tippy(`[class="${this.div_name}"]`, {
+                this.tooltips = tippy(`[class="${this.div_name}"]`, {
                     content: this.description,
                     animation: 'scale',
                     theme: 'light',
@@ -140,19 +146,20 @@
                 });
             }
 
-            create_highlight() {
+            create_mouse_hover_effects() {
+                // add event listeners to achieve highlight and tooltip on hover (and avoid overlapping effects)
                 const elements = document.querySelectorAll(`[class="${this.div_name}"]`);
                 for (const el of elements) {
                     el.addEventListener('mouseenter', (event) => {
-                        currently_hovered_elements.push({element: el, color: this.color});
+                        const tooltipInstance = this.tooltips.find(tooltip => tooltip.reference === el);
+                        currently_hovered_elements.push({element: el, color: this.color, tooltip: tooltipInstance});
                         highlight_smallest_width_element();
-
                     });
 
                     el.addEventListener('mouseleave', (event) => {
                         el.style.backgroundColor = '';
                         // Remove this element from the currently_hovered_elements array
-                        currently_hovered_elements = currently_hovered_elements.filter(el_color_pair => el_color_pair.element !== el);
+                        currently_hovered_elements = currently_hovered_elements.filter(el_color_tooltip => el_color_tooltip.element !== el);
                         highlight_smallest_width_element();
                     });
                 }
@@ -257,8 +264,8 @@
                 .then(() => {
                     MathJax.typesetPromise(elements_to_typeset);
                     console.log("MathJax Typeset success");
-                    create_tooltips([...Object.values(formulas), ...Object.values(variables)]);
-                    create_highlights([...Object.values(formulas), ...Object.values(variables)]);
+                    create_all_tooltips([...Object.values(formulas), ...Object.values(variables)]);
+                    create_all_hover_effects([...Object.values(formulas), ...Object.values(variables)]);
                 })
                 .catch((err) => console.log('MathJax typeset() failed: ' + err.message));
             return MathJax.startup.promise;
