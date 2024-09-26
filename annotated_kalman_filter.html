@@ -17,6 +17,13 @@
             }
         }
 
+        function create_highlights(formula_elements) {
+            // must be called AFTER MathJax typesets everything and generates the divs
+            for (const object of formula_elements) {
+                object.create_highlight();
+            }
+        }
+
         window.MathJax = {
             //Enable macros \class, \cssId, \href, \style
             loader: {load: ['[tex]/html']}, 
@@ -27,6 +34,7 @@
                     MathJax.startup.defaultReady();
                     MathJax.startup.promise.then(() => {
                         create_tooltips([...Object.values(formulas), ...Object.values(variables)]);
+                        create_highlights([...Object.values(formulas), ...Object.values(variables)]);
                     });
                 }
             }
@@ -58,11 +66,11 @@
             </tr>
         </thead>
         <tbody id="variable-description-table-body">
-            <tr id="state-model-row">
+            <tr id="state-row">
                 <td id="state"></td>
-                <td id="state-model-name"></td>
-                <td id="state-model-description"></td>
-                <td id="state-model-example"></td>
+                <td id="state-name"></td>
+                <td id="state-description"></td>
+                <td id="state-example"></td>
             </tr>
             <tr id="state-transition-matrix-row">
                 <td id="state-transition-matrix"></td>
@@ -83,13 +91,35 @@
     <!-- <p id="measurement-model"></p> -->
 
     <script>
+        let currently_hovered_elements = []; // contains {element, color} pairs
+        function highlight_smallest_width_element() {
+            // find the currently_hovered_element with the smallest width
+            let smallest_width = Infinity;
+            let smallest_width_element = null;
+            for (const el_color_pair of currently_hovered_elements) {
+                if (el_color_pair.element.offsetWidth < smallest_width) {
+                    smallest_width = el_color_pair.element.offsetWidth;
+                    smallest_width_element = el_color_pair.element;
+                }
+            }
+            for (const el_color_pair of currently_hovered_elements) {
+                if (el_color_pair.element === smallest_width_element) {
+                    el_color_pair.element.style.backgroundColor = el_color_pair.color;
+                }
+                else {
+                    el_color_pair.element.style.backgroundColor = '';
+                }
+            }
+        }
+
         class FormulaElement {
             constructor(div_name,
                         display_name, 
                         description, 
                         example, 
                         convention_to_latex,
-                        child_elements = []) {
+                        child_elements = [],
+                        color = 'rgba(255, 255, 0, 0.8)') {
                 this.div_name = div_name; // eg. state-model
                 this.display_name = display_name; // eg. State Model Equation
                 this.description = description; 
@@ -97,16 +127,35 @@
                 this.convention_to_latex = convention_to_latex; // eg. alt0 (affects how string is rendered)
                 this.convention = Object.keys(convention_to_latex)[0];
                 this.child_elements = child_elements;
+                this.color = color;
             }
 
             create_tooltip() {
-                this.tooltip = tippy(`[class*="${this.div_name}"]`, {
+                this.tooltip = tippy(`[class="${this.div_name}"]`, {
                     content: this.description,
                     animation: 'scale',
                     theme: 'light',
                     // trigger: 'click',
                     placement: 'auto',
                 });
+            }
+
+            create_highlight() {
+                const elements = document.querySelectorAll(`[class="${this.div_name}"]`);
+                for (const el of elements) {
+                    el.addEventListener('mouseenter', (event) => {
+                        currently_hovered_elements.push({element: el, color: this.color});
+                        highlight_smallest_width_element();
+
+                    });
+
+                    el.addEventListener('mouseleave', (event) => {
+                        el.style.backgroundColor = '';
+                        // Remove this element from the currently_hovered_elements array
+                        currently_hovered_elements = currently_hovered_elements.filter(el_color_pair => el_color_pair.element !== el);
+                        highlight_smallest_width_element();
+                    });
+                }
             }
 
             update_naming_convention(convention) {
@@ -135,20 +184,26 @@
                 "The state of the system", 
                 "The position and velocity of a moving object", 
                 {'alt0': (v) => `\\mathbf{x}`,
-                 'alt1': (v) => `\\mathbf{s}`}
+                 'alt1': (v) => `\\mathbf{s}`},
+                [],
+                'rgba(0, 255, 0, 0.8)'
             ),
             state_transition: new FormulaElement("state-transition-matrix", 
                 "State Transition Matrix", 
                 "The matrix that transforms the state estimate to the next state", 
                 "Velocity matrix",
                 {'alt0': (v) => `\\mathbf{F}`,
-                 'alt1': (v) => `\\mathbf{A}`}
+                 'alt1': (v) => `\\mathbf{A}`},
+                [],
+                'rgba(255, 0, 0, 0.8)'
             ),
             state_covariance: new FormulaElement("state-covariance", 
                 "State Covariance", 
                 "The covariance of the state estimate", 
                 "The uncertainty in the state estimate",
-                {'all': (v) => `\\mathbf{P}`}
+                {'all': (v) => `\\mathbf{P}`},
+                [],
+                'rgba(0, 0, 255, 0.8)'
             ),
         }
 
@@ -160,8 +215,9 @@
                 "The position and velocity of a moving object", 
                 {"all": (v) => `${v.state.str()}_t = ${v.state_transition.str()} ${v.state.str()}_{t-1}`},
                 variables,
+                'rgba(255, 155, 0, 0.8)'
             )
-         }
+        }
 
         // Fill in all divs with formulas according to the naming convention
         function set_naming_convention(convention) {
@@ -202,6 +258,7 @@
                     MathJax.typesetPromise(elements_to_typeset);
                     console.log("MathJax Typeset success");
                     create_tooltips([...Object.values(formulas), ...Object.values(variables)]);
+                    create_highlights([...Object.values(formulas), ...Object.values(variables)]);
                 })
                 .catch((err) => console.log('MathJax typeset() failed: ' + err.message));
             return MathJax.startup.promise;
