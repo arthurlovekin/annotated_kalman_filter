@@ -106,8 +106,10 @@
                 if (el_color_tooltip.element === smallest_width_element) {
                     el_color_tooltip.element.style.backgroundColor = el_color_tooltip.color;
                     // TODO: Padding and margin changes the MathJax formatting which is suboptimal but maybe unnoticeable.
-                    el_color_tooltip.element.style.padding = '3px 0';
-                    el_color_tooltip.element.style.margin = '-3px 0';
+                    el_color_tooltip.element.style.paddingTop = '3px';
+                    el_color_tooltip.element.style.paddingBottom = '3px';
+                    el_color_tooltip.element.style.marginTop = '-3px';
+                    el_color_tooltip.element.style.marginBottom = '-3px';
                     el_color_tooltip.element.style.borderRadius = '3px';
                     el_color_tooltip.tooltip.show();
                 }
@@ -124,8 +126,8 @@
                         description, 
                         example, 
                         convention_to_latex,
-                        child_elements = [],
-                        color = 'rgba(255, 255, 0, 0.8)') {
+                        color = 'rgba(255, 255, 0, 0.8)',
+                        child_elements = {}) {
                 this.div_name = div_name; // eg. state-model
                 this.display_name = display_name; // eg. State Model Equation
                 this.description = description; 
@@ -192,7 +194,6 @@
                 "The position and velocity of a moving object", 
                 {'alt0': (v) => `\\mathbf{x}`,
                  'alt1': (v) => `\\mathbf{s}`},
-                [],
                 'rgba(0, 255, 0, 0.8)'
             ),
             state_transition: new FormulaElement("state-transition-matrix", 
@@ -201,7 +202,6 @@
                 "Velocity matrix",
                 {'alt0': (v) => `\\mathbf{F}`,
                  'alt1': (v) => `\\mathbf{A}`},
-                [],
                 'rgba(255, 0, 0, 0.8)'
             ),
             state_covariance: new FormulaElement("state-covariance", 
@@ -209,7 +209,6 @@
                 "The covariance of the state estimate", 
                 "The uncertainty in the state estimate",
                 {'all': (v) => `\\mathbf{P}`},
-                [],
                 'rgba(0, 0, 255, 0.8)'
             ),
         }
@@ -221,8 +220,8 @@
                 "The state model of the system", 
                 "The position and velocity of a moving object", 
                 {"all": (v) => `${v.state.str()}_t = ${v.state_transition.str()} ${v.state.str()}_{t-1}`},
-                variables,
-                'rgba(255, 155, 0, 0.8)'
+                'rgba(255, 155, 0, 0.8)',
+                variables
             )
         }
 
