@@ -10,16 +10,37 @@
      https://docs.mathjax.org/en/latest/web/configuration.html#performing-actions-after-typesetting 
      describes how to perform actions after typesetting-->
     <script>
+        function create_tooltips(formula_elements) {
+            // must be called AFTER MathJax typesets everything and generates the divs
+            for (const object of formula_elements) {
+                object.create_tooltip();
+            }
+        }
+
         window.MathJax = {
             //Enable macros \class, \cssId, \href, \style
             loader: {load: ['[tex]/html']}, 
             tex: {packages: {'[+]': ['html']}},
+            // Once MathJax has finished typesetting, create tooltips for the new divs
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        create_tooltips([...Object.values(formulas), ...Object.values(variables)]);
+                    });
+                }
+            }
         };
     </script>
     <script id="MathJax-script" async
         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
     </script>
 
+    <!-- Tippy.js for hover tooltips -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/scale.css">
+    
 </head>
 <body>
     <select id="naming-convention">
@@ -78,6 +99,16 @@
                 this.child_elements = child_elements;
             }
 
+            create_tooltip() {
+                this.tooltip = tippy(`[class*="${this.div_name}"]`, {
+                    content: this.description,
+                    animation: 'scale',
+                    theme: 'light',
+                    // trigger: 'click',
+                    placement: 'auto',
+                });
+            }
+
             update_naming_convention(convention) {
                 if (this.convention !== 'all') {
                     if (this.convention_to_latex.hasOwnProperty(convention)) {
@@ -132,6 +163,7 @@
             )
          }
 
+        // Fill in all divs with formulas according to the naming convention
         function set_naming_convention(convention) {
             let elements_to_typeset = [];
             for (const object of [...Object.values(formulas), ...Object.values(variables)]) {
@@ -143,25 +175,13 @@
             return elements_to_typeset;
         }
 
-        // safe version of MathJax.typesetPromise that doesn't throw an error when MathJax is not yet loaded and logs errors
-        function safeTypesetPromise(elements_to_typeset) {
-            MathJax.startup.promise = MathJax.startup.promise
-                .then(() => {
-                    MathJax.typesetPromise(elements_to_typeset);
-                    console.log("MathJax Typeset success");
-                })
-                .catch((err) => console.log('MathJax typeset() failed: ' + err.message));
-            return MathJax.startup.promise;
-        }
-
-        // set all of the non-formula text descriptions
+        // Fill in all divs with non-formula text descriptions
         function set_text_descriptions() {
             for (const object of [...Object.values(formulas), ...Object.values(variables)]) {
                 display_div = document.getElementById(`${object.div_name}-name`);
                 if (display_div) {
                     display_div.textContent = object.display_name;
                 }
-
                 description_div = document.getElementById(`${object.div_name}-description`);
                 if (description_div) {
                     description_div.textContent = object.description;
@@ -174,12 +194,25 @@
             }
         }
 
+        // safe version of MathJax.typesetPromise that doesn't throw an error when MathJax is not yet loaded,
+        // creates tooltips, and logs errors
+        function safeTypesetPromise(elements_to_typeset) {
+            MathJax.startup.promise = MathJax.startup.promise
+                .then(() => {
+                    MathJax.typesetPromise(elements_to_typeset);
+                    console.log("MathJax Typeset success");
+                    create_tooltips([...Object.values(formulas), ...Object.values(variables)]);
+                })
+                .catch((err) => console.log('MathJax typeset() failed: ' + err.message));
+            return MathJax.startup.promise;
+        }
+
         set_naming_convention('alt0');
         set_text_descriptions();
         // calling the typeset function here fails because MathJax is not defined yet. 
         // It's ok to not call it because by default, MathJax waits for the HTML to load 
         // (including the set_naming_convention() function which fills in all the divs)
-        // and then typesets the entire page.
+        // and then typesets the entire page and then adds tooltips.
         // safeTypesetPromise();
 
         document.getElementById('naming-convention').addEventListener('change', function(event) {
