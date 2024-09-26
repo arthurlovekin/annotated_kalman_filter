@@ -67,104 +67,69 @@
                         display_name, 
                         description, 
                         example, 
-                        naming_convention) {
+                        convention_to_latex,
+                        child_elements = []) {
                 this.div_name = div_name; // eg. state-model
                 this.display_name = display_name; // eg. State Model Equation
                 this.description = description; 
                 this.example = example;
-                this.naming_convention = naming_convention; // eg. alt0 (affects how string is rendered)
-            }
-        }
-
-        class Variable extends FormulaElement {
-            constructor(div_name,
-                        display_name, 
-                        description, 
-                        example, 
-                        naming_conventions) {
-                super(div_name, 
-                    display_name, 
-                    description, 
-                    example, 
-                    Object.keys(naming_conventions)[0]);
-                this.naming_conventions = naming_conventions;
-            }
-
-            update_naming_convention(convention) {
-                if (this.naming_conventions.hasOwnProperty(convention)) {
-                    this.naming_convention = convention;
-                }
-                else {
-                    console.log(`Naming convention ${convention} not found for ${this.div_name}`);
-                }
-            }
-
-            str(delimiter="") {
-                // Escaping the \ is necessary because this string will be passed into another string before being rendered
-                return `${delimiter}\\class{${this.div_name}}{${this.naming_conventions[this.naming_convention]}}${delimiter}`;
-            }
-        }
-
-        class Formula extends FormulaElement {
-            constructor(div_name,
-                        display_name, 
-                        description, 
-                        example, 
-                        naming_convention, 
-                        child_elements,
-                        strFunction) {
-                super(div_name,
-                        display_name, 
-                        description, 
-                        example, 
-                        naming_convention, 
-                )
+                this.convention_to_latex = convention_to_latex; // eg. alt0 (affects how string is rendered)
+                this.convention = Object.keys(convention_to_latex)[0];
                 this.child_elements = child_elements;
-                this.strFunction = strFunction;
             }
 
             update_naming_convention(convention) {
-                this.naming_convention = convention;
+                if (this.convention !== 'all') {
+                    if (this.convention_to_latex.hasOwnProperty(convention)) {
+                        this.convention = convention;
+                    }
+                    else {
+                        console.log(`Naming convention ${convention} not found for ${this.div_name}`);
+                    }
+                }
                 for (const child of Object.values(this.child_elements)) {
                     child.update_naming_convention(convention);
                 }
             }
 
             str(delimiter="") {
-                return delimiter + this.strFunction(this.child_elements) + delimiter;
+                const string_fn = this.convention_to_latex[this.convention];
+                return `${delimiter}\\class{${this.div_name}}{${string_fn(this.child_elements)}}${delimiter}`;
             }
         }
 
         const variables = {
-            state: new Variable("state", 
+            state: new FormulaElement("state", 
                 "State",
                 "The state of the system", 
                 "The position and velocity of a moving object", 
-                {'alt0': `\\mathbf{x}`, 'alt1': `\\mathbf{s}`}
+                {'alt0': (v) => `\\mathbf{x}`,
+                 'alt1': (v) => `\\mathbf{s}`}
             ),
-            state_transition: new Variable("state-transition-matrix", 
+            state_transition: new FormulaElement("state-transition-matrix", 
                 "State Transition Matrix", 
                 "The matrix that transforms the state estimate to the next state", 
                 "Velocity matrix",
-                {'alt0': "\\mathbf{F}", 'alt1': "\\mathbf{A}"}
+                {'alt0': (v) => `\\mathbf{F}`,
+                 'alt1': (v) => `\\mathbf{A}`}
             ),
-            state_covariance: new Variable("state-covariance", 
+            state_covariance: new FormulaElement("state-covariance", 
                 "State Covariance", 
                 "The covariance of the state estimate", 
                 "The uncertainty in the state estimate",
-                {'alt0': "\\mathbf{P}"}
+                {'all': (v) => `\\mathbf{P}`}
             ),
         }
 
         // All of the formulas that should be wrapped in $$ and typeset
         const formulas = {
-            state_model: new Formula("state-model", 
+            state_model: new FormulaElement("state-model", 
                 "State Model",
                 "The state model of the system", 
                 "The position and velocity of a moving object", 
-                "alt0",
-                variables, 
-                (v) => `${v.state.str()}_t = ${v.state_transition.str()} ${v.state.str()}_{t-1}`)
+                {"all": (v) => `${v.state.str()}_t = ${v.state_transition.str()} ${v.state.str()}_{t-1}`},
+                variables,
+            )
          }
 
         function set_naming_convention(convention) {
