@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draggable Number Example</title>
+    <style>
+        .draggable {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+            text-align: center;
+        }
+        .draggable-txt {
+            font-size: 16px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .draggable-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: ew-resize; /* mouse cursor turns to horizontal arrows */
+        }
+    </style>
+</head>
+<body>
+    <table>
+        <tr>
+            <td>
+                <div class="draggable">
+                    <span class="draggable-txt" id="draggable-00">1.00</span>
+                    <input type="range" class="draggable-slider" min="0" max="10" value="1" step="0.01">
+                </div>
+            </td>
+            <td>
+                <div class="draggable">
+                    <span class="draggable-txt" id="draggable-01">1.00</span>
+                    <input type="range" class="draggable-slider" min="0" max="10" value="1" step="0.01">
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div class="draggable">
+                    <span class="draggable-txt" id="draggable-10">1.00</span>
+                    <input type="range" class="draggable-slider" min="0" max="10" value="1" step="0.01">
+                </div>
+            </td>
+            <td>
+                <div class="draggable">
+                    <span class="draggable-txt" id="draggable-11">1.00</span>
+                    <input type="range" class="draggable-slider" min="0" max="10" value="1" step="0.01">
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <script>
+        document.querySelectorAll('.draggable-slider').forEach((slider, index) => {
+            const row = Math.floor(index / 2);
+            const col = index % 2;
+            const valueDisplay = document.getElementById(`draggable-${row}${col}`);
+
+            slider.addEventListener('input', function() {
+                const value = parseFloat(this.value).toFixed(2);
+                valueDisplay.textContent = value;
+            });
+        });
+    </script>
+</body>
+</html>
