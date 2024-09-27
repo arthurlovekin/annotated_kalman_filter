@@ -59,10 +59,11 @@
     <table id="variable-description-table">
         <thead>
             <tr>
-                <th>Variable</th>
+                <th>Symbol</th>
                 <th>Name</th>
                 <th>Description</th>
                 <th>Example</th>
+                <th>Dimension</th>
             </tr>
         </thead>
         <tbody id="variable-description-table-body">
@@ -71,22 +72,33 @@
                 <td id="state-name"></td>
                 <td id="state-description"></td>
                 <td id="state-example"></td>
+                <td id="state-dimension"></td>
             </tr>
             <tr id="state-transition-matrix-row">
                 <td id="state-transition-matrix"></td>
                 <td id="state-transition-matrix-name"></td>
                 <td id="state-transition-matrix-description"></td>
                 <td id="state-transition-matrix-example"></td>
+                <td id="state-transition-matrix-dimension"></td>
             </tr>
             <tr id="state-covariance-row">
                 <td id="state-covariance"></td>
                 <td id="state-covariance-name"></td>
                 <td id="state-covariance-description"></td>
                 <td id="state-covariance-example"></td>
+                <td id="state-covariance-dimension"></td>
+            </tr>
+            <tr id="discrete-time-row">
+                <td id="discrete-time"></td>
+                <td id="discrete-time-name"></td>
+                <td id="discrete-time-description"></td>
+                <td id="discrete-time-example"></td>
+                <td id="discrete-time-dimension"></td>
             </tr>
         </tbody>
     </table>
 
+    <h1>The Annotated Kalman Filter</h1>
     <p id="state-model"></p>
     <!-- <p id="measurement-model"></p> -->
 
@@ -126,7 +138,8 @@
                         description, 
                         example, 
                         convention_to_latex,
-                        color = 'rgba(255, 255, 0, 0.8)',
+                        dimension,
+                        highlight_color = 'rgba(255, 255, 0, 0.8)',
                         child_elements = {}) {
                 this.div_name = div_name; // eg. state-model
                 this.display_name = display_name; // eg. State Model Equation
@@ -134,8 +147,9 @@
                 this.example = example;
                 this.convention_to_latex = convention_to_latex; // eg. alt0 (affects how string is rendered)
                 this.convention = Object.keys(convention_to_latex)[0];
+                this.dimension = dimension;
+                this.color = highlight_color;
                 this.child_elements = child_elements;
-                this.color = color;
             }
 
             create_tooltip() {
@@ -194,6 +208,7 @@
                 "The position and velocity of a moving object", 
                 {'alt0': (v) => `\\mathbf{x}`,
                  'alt1': (v) => `\\mathbf{s}`},
+                'N',
                 'rgba(0, 255, 0, 0.8)'
             ),
             state_transition: new FormulaElement("state-transition-matrix", 
@@ -202,14 +217,26 @@
                 "Velocity matrix",
                 {'alt0': (v) => `\\mathbf{F}`,
                  'alt1': (v) => `\\mathbf{A}`},
+                'NxN',
                 'rgba(255, 0, 0, 0.8)'
             ),
             state_covariance: new FormulaElement("state-covariance", 
                 "State Covariance", 
                 "The covariance of the state estimate", 
                 "The uncertainty in the state estimate",
-                {'all': (v) => `\\mathbf{P}`},
+                {'alt0': (v) => `\\mathbf{P}`,
+                 'alt1': (v) => `\\mathbf{\\Sigma}`},
+                'NxN',
                 'rgba(0, 0, 255, 0.8)'
+            ),
+            discrete_time: new FormulaElement("discrete-time", 
+                "Discrete Time",
+                "The time step of the system", 
+                "The time step of the system",
+                {'alt0': (v) => `k`,
+                 'alt1': (v) => `n`},
+                'scalar',
+                'rgba(255, 255, 0, 0.8)'
             ),
         }
 
@@ -219,7 +246,8 @@
                 "State Model",
                 "The state model of the system", 
                 "The position and velocity of a moving object", 
-                {"all": (v) => `${v.state.str()}_t = ${v.state_transition.str()} ${v.state.str()}_{t-1}`},
+                {"all": (v) => `${v.state.str()}_${v.discrete_time.str()} = ${v.state_transition.str()} ${v.state.str()}_{${v.discrete_time.str()}-1}`},
+                '',
                 'rgba(255, 155, 0, 0.8)',
                 variables
             )
@@ -239,7 +267,7 @@
 
         // Fill in all divs with non-formula text descriptions
         function set_text_descriptions() {
-            for (const object of [...Object.values(formulas), ...Object.values(variables)]) {
+            for (const object of Object.values(variables)) {
                 display_div = document.getElementById(`${object.div_name}-name`);
                 if (display_div) {
                     display_div.textContent = object.display_name;
@@ -248,10 +276,16 @@
                 if (description_div) {
                     description_div.textContent = object.description;
                 }
-
                 example_div = document.getElementById(`${object.div_name}-example`);
                 if (example_div) {
                     example_div.textContent = object.example;
+                }
+                dimension_div = document.getElementById(`${object.div_name}-dimension`);
+                if (dimension_div) {
+                    dimension_div.textContent = object.dimension;
+                }
+                else {
+                    console.log(`${object.div_name}-dimension div not found for ${object.div_name}`);
                 }
             }
         }
