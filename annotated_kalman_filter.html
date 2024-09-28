@@ -55,7 +55,7 @@
         <option value="alt0">Alt0</option>
         <option value="alt1">Alt1</option>
     </select>
-
+    <!-- TODO: create highlight groupings: 'Parametrize a gaussian', 'supplied by user', 'observed', 'estimated'-->
     <table id="variable-description-table">
         <thead>
             <tr>
@@ -94,6 +94,13 @@
                 <td id="discrete-time-description"></td>
                 <td id="discrete-time-example"></td>
                 <td id="discrete-time-dimension"></td>
+            </tr>
+            <tr id="control-input-row">
+                <td id="control-input"></td>
+                <td id="control-input-name"></td>
+                <td id="control-input-description"></td>
+                <td id="control-input-example"></td>
+                <td id="control-input-dimension"></td>
             </tr>
         </tbody>
     </table>
@@ -208,7 +215,7 @@
                 "The position and velocity of a moving object", 
                 {'alt0': (v) => `\\mathbf{x}`,
                  'alt1': (v) => `\\mathbf{s}`},
-                'N',
+                '\\(n_x\\)',
                 'rgba(0, 255, 0, 0.8)'
             ),
             state_transition: new FormulaElement("state-transition-matrix", 
@@ -217,8 +224,17 @@
                 "Velocity matrix",
                 {'alt0': (v) => `\\mathbf{F}`,
                  'alt1': (v) => `\\mathbf{A}`},
-                'NxN',
+                '\\(n_x \\times n_x\\)',
                 'rgba(255, 0, 0, 0.8)'
+            ),
+            control_input: new FormulaElement("control-input", 
+                "Control Input",
+                "The control input to the system", 
+                "The control input to the object",
+                {'alt0': (v) => `\\mathbf{u}`,
+                 'alt1': (v) => `\\mathbf{w}`},
+                '\\(n_u\\)',
+                'rgba(0, 0, 255, 0.8)'
             ),
             state_covariance: new FormulaElement("state-covariance", 
                 "State Covariance", 
@@ -226,7 +242,7 @@
                 "The uncertainty in the state estimate",
                 {'alt0': (v) => `\\mathbf{P}`,
                  'alt1': (v) => `\\mathbf{\\Sigma}`},
-                'NxN',
+                '\\(n_x \\times n_x\\)',
                 'rgba(0, 0, 255, 0.8)'
             ),
             discrete_time: new FormulaElement("discrete-time", 
@@ -235,7 +251,7 @@
                 "The time step of the system",
                 {'alt0': (v) => `k`,
                  'alt1': (v) => `n`},
-                'scalar',
+                '\\(\\text{scalar}\\)',
                 'rgba(255, 255, 0, 0.8)'
             ),
         }
@@ -257,15 +273,20 @@
         function set_naming_convention(convention) {
             let elements_to_typeset = [];
             for (const object of [...Object.values(formulas), ...Object.values(variables)]) {
-                const formulaDiv = document.getElementById(object.div_name);
                 object.update_naming_convention(convention);
-                formulaDiv.innerHTML = object.str("$$");
-                elements_to_typeset.push(formulaDiv);
+                const formulaDiv = document.getElementById(object.div_name);
+                if (formulaDiv) {
+                    formulaDiv.innerHTML = object.str("$$");
+                    elements_to_typeset.push(formulaDiv);
+                }
+                else {
+                    console.log(`set_naming_convention(): no div found for ${object.div_name}`);
+                }
             }
             return elements_to_typeset;
         }
 
-        // Fill in all divs with non-formula text descriptions
+        // Fill in the table with non-formula text descriptions
         function set_text_descriptions() {
             for (const object of Object.values(variables)) {
                 display_div = document.getElementById(`${object.div_name}-name`);
