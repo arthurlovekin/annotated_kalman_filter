@@ -128,19 +128,24 @@
     <p id="update-step-covariance"></p> -->
 
     <script>
-        let currently_hovered_elements = []; // contains {element, color} pairs
+        let currently_hovered_elements = []; // contains {element, color, tooltip} pairs
+        function add_hovered_element(element, color, tooltip) {
+            currently_hovered_elements.push({element, color, tooltip});
+            currently_hovered_elements.sort((a, b) => a.element.offsetWidth - b.element.offsetWidth);
+            highlight_smallest_width_element();
+        }
+
+        function remove_hovered_element(element) {
+            element.style.backgroundColor = '';
+            currently_hovered_elements.shift(); // remove first element since array is sorted
+            highlight_smallest_width_element();
+        }
+
         function highlight_smallest_width_element() {
-            // find the currently_hovered_element with the smallest width
-            let smallest_width = Infinity;
-            let smallest_width_element = null;
-            for (const el_color_tooltip of currently_hovered_elements) {
-                if (el_color_tooltip.element.offsetWidth < smallest_width) {
-                    smallest_width = el_color_tooltip.element.offsetWidth;
-                    smallest_width_element = el_color_tooltip.element;
-                }
-            }
-            for (const el_color_tooltip of currently_hovered_elements) {
-                if (el_color_tooltip.element === smallest_width_element) {
+            for (let i = 0; i < currently_hovered_elements.length; i++) {
+                const el_color_tooltip = currently_hovered_elements[i];
+                if (i === 0) { 
+                    // first element is sorted to have smallest width
                     el_color_tooltip.element.style.backgroundColor = el_color_tooltip.color;
                     // TODO: Padding and margin changes the MathJax formatting which is suboptimal but maybe unnoticeable.
                     el_color_tooltip.element.style.paddingTop = '3px';
@@ -148,11 +153,11 @@
                     el_color_tooltip.element.style.marginTop = '-3px';
                     el_color_tooltip.element.style.marginBottom = '-3px';
                     el_color_tooltip.element.style.borderRadius = '3px';
-                    el_color_tooltip.tooltip.show();
+                    el_color_tooltip.tooltip.enable();
                 }
                 else {
                     el_color_tooltip.element.style.backgroundColor = '';
-                    el_color_tooltip.tooltip.hide();
+                    el_color_tooltip.tooltip.disable();
                 }
             }
         }
@@ -179,11 +184,11 @@
 
             create_tooltip() {
                 this.tooltips = tippy(`[class="${this.div_name}"]`, {
-                    content: this.description,
-                    animation: 'scale',
-                    theme: 'light',
-                    // trigger: 'click',
-                    placement: 'auto',
+                    content: this.display_name,
+                    // animation: 'fade', // fade is default; others need to be imported
+                    // theme: 'light', // not sure what the default is, but themes need to be imported
+                    trigger: 'manual',
+                    placement: 'top',
                 });
             }
 
@@ -193,15 +198,19 @@
                 for (const el of elements) {
                     el.addEventListener('mouseenter', (event) => {
                         const tooltipInstance = this.tooltips.find(tooltip => tooltip.reference === el);
-                        currently_hovered_elements.push({element: el, color: this.color, tooltip: tooltipInstance});
-                        highlight_smallest_width_element();
+                        add_hovered_element(el, this.color, tooltipInstance);
                     });
 
                     el.addEventListener('mouseleave', (event) => {
-                        el.style.backgroundColor = '';
-                        // Remove this element from the currently_hovered_elements array
-                        currently_hovered_elements = currently_hovered_elements.filter(el_color_tooltip => el_color_tooltip.element !== el);
-                        highlight_smallest_width_element();
+                        remove_hovered_element(el);
+                    });
+
+                    el.addEventListener('click', (event) => {
+                        if (currently_hovered_elements.length > 0) {
+                            if (currently_hovered_elements[0].element === el) {
+                                currently_hovered_elements[0].tooltip.show();
+                            }
+                        } 
                     });
                 }
             }
@@ -296,7 +305,7 @@
         const formulas = {
             predict_step_state: new FormulaElement("predict-step-state", 
                 "Predict Step: State Equation",
-                "How the state evolves based on the our dynamical model of the system", 
+                "How the state evolves based on the dynamical model of the system", 
                 "The position and velocity of a moving object", 
                 {"all": (v) => `${v.state.str()}_{${v.discrete_time.str()}+1} = ${v.state_transition.str()} ${v.state.str()}_{${v.discrete_time.str()}} + ${v.control_matrix.str()} ${v.control_input.str()}_${v.discrete_time.str()}`},
                 '',
