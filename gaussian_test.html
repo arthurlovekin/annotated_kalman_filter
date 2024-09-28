@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive 3D Gaussian Distribution with Plotly.js</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        #plot {
+            width: 80vw;
+            height: 70vh;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .controls label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="plot"></div>
+
+<div class="controls">
+    <label>
+        Mean X (µ<sub>x</sub>):
+        <input type="range" id="mean-x" min="-2" max="2" value="0" step="0.1">
+        <span id="mean-x-val">0</span>
+    </label>
+    <label>
+        Mean Y (µ<sub>y</sub>):
+        <input type="range" id="mean-y" min="-2" max="2" value="0" step="0.1">
+        <span id="mean-y-val">0</span>
+    </label>
+    <label>
+        Covariance σ<sub>xx</sub>:
+        <input type="range" id="sigma-xx" min="0.0" max="2" value="1" step="0.01">
+        <span id="sigma-xx-val">1</span>
+    </label>
+    <label>
+        Covariance σ<sub>xy</sub>:
+        <input type="range" id="sigma-xy" min="-1.0" max="1.0" value="0" step="0.01">
+        <span id="sigma-xy-val">0</span>
+    </label>
+    <label>
+        Covariance σ<sub>yy</sub>:
+        <input type="range" id="sigma-yy" min="0.0" max="2" value="1" step="0.01">
+        <span id="sigma-yy-val">1</span>
+    </label>
+</div>
+
+<script>
+    function linspace(start, end, num=100) {
+        const step = (end - start) / (num - 1);
+        return Array.from({length: num}, (_, i) => start + i * step);
+    }
+
+    function generateGaussianSurface(mu, sigma, x, y) {
+        const z = x.map(xi => y.map(yi => {
+            const exponent = -(sigma[0][0]*(xi - mu[0]) ** 2 + 2*sigma[0][1]*(xi - mu[0])*(yi - mu[1]) + sigma[1][1]*(yi - mu[1]) ** 2);
+            return Math.exp(exponent) / ((2 * Math.PI)**2 * (sigma[0][0] * sigma[1][1] - sigma[0][1]*sigma[1][0]));
+        }));
+        return z;
+    }
+    // Initial parameters
+    let mu = [0, 0];
+    let sigma = [[1, 0], [0, 1]];
+
+    const n_points = 41;
+    const x = linspace(-3, 3, n_points);
+    const y = linspace(-3, 3, n_points);
+    let z = generateGaussianSurface(mu, sigma, x, y);
+
+    let trace = {
+        x: x,
+        y: y,
+        z: z,
+        type: 'surface'
+    }
+
+    const layout = {
+        title: 'Interactive 3D Gaussian Distribution',
+        scene: {
+            xaxis: { title: 'X' },
+            yaxis: { title: 'Y' },
+            zaxis: { title: 'Z' },
+            camera: {
+                eye: { x: 0, y: 0, z: 2 },
+                up: { x: 0, y: 1, z: 0 },
+                center: { x: 0, y: 0, z: 0 }
+            }
+        },
+        autosize: true,
+    }
+
+    function updatePlot() {
+        z = generateGaussianSurface(mu, sigma, x, y);
+        trace = {
+            x: x,
+            y: y,
+            z: z,
+            type: 'surface'
+        }
+        Plotly.react('plot', [trace], layout);
+    }
+
+    function isPositiveSemiDefinite(matrix) {
+        // a 2x2 matrix A is symmetric positive definite if and only if A is symmetric, trace(A) > 0 and det(A) > 0
+        const trace = matrix[0][0] + matrix[1][1];
+        const det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+        return trace > 0 && det > 0;
+    }
+
+    // Initial plot
+    updatePlot();
+    
+    // Attach event listeners to the sliders
+    document.getElementById('mean-x').addEventListener('input', function () {
+        mu[0] = parseFloat(this.value);
+        document.getElementById('mean-x-val').textContent = mu[0].toFixed(2);
+        updatePlot();
+    });
+
+    document.getElementById('mean-y').addEventListener('input', function () {
+        mu[1] = parseFloat(this.value);
+        document.getElementById('mean-y-val').textContent = mu[1].toFixed(2);
+        updatePlot();
+    });
+
+    document.getElementById('sigma-xx').addEventListener('input', function () {
+        const newValue = parseFloat(this.value);
+        const tempSigma = [...sigma.map(row => [...row])];
+        tempSigma[0][0] = newValue;
+        if (isPositiveSemiDefinite(tempSigma)) {
+            sigma[0][0] = newValue;
+            document.getElementById('sigma-xx-val').textContent = sigma[0][0].toFixed(2);
+            updatePlot();
+        } else {
+            this.value = sigma[0][0];
+        }
+    });
+
+    document.getElementById('sigma-yy').addEventListener('input', function () {
+        const newValue = parseFloat(this.value);
+        const tempSigma = [...sigma.map(row => [...row])];
+        tempSigma[1][1] = newValue;
+        if (isPositiveSemiDefinite(tempSigma)) {
+            sigma[1][1] = newValue;
+            document.getElementById('sigma-yy-val').textContent = sigma[1][1].toFixed(2);
+            updatePlot();
+        } else {
+            this.value = sigma[1][1];
+        }
+    });
+
+    document.getElementById('sigma-xy').addEventListener('input', function () {
+        const newValue = parseFloat(this.value);
+        const tempSigma = [...sigma.map(row => [...row])];
+        tempSigma[0][1] = newValue;
+        tempSigma[1][0] = newValue;
+        if (isPositiveSemiDefinite(tempSigma)) {
+            sigma[0][1] = newValue;
+            sigma[1][0] = newValue; // Ensure symmetry
+            document.getElementById('sigma-xy-val').textContent = sigma[0][1].toFixed(2);
+            updatePlot();
+        } else {
+            this.value = sigma[0][1];
+        }
+    });
+</script>
+
+</body>
+</html>
