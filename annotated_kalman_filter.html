@@ -74,26 +74,12 @@
                 <td id="state-example"></td>
                 <td id="state-dimension"></td>
             </tr>
-            <tr id="state-transition-matrix-row">
-                <td id="state-transition-matrix"></td>
-                <td id="state-transition-matrix-name"></td>
-                <td id="state-transition-matrix-description"></td>
-                <td id="state-transition-matrix-example"></td>
-                <td id="state-transition-matrix-dimension"></td>
-            </tr>
             <tr id="state-covariance-row">
                 <td id="state-covariance"></td>
                 <td id="state-covariance-name"></td>
                 <td id="state-covariance-description"></td>
                 <td id="state-covariance-example"></td>
                 <td id="state-covariance-dimension"></td>
-            </tr>
-            <tr id="discrete-time-row">
-                <td id="discrete-time"></td>
-                <td id="discrete-time-name"></td>
-                <td id="discrete-time-description"></td>
-                <td id="discrete-time-example"></td>
-                <td id="discrete-time-dimension"></td>
             </tr>
             <tr id="control-input-row">
                 <td id="control-input"></td>
@@ -102,12 +88,44 @@
                 <td id="control-input-example"></td>
                 <td id="control-input-dimension"></td>
             </tr>
+            <tr id="state-transition-matrix-row">
+                <td id="state-transition-matrix"></td>
+                <td id="state-transition-matrix-name"></td>
+                <td id="state-transition-matrix-description"></td>
+                <td id="state-transition-matrix-example"></td>
+                <td id="state-transition-matrix-dimension"></td>
+            </tr>
+            <tr id="control-matrix-row">
+                <td id="control-matrix"></td>
+                <td id="control-matrix-name"></td>
+                <td id="control-matrix-description"></td>
+                <td id="control-matrix-example"></td>
+                <td id="control-matrix-dimension"></td>
+            </tr>
+            <tr id="process-noise-covariance-row">
+                <td id="process-noise-covariance"></td>
+                <td id="process-noise-covariance-name"></td>
+                <td id="process-noise-covariance-description"></td>
+                <td id="process-noise-covariance-example"></td>
+                <td id="process-noise-covariance-dimension"></td>
+            </tr>
+            <tr id="discrete-time-row">
+                <td id="discrete-time"></td>
+                <td id="discrete-time-name"></td>
+                <td id="discrete-time-description"></td>
+                <td id="discrete-time-example"></td>
+                <td id="discrete-time-dimension"></td>
+            </tr>
         </tbody>
     </table>
 
     <h1>The Annotated Kalman Filter</h1>
-    <p id="state-model"></p>
-    <!-- <p id="measurement-model"></p> -->
+    <h2>Predict Step</h2>
+    <p id="predict-step-state"></p>
+    <p id="predict-step-covariance"></p>
+    <h2>Update Step</h2>
+    <!-- <p id="update-step-state"></p>
+    <p id="update-step-covariance"></p> -->
 
     <script>
         let currently_hovered_elements = []; // contains {element, color} pairs
@@ -148,9 +166,9 @@
                         dimension,
                         highlight_color = 'rgba(255, 255, 0, 0.8)',
                         child_elements = {}) {
-                this.div_name = div_name; // eg. state-model
-                this.display_name = display_name; // eg. State Model Equation
-                this.description = description; 
+                this.div_name = div_name; // eg. predict-step-state
+                this.display_name = display_name; // What IS it? Name + matrix/vector/equation
+                this.description = description;  // What does it variable DO?
                 this.example = example;
                 this.convention_to_latex = convention_to_latex; // eg. alt0 (affects how string is rendered)
                 this.convention = Object.keys(convention_to_latex)[0];
@@ -210,8 +228,8 @@
 
         const variables = {
             state: new FormulaElement("state", 
-                "State",
-                "The state of the system", 
+                "State Vector",
+                "Represents the estimated state of the system", 
                 "The position and velocity of a moving object", 
                 {'alt0': (v) => `\\mathbf{x}`,
                  'alt1': (v) => `\\mathbf{s}`},
@@ -220,7 +238,7 @@
             ),
             state_transition: new FormulaElement("state-transition-matrix", 
                 "State Transition Matrix", 
-                "The matrix that transforms the state estimate to the next state", 
+                "Transforms the current state estimate to the next state estimate", 
                 "Velocity matrix",
                 {'alt0': (v) => `\\mathbf{F}`,
                  'alt1': (v) => `\\mathbf{A}`},
@@ -228,17 +246,35 @@
                 'rgba(255, 0, 0, 0.8)'
             ),
             control_input: new FormulaElement("control-input", 
-                "Control Input",
-                "The control input to the system", 
+                "Control Input Vector",
+                "Contains the user-supplied input to the system", 
                 "The control input to the object",
                 {'alt0': (v) => `\\mathbf{u}`,
                  'alt1': (v) => `\\mathbf{w}`},
                 '\\(n_u\\)',
                 'rgba(0, 0, 255, 0.8)'
             ),
+            control_matrix: new FormulaElement("control-matrix", 
+                "Control Matrix", 
+                "Transforms the control input to the space of the state", 
+                "The matrix that transforms the control input to the state",
+                {'alt0': (v) => `\\mathbf{B}`,
+                 'alt1': (v) => `\\mathbf{W}`},
+                '\\(n_x \\times n_u\\)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            process_noise_covariance: new FormulaElement("process-noise-covariance", 
+                "Process Noise Covariance Matrix", 
+                "Describes the amount of uncertainty in the dynamical model of the system", 
+                "The covariance of the process noise",
+                {'alt0': (v) => `\\mathbf{Q}`,
+                 'alt1': (v) => `\\mathbf{W}`},
+                '\\(n_x \\times n_x\\)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
             state_covariance: new FormulaElement("state-covariance", 
-                "State Covariance", 
-                "The covariance of the state estimate", 
+                "State Covariance Matrix", 
+                "Describes the amount of uncertainty in the state estimate", 
                 "The uncertainty in the state estimate",
                 {'alt0': (v) => `\\mathbf{P}`,
                  'alt1': (v) => `\\mathbf{\\Sigma}`},
@@ -247,7 +283,7 @@
             ),
             discrete_time: new FormulaElement("discrete-time", 
                 "Discrete Time",
-                "The time step of the system", 
+                "Indicates a discrete moment in time", 
                 "The time step of the system",
                 {'alt0': (v) => `k`,
                  'alt1': (v) => `n`},
@@ -258,15 +294,24 @@
 
         // All of the formulas that should be wrapped in $$ and typeset
         const formulas = {
-            state_model: new FormulaElement("state-model", 
-                "State Model",
-                "The state model of the system", 
+            predict_step_state: new FormulaElement("predict-step-state", 
+                "Predict Step: State Equation",
+                "How the state evolves based on the our dynamical model of the system", 
                 "The position and velocity of a moving object", 
-                {"all": (v) => `${v.state.str()}_${v.discrete_time.str()} = ${v.state_transition.str()} ${v.state.str()}_{${v.discrete_time.str()}-1}`},
+                {"all": (v) => `${v.state.str()}_{${v.discrete_time.str()}+1} = ${v.state_transition.str()} ${v.state.str()}_{${v.discrete_time.str()}} + ${v.control_matrix.str()} ${v.control_input.str()}_${v.discrete_time.str()}`},
                 '',
                 'rgba(255, 155, 0, 0.8)',
                 variables
-            )
+            ),
+            predict_step_covariance: new FormulaElement("predict-step-covariance", 
+                "Predict Step: Covariance Equation", 
+                "How the uncertainty in the state estimate evolves based on our dynamical model of the system", 
+                "The uncertainty in the position and velocity of a moving object", 
+                {"all": (v) => `${v.state_covariance.str()}_{${v.discrete_time.str()}+1} = ${v.state_transition.str()} ${v.state_covariance.str()}_{${v.discrete_time.str()}} ${v.state_transition.str()}^T + ${v.process_noise_covariance.str()}`},
+                '',
+                'rgba(255, 155, 0, 0.8)',
+                variables
+            ),
         }
 
         // Fill in all divs with formulas according to the naming convention
