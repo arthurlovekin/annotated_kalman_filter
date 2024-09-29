@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive 3D Gaussian Distribution with Plotly.js</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        #plot {
+            width: 80vw;
+            height: 70vh;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .controls label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="plot"></div>
+
+<div class="controls">
+    <label>
+        Mean X (µ<sub>x</sub>):
+        <input type="range" id="predict-step-mean-x" min="-2" max="2" value="0" step="0.1">
+        <span id="predict-step-mean-x-val">0</span>
+    </label>
+    <label>
+        Mean Y (µ<sub>y</sub>):
+        <input type="range" id="predict-step-mean-y" min="-2" max="2" value="0" step="0.1">
+        <span id="predict-step-mean-y-val">0</span>
+    </label>
+    <label>
+        Covariance σ<sub>xx</sub>:
+        <input type="range" id="predict-step-sigma-xx" min="0.0" max="2" value="1" step="0.01">
+        <span id="predict-step-sigma-xx-val">1</span>
+    </label>
+    <label>
+        Covariance σ<sub>xy</sub>:
+        <input type="range" id="predict-step-sigma-xy" min="-1.0" max="1.0" value="0" step="0.01">
+        <span id="predict-step-sigma-xy-val">0</span>
+    </label>
+    <label>
+        Covariance σ<sub>yy</sub>:
+        <input type="range" id="predict-step-sigma-yy" min="0.0" max="2" value="1" step="0.01">
+        <span id="predict-step-sigma-yy-val">1</span>
+    </label>
+    <label>
+        Mean X (µ<sub>x</sub>) Update:
+        <input type="range" id="update-step-mean-x" min="-2" max="2" value="0" step="0.1">
+        <span id="update-step-mean-x-val">0</span>
+    </label>
+    <label>
+        Mean Y (µ<sub>y</sub>) Update:
+        <input type="range" id="update-step-mean-y" min="-2" max="2" value="0" step="0.1">
+        <span id="update-step-mean-y-val">0</span>
+    </label>
+    <label>
+        Covariance σ<sub>xx</sub> Update:
+        <input type="range" id="update-step-sigma-xx" min="0.0" max="2" value="1" step="0.01">
+        <span id="update-step-sigma-xx-val">1</span>
+    </label>
+    <label>
+        Covariance σ<sub>xy</sub> Update:
+        <input type="range" id="update-step-sigma-xy" min="-1.0" max="1.0" value="0" step="0.01">
+        <span id="update-step-sigma-xy-val">0</span>
+    </label>
+    <label>
+        Covariance σ<sub>yy</sub> Update:
+        <input type="range" id="update-step-sigma-yy" min="0.0" max="2" value="1" step="0.01">
+        <span id="update-step-sigma-yy-val">1</span>
+    </label>
+</div>
+
+<script>
+    // TODO: Do a contour plot instead of a surface plot
+    class Gaussian2d {
+        constructor(div_name, plot, mu, sigma, x_start=-3, x_end=3, y_start=-3, y_end=3, n_points=41) {
+            this.div_name = div_name;
+            this.plot = plot;
+            this.mu = mu;
+            this.sigma = sigma;
+            this.x = this.linspace(x_start, x_end, n_points);
+            this.y = this.linspace(y_start, y_end, n_points);
+            this.z = this.generateSurface(this.x, this.y);
+            this.trace = this.getPlotTrace(); //TODO: do I need a getter if I can just access this.trace?
+            this.attachEventListeners();
+        }
+
+        getPlotTrace() {
+            return {
+                x: this.x,
+                y: this.y,
+                z: this.z,
+                type: 'surface',
+                opacity: 0.9
+            }
+        }
+        
+        linspace(start, end, num=100) {
+            const step = (end - start) / (num - 1);
+                return Array.from({length: num}, (_, i) => start + i * step);
+        }
+
+        isPositiveSemiDefinite(matrix) {
+            // a 2x2 matrix A is symmetric positive definite if and only if A is symmetric, trace(A) > 0 and det(A) > 0
+            const trace = matrix[0][0] + matrix[1][1];
+            const det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+            return trace > 0 && det > 0;
+        }
+    
+        generateSurface(x, y) {
+            const z = x.map(xi => y.map(yi => {
+                const exponent = -(this.sigma[0][0]*(xi - this.mu[0]) ** 2 + 2*this.sigma[0][1]*(xi - this.mu[0])*(yi - this.mu[1]) + this.sigma[1][1]*(yi - this.mu[1]) ** 2);
+                return Math.exp(exponent) / Math.sqrt((2 * Math.PI)**2 * (this.sigma[0][0] * this.sigma[1][1] - this.sigma[0][1]*this.sigma[1][0]));
+            }));
+            return z;
+        }
+
+        updatePlot() {
+            this.z = this.generateSurface(this.x, this.y);
+            this.trace.z = this.z;
+            Plotly.update(this.plot, {z: [this.z]}, {}, [this.trace.index]);
+        }
+
+        attachEventListeners() {
+            const updateValue = (id, index) => {
+                const element = document.getElementById(`${this.div_name}-${id}`);
+                element.addEventListener('input', () => {
+                    const newValue = parseFloat(element.value);
+                    if (id.startsWith('mean')) {
+                        this.mu[index] = newValue;
+                    } else {
+                        const tempSigma = this.sigma.map(row => [...row]);
+                        tempSigma[index[0]][index[1]] = newValue;
+                        if (this.isPositiveSemiDefinite(tempSigma)) {
+                            this.sigma[index[0]][index[1]] = newValue;
+                            this.sigma[index[1]][index[0]] = newValue; // Ensure symmetry for sigma-xy
+                        } else {
+                            element.value = this.sigma[index[0]][index[1]];
+                            return;
+                        }
+                    }
+                    document.getElementById(`${this.div_name}-${id}-val`).textContent = newValue.toFixed(2);
+                    this.updatePlot();
+                });
+            };
+
+            updateValue('mean-x', 0);
+            updateValue('mean-y', 1);
+            updateValue('sigma-xx', [0, 0]);
+            updateValue('sigma-yy', [1, 1]);
+            updateValue('sigma-xy', [0, 1]);
+        }
+    }
+
+    // Initial parameters
+    let mu1 = [0, 0];
+    let sigma1 = [[1, 0], [0, 1]];
+    let mu2 = [1, 1];
+    let sigma2 = [[1, 0], [0, 1]];
+    
+    const layout = {
+        title: 'Interactive 3D Gaussian Distribution',
+        scene: {
+            xaxis: { title: 'X' },
+            yaxis: { title: 'Y' },
+            zaxis: { title: 'Z', range: [0, 0.2] },  // Set constant z-axis scale
+            camera: {
+                eye: { x: 0, y: 0, z: 2 },
+                up: { x: 0, y: 1, z: 0 },
+                center: { x: 0, y: 0, z: 0 }
+            }
+        },
+        autosize: true,
+        coloraxis: {showscale: false}  // remove the color bar legend
+    };
+
+    // Create plot and Gaussian objects
+    Plotly.newPlot('plot', [], layout).then(function(plot) {
+        const gaussian1 = new Gaussian2d('predict-step', plot, mu1, sigma1);
+        const gaussian2 = new Gaussian2d('update-step', plot, mu2, sigma2);
+
+        Plotly.addTraces(plot, [gaussian1.trace, gaussian2.trace]).then(function(plot) {
+            gaussian1.trace.index = 0;
+            gaussian2.trace.index = 1;
+        });
+    });
+
+</script>
+
+</body>
+</html>
