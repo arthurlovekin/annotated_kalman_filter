@@ -128,7 +128,7 @@
         return [a, b, theta];
     }
 
-    function generateEllipseCurve(mu, sigma, numPoints = 100) {
+    function generateEllipseCurve(mu, sigma, scale=1, numPoints = 100) {
         if (!isPositiveSemiDefinite(sigma)) {
             throw new Error("Invalid covariance matrix: eigenvalues must be non-negative to be positive semi-definite");
         }
@@ -136,25 +136,73 @@
         const t = linspace(0, 2 * Math.PI, numPoints);
         
         const ellipseX = t.map(angle => 
-            mu[0] + a * Math.cos(angle) * Math.cos(theta) - b * Math.sin(angle) * Math.sin(theta)
+            mu[0] + scale * a * Math.cos(angle) * Math.cos(theta) - scale * b * Math.sin(angle) * Math.sin(theta)
         );
         const ellipseY = t.map(angle => 
-            mu[1] + a * Math.cos(angle) * Math.sin(theta) + b * Math.sin(angle) * Math.cos(theta)
+            mu[1] + scale * a * Math.cos(angle) * Math.sin(theta) + scale * b * Math.sin(angle) * Math.cos(theta)
         );
 
         return [ellipseX, ellipseY];
     }
 
-    function plotGaussianEllipticalContours(mu, sigma) {
-        const [ellipseX, ellipseY] = generateEllipseCurve(mu, sigma);
-        return {
-            x: ellipseX,
-            y: ellipseY,
-            type: 'scatter',
-            mode: 'lines',
-            line: { color: 'blue' },
-            name: 'Gaussian Contour'
-        };
+    function generateGaussianEllipticalContours(mu, sigma, color='blue') {
+        const scales = [1,1.514987,2,2.48509,3];
+        let shades = [];
+        if (color == 'blue') {
+            shades = [
+                'rgb(0, 0, 255)',      // Darkest blue
+                'rgb(51, 102, 255)',
+                'rgb(102, 153, 255)',
+                'rgb(153, 204, 255)',
+                'rgb(204, 229, 255)'   // Lightest blue
+            ];
+        }
+        else if (color == 'red') {
+            shades = [
+                'rgb(255, 0, 0)',
+                'rgb(255, 51, 51)',
+                'rgb(255, 102, 102)',
+                'rgb(255, 153, 153)',
+                'rgb(255, 204, 204)'
+            ];
+        }
+        else if (color == 'green') {
+            shades = [
+                'rgb(0, 255, 0)',
+                'rgb(51, 255, 51)',
+                'rgb(102, 255, 102)',
+                'rgb(153, 255, 153)',
+                'rgb(204, 255, 204)'
+            ];
+        }
+        else {
+            // shades of gray
+            shades = [
+                'rgb(0, 0, 0)',
+                'rgb(51, 51, 51)',
+                'rgb(102, 102, 102)',
+                'rgb(153, 153, 153)',
+                'rgb(204, 204, 204)'
+            ];
+        }
+        traces = [];
+        for (let i = 0; i < scales.length; i++) {
+            const scale = scales[i];
+            const [ellipseX, ellipseY] = generateEllipseCurve(mu, sigma, scale);
+            const confidence_interval = 1-Math.exp(-1/2*scale**2);
+            const description = `${scale.toFixed(2)}σ: ${(confidence_interval*100).toFixed(2)}%`
+            traces.push({
+                x: ellipseX,
+                y: ellipseY,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: shades[i] },
+                name: description,
+                hovertemplate: description,
+                showlegend: false
+            });
+        }
+        return traces;
     }
 
     function updatePlot(mu, sigma) {
@@ -170,10 +218,9 @@
             }
         };
 
-        const trace = plotGaussianEllipticalContours(mu, sigma);
-        Plotly.react('plot', [trace], layout);
+        const traces = generateGaussianEllipticalContours(mu, sigma);
+        Plotly.react('plot', traces, layout);
     }
-
 
     // Initial parameters
     let mu = [0, 0];
