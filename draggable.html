@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="draggable-number.js"></script>
+    <title>Draggable Number Component</title>
+</head>
+<body>
+    <div id="container"></div>
+    <table>
+        <tr>
+            <td>
+                <draggable-number></draggable-number>
+            </td>
+            <td>
+                <draggable-number></draggable-number>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <draggable-number></draggable-number>
+            </td>
+            <td>
+                <draggable-number></draggable-number>
+            </td>
+        </tr>
+    </table>
+
+    <script>
+
+    ///////
+    // Example usage: Filling in HTML purely with Javascript
+    // The other way to do it is to directly write the parameters in the HTML file (see HTML above)
+    const container = document.getElementById('container');
+    for (let i = 0; i < 4; i++) {
+        const draggable = document.createElement('draggable-number');
+
+        draggable.setAttribute('min', '0');
+        draggable.setAttribute('max', '10');
+        draggable.setAttribute('step', '0.01');
+        draggable.setAttribute('value', '1');
+        container.appendChild(draggable);
+
+        // Example of listening to value changes
+        draggable.addEventListener('change', (event) => {
+            console.log(`Draggable ${i} value changed to: ${event.detail.value}`);
+        });
+    }
+    </script>
+</body>
+</html>
