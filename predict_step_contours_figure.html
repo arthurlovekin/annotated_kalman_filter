@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive 3D Gaussian Distribution with Plotly.js</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        #plot {
+            width: 80vw;
+            height: 70vh;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .controls label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="plot"></div>
+
+<div id="old-state-controls" class="controls">
+    <label>
+        Old State Mean X (µ<sub>x</sub>):
+        <input type="range" id="old-state-mean-x" min="-2" max="2" value="0" step="0.1">
+        <span id="old-state-mean-x-val">0</span>
+    </label>
+    <label>
+        Old State Mean Y (µ<sub>y</sub>):
+        <input type="range" id="old-state-mean-y" min="-2" max="2" value="0" step="0.1">
+        <span id="old-state-mean-y-val">0</span>
+    </label>
+    <label>
+        Old State Covariance σ<sub>xx</sub>:
+        <input type="range" id="old-state-sigma-xx" min="0.0" max="2" value="1" step="0.01">
+        <span id="old-state-sigma-xx-val">1</span>
+    </label>
+    <label>
+        Old State Covariance σ<sub>xy</sub>:
+        <input type="range" id="old-state-sigma-xy" min="-3.0" max="3.0" value="0" step="0.01">
+        <span id="old-state-sigma-xy-val">0</span>
+    </label>
+    <label>
+        Old State Covariance σ<sub>yy</sub>:
+        <input type="range" id="old-state-sigma-yy" min="0.0" max="2" value="1" step="0.01">
+        <span id="old-state-sigma-yy-val">1</span>
+    </label>
+</div>
+
+<div id="new-state-controls" class="controls">
+    <label>
+        New State Mean X (µ<sub>x</sub>):
+        <input type="range" id="new-state-mean-x" min="-2" max="2" value="0" step="0.1">
+        <span id="new-state-mean-x-val">0</span>
+    </label>
+    <label>
+        New State Mean Y (µ<sub>y</sub>):
+        <input type="range" id="new-state-mean-y" min="-2" max="2" value="0" step="0.1">
+        <span id="new-state-mean-y-val">0</span>
+    </label>
+    <label>
+        New State Covariance σ<sub>xx</sub>:
+        <input type="range" id="new-state-sigma-xx" min="0.0" max="2" value="1" step="0.01">
+        <span id="new-state-sigma-xx-val">1</span>
+    </label>
+    <label>
+        New State Covariance σ<sub>xy</sub>:
+        <input type="range" id="new-state-sigma-xy" min="-3.0" max="3.0" value="0" step="0.01">
+        <span id="new-state-sigma-xy-val">0</span>
+    </label>
+    <label>
+        New State Covariance σ<sub>yy</sub>:
+        <input type="range" id="new-state-sigma-yy" min="0.0" max="2" value="1" step="0.01">
+        <span id="new-state-sigma-yy-val">1</span>
+    </label>
+</div>
+
+<script>
+    function linspace(start, end, num=100) {
+        const step = (end - start) / (num - 1);
+        return Array.from({length: num}, (_, i) => start + i * step);
+    }
+
+    function eigenvalues2x2(matrix) {
+        // Fun fact: if you derive the eigenvalues of a general 2x2 matrix,
+        // you can write it in terms of the trace and determinant
+        const trace = matrix[0][0] + matrix[1][1];
+        const det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+        const val1 = (trace + Math.sqrt(trace**2 - 4*det)) / 2;
+        const val2 = (trace - Math.sqrt(trace**2 - 4*det)) / 2;
+
+        return [val1, val2]; // not sorted
+    }
+
+    function isPositiveSemiDefinite(matrix) {
+        const eig = eigenvalues2x2(matrix);
+        return eig[0] >= 0 && eig[1] >= 0;
+    }
+
+    function getEllipseParams(matrix) {
+        const eigs = eigenvalues2x2(matrix);
+        const a = Math.sqrt(eigs[0]);
+        const b = Math.sqrt(eigs[1]);
+
+        // theta is the angle between [1,0] and the eigenvector that is furthest from [1,0] 
+        // Can't simply use the eigenvector with the greatest eigenvalue because that would
+        // cause the ellipse to jump 90 degrees as you move sigma_xx from being 
+        // more than sigma_yy to less than sigma_yy
+        let theta;
+        if (Math.abs(matrix[0][1]) < Number.EPSILON) {
+            // Don't pass a denominator of 0 to atan2
+            if (matrix[0][0] >= matrix[1][1]) {
+                theta = 0;
+            }
+            else {
+                theta = Math.PI/2;
+            }
+        }
+        else {
+            theta = Math.max(Math.atan2(eigs[0] - matrix[0][0], matrix[1][0]),
+                             Math.atan2(eigs[1] - matrix[0][0], matrix[1][0]));
+        }
+
+        return [a, b, theta];
+    }
+
+    function generateEllipseCurve(mu, sigma, scale=1, numPoints = 100) {
+        if (!isPositiveSemiDefinite(sigma)) {
+            throw new Error("Invalid covariance matrix: eigenvalues must be non-negative to be positive semi-definite");
+        }
+        const [a, b, theta] = getEllipseParams(sigma);
+        const t = linspace(0, 2 * Math.PI, numPoints);
+        
+        const ellipseX = t.map(angle => 
+            mu[0] + scale * a * Math.cos(angle) * Math.cos(theta) - scale * b * Math.sin(angle) * Math.sin(theta)
+        );
+        const ellipseY = t.map(angle => 
+            mu[1] + scale * a * Math.cos(angle) * Math.sin(theta) + scale * b * Math.sin(angle) * Math.cos(theta)
+        );
+
+        return [ellipseX, ellipseY];
+    }
+
+    function generateGaussianEllipticalContours(mu, sigma, color='blue') {
+        const scales = [1,1.514987,2,2.48509,3];
+        let shades = [];
+        if (color == 'blue') {
+            shades = [
+                'rgb(0, 0, 255)',      // Darkest blue
+                'rgb(51, 102, 255)',
+                'rgb(102, 153, 255)',
+                'rgb(153, 204, 255)',
+                'rgb(204, 229, 255)'   // Lightest blue
+            ];
+        }
+        else if (color == 'red') {
+            shades = [
+                'rgb(255, 0, 0)',
+                'rgb(255, 51, 51)',
+                'rgb(255, 102, 102)',
+                'rgb(255, 153, 153)',
+                'rgb(255, 204, 204)'
+            ];
+        }
+        else if (color == 'green') {
+            shades = [
+                'rgb(0, 255, 0)',
+                'rgb(51, 255, 51)',
+                'rgb(102, 255, 102)',
+                'rgb(153, 255, 153)',
+                'rgb(204, 255, 204)'
+            ];
+        }
+        else {
+            // shades of gray
+            shades = [
+                'rgb(0, 0, 0)',
+                'rgb(51, 51, 51)',
+                'rgb(102, 102, 102)',
+                'rgb(153, 153, 153)',
+                'rgb(204, 204, 204)'
+            ];
+        }
+        traces = [];
+        for (let i = 0; i < scales.length; i++) {
+            const scale = scales[i];
+            const [ellipseX, ellipseY] = generateEllipseCurve(mu, sigma, scale);
+            const confidence_interval = 1-Math.exp(-1/2*scale**2);
+            const description = `${scale.toFixed(2)}σ: ${(confidence_interval*100).toFixed(2)}%`;
+            traces.push({
+                x: ellipseX,
+                y: ellipseY,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: shades[i] },
+                name: description,
+                hovertemplate: description,
+                showlegend: false
+            });
+        }
+        return traces;
+    }
+
+    function updatePlot(means, sigmas) {
+        const layout = {
+            title: 'Gaussian Contour Plot',
+            xaxis: { 
+                title: 'X',
+                range: [-3, 3]
+            },
+            yaxis: { 
+                title: 'Y',
+                range: [-3, 3]
+            }
+        };
+
+        let traces_old = generateGaussianEllipticalContours(means[0], sigmas[0], 'blue');
+        let traces_new = generateGaussianEllipticalContours(means[1], sigmas[1], 'red');
+        let traces = traces_old.concat(traces_new);
+        Plotly.react('plot', traces, layout);
+    }
+
+    // Initial parameters
+    let old_state_mu = [0, 0];
+    let old_state_sigma = [[1, 0], [0, 1]];
+    let new_state_mu = [1, 0];
+    let new_state_sigma = [[1, 0], [0, 1]];
+
+    // Initial plot
+    updatePlot([old_state_mu, new_state_mu], [old_state_sigma, new_state_sigma]);
+
+    function addMeanEventListeners(div_name, mean) {
+        function addMeanEventListener(div_name, index) {
+            document.getElementById(`${div_name}`).addEventListener('input', function () {
+                mean[index] = parseFloat(this.value);
+                document.getElementById(`${div_name}`).textContent = mean[index].toFixed(2);
+                updatePlot([old_state_mu, new_state_mu], [old_state_sigma, new_state_sigma]);
+            });
+        }
+        addMeanEventListener(`${div_name}-mean-x`, 0);
+        addMeanEventListener(`${div_name}-mean-y`, 1);
+    }
+    addMeanEventListeners('old-state', old_state_mu);
+    addMeanEventListeners('new-state', new_state_mu);
+
+    function addSigmaEventListeners(div_name, sigma) {
+        function addSigmaEventListener(div_name, index1, index2) {
+            document.getElementById(`${div_name}`).addEventListener('input', function () {
+                const newValue = parseFloat(this.value);
+                const tempSigma = [...sigma.map(row => [...row])];
+                tempSigma[index1][index2] = newValue;
+                tempSigma[index2][index1] = newValue;
+                if (isPositiveSemiDefinite(tempSigma)) {
+                    sigma[index1][index2] = newValue;
+                    sigma[index2][index1] = newValue;
+                    document.getElementById(`${div_name}`).textContent = sigma[index1][index2].toFixed(2);
+                    updatePlot([old_state_mu, new_state_mu], [old_state_sigma, new_state_sigma]);
+                }
+                else {
+                    this.value = sigma[index1][index2];
+                }
+            });
+        }
+        addSigmaEventListener(`${div_name}-sigma-xx`, 0, 0);
+        addSigmaEventListener(`${div_name}-sigma-xy`, 0, 1);
+        addSigmaEventListener(`${div_name}-sigma-yy`, 1, 1);
+    }
+    addSigmaEventListeners('old-state', old_state_sigma);
+    addSigmaEventListeners('new-state', new_state_sigma);
+
+</script>
+
+</body>
+</html>
+
+<!-- Note: Instead of using Plotly, I think it should be possible to simply make 
+ svg ellipses and then show the svg in a <svg> tag. I think this is how it's done
+    here: https://distill.pub/2019/visual-exploration-gaussian-processes/ -->
