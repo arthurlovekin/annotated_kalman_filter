@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive 3D Gaussian Distribution with Plotly.js</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src=https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -190,7 +189,7 @@
             const scale = scales[i];
             const [ellipseX, ellipseY] = generateEllipseCurve(mu, sigma, scale);
             const confidence_interval = 1-Math.exp(-1/2*scale**2);
-            const description = `${scale.toFixed(2)}σ: ${(confidence_interval*100).toFixed(2)}%`
+            const description = `${scale.toFixed(2)}σ: ${(confidence_interval*100).toFixed(2)}%`;
             traces.push({
                 x: ellipseX,
                 y: ellipseY,
@@ -286,3 +285,7 @@
 
 </body>
 </html>
+
+<!-- Note: Instead of using Plotly, I think it should be possible to simply make 
+ svg ellipses and then show the svg in a <svg> tag. I think this is how it's done
+    here: https://distill.pub/2019/visual-exploration-gaussian-processes/ -->
