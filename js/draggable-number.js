@@ -17,8 +17,8 @@ class DraggableNumber extends HTMLElement {
                 }
                 .draggable-container {
                     position: relative;
-                    width: 60px;
-                    height: 30px;
+                    width: 6ch; /* Approximates the width of "10.00" */
+                    height: 1.5em;
                     text-align: center;
                 }
                 .draggable-txt {
@@ -46,22 +46,35 @@ class DraggableNumber extends HTMLElement {
         this.slider = this.shadowRoot.querySelector('.draggable-slider');
 
         this.slider.addEventListener('input', this.updateValue.bind(this));
+        
+        // Set initial value
+        this.value = parseFloat(initialValue);
     }
 
     updateValue() {
-        const value = parseFloat(this.slider.value).toFixed(2);
-        this.valueDisplay.textContent = value;
-        this.dispatchEvent(new CustomEvent('change', { detail: { value: parseFloat(value) } }));
+        this.value = parseFloat(this.slider.value);
+        this.valueDisplay.textContent = this.value.toFixed(2);
+        this.dispatchEvent(new CustomEvent('change', { detail: { value: this.value } }));
     }
 
-    getValue() {
-        return parseFloat(this.valueDisplay.textContent);
+    get value() {
+        return parseFloat(this.slider.value);
     }
 
-    setValue(value) {
-        this.slider.value = value;
-        this.updateValue();
+    set value(newValue) {
+        const min = parseFloat(this.slider.min);
+        const max = parseFloat(this.slider.max);
+        const v = Math.min(Math.max(parseFloat(newValue), min), max);
+        if (this.valueDisplay) {
+            this.valueDisplay.textContent = v.toFixed(2);
+        }
+        if (this.slider) {
+            this.slider.value = v;
+        }
     }
 }
 
 customElements.define('draggable-number', DraggableNumber);
+
+// Helper function to get DraggableNumber instances
+window.getDraggable = (id) => document.getElementById(id).querySelector('draggable-number');
