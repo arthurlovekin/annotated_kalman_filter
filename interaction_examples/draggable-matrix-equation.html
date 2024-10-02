@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="../js/draggable-number.js"></script>
+    <script id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+
+    <style>
+        .matrix-table {
+            position: relative;
+        }
+        /* Rectangular pseudo-element before and after the table */
+        .matrix-table::before,
+        .matrix-table::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px; 
+        }
+        /* Make the left pseudo-element look like a bracket */
+        .matrix-table::before {
+            left: 0px;
+            border-left: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+        }
+        /* Make the right pseudo-element look like a bracket */
+        .matrix-table::after {
+            right: 0px;
+            border-right: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+        }
+        .matrix-table td {
+            text-align: center;
+            vertical-align: middle;
+            width: 6ch; /* matches the DraggableNumber width */
+        }
+        .matrix-table tr {
+            line-height: 1.5;
+        }
+
+        #equation-table {
+            border-collapse: collapse;
+            margin: 20px auto;
+        }
+
+        #equation-table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+    </style>
+
+    <title>Matrix-like Table with Draggable Numbers</title>
+</head>
+<body>
+    <table id="equation-table">
+        <tr>
+            <td>$$\mathbf{x}_{k+1}$$</td>
+            <td>=</td>
+            <td>$$\mathbf{A}$$</td>
+            <td>$$\mathbf{x}_k$$</td>
+            <td>+</td>
+            <td>$$\mathbf{B}$$</td>
+            <td>$$\mathbf{u}_k$$</td>
+            <td>+</td>
+            <td>$$\mathbf{0}$$</td>
+        </tr>
+        <tr>
+            <td>
+                <table class="matrix-table" id="new-state-vector">
+                    <tr><td id="new-state-vector-0">2.0</td></tr>
+                    <tr><td id="new-state-vector-1">1.0</td></tr>
+                </table>
+            </td>
+            <td><strong>=</strong></td>
+            <td>
+                <table class="matrix-table" id="state-transition-matrix">
+                    <tr>
+                        <td id="state-transition-matrix-00">    
+                            <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                        </td>
+                        <td id="state-transition-matrix-01">
+                            <draggable-number min="0" max="10" step="0.01" value="1">0.0</draggable-number>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td id="state-transition-matrix-10">
+                            <draggable-number min="0" max="10" step="0.01" value="1">0.0</draggable-number>
+                        </td>
+                        <td id="state-transition-matrix-11">
+                            <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td>
+                <table class="matrix-table" id="state-vector">
+                    <tr>
+                        <td id="state-vector-0">
+                            <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td id="state-vector-1">
+                            <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td><strong>+</strong></td>
+            <td>
+                <table class="matrix-table" id="control-transition-matrix">
+                    <tr>
+                        <td id="control-transition-matrix-00">0</td>
+                        <td id="control-transition-matrix-01">0</td>
+                    </tr>
+                    <tr>
+                        <td id="control-transition-matrix-10">0</td>
+                        <td id="control-transition-matrix-11">1</td>
+                    </tr>
+                </table>
+            </td>
+            <td>
+                <table class="matrix-table" id="control-vector">
+                    <tr>
+                        <td id="control-vector-0">0</td>
+                    </tr>
+                    <tr>
+                        <td id="control-vector-1">1</td>
+                    </tr>
+                </table>
+            </td>
+            <td><strong>+</strong></td>
+            <td>
+                <table class="matrix-table" id="zero-vector">
+                    <tr>
+                        <td id="zero-vector-0">0</td>
+                    </tr>
+                    <tr>
+                        <td id="zero-vector-1">0</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    <script>
+        const x0 = getDraggable("state-vector-0");
+        const x1 = getDraggable("state-vector-1");
+        const u0 = document.getElementById("control-vector-0");
+        const u1 = document.getElementById("control-vector-1");
+        const B00 = document.getElementById("control-transition-matrix-00");
+        const B01 = document.getElementById("control-transition-matrix-01");
+        const B10 = document.getElementById("control-transition-matrix-10");
+        const B11 = document.getElementById("control-transition-matrix-11");
+        let F00 = getDraggable("state-transition-matrix-00");
+        let F01 = getDraggable("state-transition-matrix-01");
+        let F10 = getDraggable("state-transition-matrix-10");
+        let F11 = getDraggable("state-transition-matrix-11");
+        let newStateVector00 = document.getElementById("new-state-vector-0");
+        let newStateVector10 = document.getElementById("new-state-vector-1");
+
+        function updateNewStateVector() {
+            newStateVector00.textContent = (
+                F00.value * x0.value +
+                F01.value * x1.value +
+                parseFloat(B00.textContent) * parseFloat(u0.textContent) +
+                parseFloat(B01.textContent) * parseFloat(u1.textContent)
+            ).toFixed(2);
+
+            newStateVector10.textContent = (
+                F10.value * x0.value +
+                F11.value * x1.value +
+                parseFloat(B10.textContent) * parseFloat(u0.textContent) +
+                parseFloat(B11.textContent) * parseFloat(u1.textContent)
+            ).toFixed(2);
+        }
+
+        [F00, F01, F10, F11, x0, x1].forEach(el => el.addEventListener("change", updateNewStateVector));
+
+        // Initial update
+        updateNewStateVector();
+    </script>
+</body>
+</html>
