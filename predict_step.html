@@ -11,6 +11,9 @@
     </script>
     <!-- TODO: highlight the current state blue to match the plot, and the new state red -->
      <!-- TODO: Adjust the slider ranges to be more reasonable for the plot size-->
+     <!-- TODO: Add a reset button -->
+      <!-- TODO: Use the MathJax \class{} tag and make sure there are no id overlaps-->
+    <!-- TODO: Make u adjustable? -->
     <style>
         .matrix-table {
             position: relative;
@@ -64,6 +67,7 @@
     </style>
 </head>
 <body>
+    <h1>Predict Step</h1>
 
     <div id="plot"></div>
 
@@ -379,7 +383,7 @@
 
     function updatePlot(means, sigmas) {
         const layout = {
-            title: 'Gaussian Contour Plot',
+            title: 'Contours of the Current and Next State Estimates',
             xaxis: { 
                 title: 'Position',
                 range: [-3, 3]
