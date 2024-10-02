@@ -3,213 +3,514 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive 3D Gaussian Distribution with Plotly.js</title>
+    <title>Predict Step Interactive Example</title>
+    <script src="js/draggable-number.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+    <!-- TODO: highlight the current state blue to match the plot, and the new state red -->
+     <!-- TODO: Adjust the slider ranges to be more reasonable for the plot size-->
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background-color: #f0f0f0;
+        .matrix-table {
+            position: relative;
         }
-
+        /* Rectangular pseudo-element before and after the table */
+        .matrix-table::before,
+        .matrix-table::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px; 
+        }
+        /* Make the left pseudo-element look like a bracket */
+        .matrix-table::before {
+            left: 0px;
+            border-left: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+        }
+        /* Make the right pseudo-element look like a bracket */
+        .matrix-table::after {
+            right: 0px;
+            border-right: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+        }
+        .matrix-table td {
+            text-align: center;
+            vertical-align: middle;
+            width: 6ch; /* matches the DraggableNumber width */
+        }
+        .matrix-table tr {
+            line-height: 1.5;
+        }
+        .equation-table {
+            border-collapse: collapse;
+            margin: 20px auto;
+        }
+        .equation-table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+    </style>
+    <style>
         #plot {
-            width: 80vw;
-            height: 70vh;
-        }
-
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 10px;
-        }
-
-        .controls label {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-size: 14px;
+            width: 60vw;
+            height: 60vw;
+            margin: 0 auto;
         }
     </style>
 </head>
 <body>
 
-<div id="plot"></div>
+    <div id="plot"></div>
 
-<div class="controls">
-    <label>
-        Mean X (µ<sub>x</sub>):
-        <input type="range" id="predict-step-mean-x" min="-2" max="2" value="0" step="0.1">
-        <span id="predict-step-mean-x-val">0</span>
-    </label>
-    <label>
-        Mean Y (µ<sub>y</sub>):
-        <input type="range" id="predict-step-mean-y" min="-2" max="2" value="0" step="0.1">
-        <span id="predict-step-mean-y-val">0</span>
-    </label>
-    <label>
-        Covariance σ<sub>xx</sub>:
-        <input type="range" id="predict-step-sigma-xx" min="0.0" max="2" value="1" step="0.01">
-        <span id="predict-step-sigma-xx-val">1</span>
-    </label>
-    <label>
-        Covariance σ<sub>xy</sub>:
-        <input type="range" id="predict-step-sigma-xy" min="-1.0" max="1.0" value="0" step="0.01">
-        <span id="predict-step-sigma-xy-val">0</span>
-    </label>
-    <label>
-        Covariance σ<sub>yy</sub>:
-        <input type="range" id="predict-step-sigma-yy" min="0.0" max="2" value="1" step="0.01">
-        <span id="predict-step-sigma-yy-val">1</span>
-    </label>
-    <label>
-        Mean X (µ<sub>x</sub>) Update:
-        <input type="range" id="update-step-mean-x" min="-2" max="2" value="0" step="0.1">
-        <span id="update-step-mean-x-val">0</span>
-    </label>
-    <label>
-        Mean Y (µ<sub>y</sub>) Update:
-        <input type="range" id="update-step-mean-y" min="-2" max="2" value="0" step="0.1">
-        <span id="update-step-mean-y-val">0</span>
-    </label>
-    <label>
-        Covariance σ<sub>xx</sub> Update:
-        <input type="range" id="update-step-sigma-xx" min="0.0" max="2" value="1" step="0.01">
-        <span id="update-step-sigma-xx-val">1</span>
-    </label>
-    <label>
-        Covariance σ<sub>xy</sub> Update:
-        <input type="range" id="update-step-sigma-xy" min="-1.0" max="1.0" value="0" step="0.01">
-        <span id="update-step-sigma-xy-val">0</span>
-    </label>
-    <label>
-        Covariance σ<sub>yy</sub> Update:
-        <input type="range" id="update-step-sigma-yy" min="0.0" max="2" value="1" step="0.01">
-        <span id="update-step-sigma-yy-val">1</span>
-    </label>
-</div>
+    <table class="equation-table">
+        <tr>
+            <td>$$\mathbf{x}_{k+1}$$</td>
+            <td>=</td>
+            <td>$$\mathbf{F}$$</td>
+            <td>$$\mathbf{x}_k$$</td>
+            <td>+</td>
+            <td>$$\mathbf{B}$$</td>
+            <td>$$\mathbf{u}_k$$</td>
+            <td>+</td>
+            <td>$$\mathbf{0}$$</td>
+        </tr>
+        <tr>
+            <td>
+                <table class="matrix-table" id="fig2-new-x">
+                    <tr><td id="fig2-new-x-mean-0">2.0</td></tr>
+                    <tr><td id="fig2-new-x-mean-1">1.0</td></tr>
+                </table>
+            </td>
+            <td><strong>=</strong></td>
+            <td>
+                <table class="matrix-table" id="fig2-F">
+                    <tr>
+                        <td id="fig2-F-00">    
+                            <draggable-number min="0" max="10" step="0.01" value="1"></draggable-number>
+                        </td>
+                        <td id="fig2-F-01">
+                            <draggable-number min="0" max="10" step="0.01" value="0.0"></draggable-number>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td id="fig2-F-10">
+                            <draggable-number min="0" max="10" step="0.01" value="0.0"></draggable-number>
+                        </td>
+                        <td id="fig2-F-11">
+                            <draggable-number min="0" max="10" step="0.01" value="1"></draggable-number>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td>
+                <table class="matrix-table" id="fig2-x">
+                    <tr>
+                        <td id="fig2-x-mean-0">
+                            <draggable-number min="0" max="10" step="0.01" value="0.0"></draggable-number>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td id="fig2-x-mean-1">
+                            <draggable-number min="0" max="10" step="0.01" value="0.0"></draggable-number>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td><strong>+</strong></td>
+            <td>
+                <table class="matrix-table" id="fig2-B">
+                    <tr>
+                        <td id="fig2-B-00">0</td>
+                        <td id="fig2-B-01">0</td>
+                    </tr>
+                    <tr>
+                        <td id="fig2-B-10">0</td>
+                        <td id="fig2-B-11">1</td>
+                    </tr>
+                </table>
+            </td>
+            <td>
+                <table class="matrix-table" id="fig2-u">
+                    <tr>
+                        <td id="fig2-u-0">0</td>
+                    </tr>
+                    <tr>
+                        <td id="fig2-u-1">1</td>
+                    </tr>
+                </table>
+            </td>
+            <td><strong>+</strong></td>
+            <td>
+                <table class="matrix-table" id="fig2-zero">
+                    <tr>
+                        <td id="fig2-zero-0">0</td>
+                    </tr>
+                    <tr>
+                        <td id="fig2-zero-1">0</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <table class="equation-table">
+        <tr>
+            <td>$$\mathbf{P}_{k+1}$$</td>
+            <td>=</td>
+            <td>$$\mathbf{F}$$</td>
+            <td>$$\mathbf{P}_k$$</td>
+            <td>$$\mathbf{F}$$</td>
+            <td>+</td>
+            <td>$$\mathbf{Q}$$</td>
+        </tr>
+        <tr>
+            <td>
+                <table class="matrix-table" id="fig2-new-P">
+                    <tr>
+                        <td id="fig2-new-P-sigma-00">0</td>
+                        <td id="fig2-new-P-sigma-01">0</td>
+                    </tr>
+                    <tr>
+                        <td id="fig2-new-P-sigma-10">0</td>
+                        <td id="fig2-new-P-sigma-11">0</td>
+                    </tr>
+                </table>
+            </td>
+            <td><strong>=</strong></td>
+            <td>
+                <table class="matrix-table" id="fig2-F-mirror1">
+                    <tr>
+                        <td id="fig2-F-00-mirror1">1.00</td>
+                        <td id="fig2-F-01-mirror1">0.00</td>
+                    </tr>
+                    <tr>
+                        <td id="fig2-F-10-mirror1">0.00</td>
+                        <td id="fig2-F-11-mirror1">1.00</td>
+                    </tr>
+                </table>    
+            </td>
+            <td>
+                <table class="matrix-table" id="fig2-P">
+                    <tr>
+                        <td id="fig2-P-sigma-00">
+                            <draggable-number min="0" max="10" step="0.01" value="0.1">0.10</draggable-number>
+                        </td>
+                        <td id="fig2-P-sigma-01">
+                            <draggable-number min="0" max="10" step="0.01" value="0">0.00</draggable-number>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td id="fig2-P-sigma-10">
+                            <draggable-number min="0" max="10" step="0.01" value="0">0.00</draggable-number>
+                        </td>
+                        <td id="fig2-P-sigma-11">
+                            <draggable-number min="0" max="10" step="0.01" value="0.1">0.10</draggable-number>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td>
+                <table class="matrix-table" id="fig2-F-mirror2">
+                    <tr>
+                        <td id="fig2-F-00-mirror2">1.00</td>
+                        <td id="fig2-F-01-mirror2">0.00</td>
+                    </tr>
+                    <tr>
+                        <td id="fig2-F-10-mirror2">0.00</td>
+                        <td id="fig2-F-11-mirror2">1.00</td>
+                    </tr>
+                </table>    
+            </td>
+            <td><strong>+</strong></td>
+            <td>
+                <table class="matrix-table" id="fig2-Q">
+                    <tr>
+                        <td id="fig2-Q-00">
+                            <draggable-number min="0" max="10" step="0.01" value="0.1">0.10</draggable-number>
+                        </td>
+                        <td id="fig2-Q-01">
+                            <draggable-number min="0" max="10" step="0.01" value="0">0.00</draggable-number>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td id="fig2-Q-10">
+                            <draggable-number min="0" max="10" step="0.01" value="0">0.00</draggable-number>
+                        </td>
+                        <td id="fig2-Q-11">
+                            <draggable-number min="0" max="10" step="0.01" value="0.1">0.10</draggable-number>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
 
 <script>
-    // TODO: Do a contour plot instead of a surface plot
-    class Gaussian2d {
-        constructor(div_name, plot, mu, sigma, x_start=-3, x_end=3, y_start=-3, y_end=3, n_points=41) {
-            this.div_name = div_name;
-            this.plot = plot;
-            this.mu = mu;
-            this.sigma = sigma;
-            this.x = this.linspace(x_start, x_end, n_points);
-            this.y = this.linspace(y_start, y_end, n_points);
-            this.z = this.generateSurface(this.x, this.y);
-            this.trace = this.getPlotTrace(); //TODO: do I need a getter if I can just access this.trace?
-            this.attachEventListeners();
-        }
-
-        getPlotTrace() {
-            return {
-                x: this.x,
-                y: this.y,
-                z: this.z,
-                type: 'surface',
-                opacity: 0.9
-            }
-        }
-        
-        linspace(start, end, num=100) {
-            const step = (end - start) / (num - 1);
-                return Array.from({length: num}, (_, i) => start + i * step);
-        }
-
-        isPositiveSemiDefinite(matrix) {
-            // a 2x2 matrix A is symmetric positive definite if and only if A is symmetric, trace(A) > 0 and det(A) > 0
-            const trace = matrix[0][0] + matrix[1][1];
-            const det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
-            return trace > 0 && det > 0;
-        }
-    
-        generateSurface(x, y) {
-            const z = x.map(xi => y.map(yi => {
-                const exponent = -(this.sigma[0][0]*(xi - this.mu[0]) ** 2 + 2*this.sigma[0][1]*(xi - this.mu[0])*(yi - this.mu[1]) + this.sigma[1][1]*(yi - this.mu[1]) ** 2);
-                return Math.exp(exponent) / Math.sqrt((2 * Math.PI)**2 * (this.sigma[0][0] * this.sigma[1][1] - this.sigma[0][1]*this.sigma[1][0]));
-            }));
-            return z;
-        }
-
-        updatePlot() {
-            this.z = this.generateSurface(this.x, this.y);
-            this.trace.z = this.z;
-            Plotly.update(this.plot, {z: [this.z]}, {}, [this.trace.index]);
-        }
-
-        attachEventListeners() {
-            const updateValue = (id, index) => {
-                const element = document.getElementById(`${this.div_name}-${id}`);
-                element.addEventListener('input', () => {
-                    const newValue = parseFloat(element.value);
-                    if (id.startsWith('mean')) {
-                        this.mu[index] = newValue;
-                    } else {
-                        const tempSigma = this.sigma.map(row => [...row]);
-                        tempSigma[index[0]][index[1]] = newValue;
-                        if (this.isPositiveSemiDefinite(tempSigma)) {
-                            this.sigma[index[0]][index[1]] = newValue;
-                            this.sigma[index[1]][index[0]] = newValue; // Ensure symmetry for sigma-xy
-                        } else {
-                            element.value = this.sigma[index[0]][index[1]];
-                            return;
-                        }
-                    }
-                    document.getElementById(`${this.div_name}-${id}-val`).textContent = newValue.toFixed(2);
-                    this.updatePlot();
-                });
-            };
-
-            updateValue('mean-x', 0);
-            updateValue('mean-y', 1);
-            updateValue('sigma-xx', [0, 0]);
-            updateValue('sigma-yy', [1, 1]);
-            updateValue('sigma-xy', [0, 1]);
-        }
+    function linspace(start, end, num=100) {
+        const step = (end - start) / (num - 1);
+        return Array.from({length: num}, (_, i) => start + i * step);
     }
 
-    // Initial parameters
-    let mu1 = [0, 0];
-    let sigma1 = [[1, 0], [0, 1]];
-    let mu2 = [1, 1];
-    let sigma2 = [[1, 0], [0, 1]];
-    
-    const layout = {
-        title: 'Interactive 3D Gaussian Distribution',
-        scene: {
-            xaxis: { title: 'X' },
-            yaxis: { title: 'Y' },
-            zaxis: { title: 'Z', range: [0, 0.2] },  // Set constant z-axis scale
-            camera: {
-                eye: { x: 0, y: 0, z: 2 },
-                up: { x: 0, y: 1, z: 0 },
-                center: { x: 0, y: 0, z: 0 }
+    function eigenvalues2x2(matrix) {
+        // Fun fact: if you derive the eigenvalues of a general 2x2 matrix,
+        // you can write it in terms of the trace and determinant
+        const trace = matrix[0][0] + matrix[1][1];
+        const det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+        const val1 = (trace + Math.sqrt(trace**2 - 4*det)) / 2;
+        const val2 = (trace - Math.sqrt(trace**2 - 4*det)) / 2;
+
+        return [val1, val2]; // not sorted
+    }
+
+    function isPositiveSemiDefinite(matrix) {
+        const eig = eigenvalues2x2(matrix);
+        return eig[0] >= 0 && eig[1] >= 0;
+    }
+
+    function getEllipseParams(matrix) {
+        const eigs = eigenvalues2x2(matrix);
+        const a = Math.sqrt(eigs[0]);
+        const b = Math.sqrt(eigs[1]);
+
+        // theta is the angle between [1,0] and the eigenvector that is furthest from [1,0] 
+        // Can't simply use the eigenvector with the greatest eigenvalue because that would
+        // cause the ellipse to jump 90 degrees as you move sigma_xx from being 
+        // more than sigma_yy to less than sigma_yy
+        let theta;
+        if (Math.abs(matrix[0][1]) < Number.EPSILON) {
+            // Don't pass a denominator of 0 to atan2
+            if (matrix[0][0] >= matrix[1][1]) {
+                theta = 0;
             }
-        },
-        autosize: true,
-        coloraxis: {showscale: false}  // remove the color bar legend
-    };
+            else {
+                theta = Math.PI/2;
+            }
+        }
+        else {
+            theta = Math.max(Math.atan2(eigs[0] - matrix[0][0], matrix[1][0]),
+                             Math.atan2(eigs[1] - matrix[0][0], matrix[1][0]));
+        }
 
-    // Create plot and Gaussian objects
-    Plotly.newPlot('plot', [], layout).then(function(plot) {
-        const gaussian1 = new Gaussian2d('predict-step', plot, mu1, sigma1);
-        const gaussian2 = new Gaussian2d('update-step', plot, mu2, sigma2);
+        return [a, b, theta];
+    }
 
-        Plotly.addTraces(plot, [gaussian1.trace, gaussian2.trace]).then(function(plot) {
-            gaussian1.trace.index = 0;
-            gaussian2.trace.index = 1;
-        });
+    function generateEllipseCurve(mu, sigma, scale=1, numPoints = 100) {
+        if (!isPositiveSemiDefinite(sigma)) {
+            throw new Error("Invalid covariance matrix: eigenvalues must be non-negative to be positive semi-definite");
+        }
+        const [a, b, theta] = getEllipseParams(sigma);
+        const t = linspace(0, 2 * Math.PI, numPoints);
+        
+        const ellipseX = t.map(angle => 
+            mu[0] + scale * a * Math.cos(angle) * Math.cos(theta) - scale * b * Math.sin(angle) * Math.sin(theta)
+        );
+        const ellipseY = t.map(angle => 
+            mu[1] + scale * a * Math.cos(angle) * Math.sin(theta) + scale * b * Math.sin(angle) * Math.cos(theta)
+        );
+
+        return [ellipseX, ellipseY];
+    }
+
+    function generateGaussianEllipticalContours(mu, sigma, color='blue') {
+        const scales = [1,1.514987,2,2.48509,3];
+        let shades = [];
+        if (color == 'blue') {
+            shades = [
+                'rgb(0, 0, 255)',      // Darkest blue
+                'rgb(51, 102, 255)',
+                'rgb(102, 153, 255)',
+                'rgb(153, 204, 255)',
+                'rgb(204, 229, 255)'   // Lightest blue
+            ];
+        }
+        else if (color == 'red') {
+            shades = [
+                'rgb(255, 0, 0)',
+                'rgb(255, 51, 51)',
+                'rgb(255, 102, 102)',
+                'rgb(255, 153, 153)',
+                'rgb(255, 204, 204)'
+            ];
+        }
+        else if (color == 'green') {
+            shades = [
+                'rgb(0, 255, 0)',
+                'rgb(51, 255, 51)',
+                'rgb(102, 255, 102)',
+                'rgb(153, 255, 153)',
+                'rgb(204, 255, 204)'
+            ];
+        }
+        else {
+            // shades of gray
+            shades = [
+                'rgb(0, 0, 0)',
+                'rgb(51, 51, 51)',
+                'rgb(102, 102, 102)',
+                'rgb(153, 153, 153)',
+                'rgb(204, 204, 204)'
+            ];
+        }
+        traces = [];
+        for (let i = 0; i < scales.length; i++) {
+            const scale = scales[i];
+            const [ellipseX, ellipseY] = generateEllipseCurve(mu, sigma, scale);
+            const confidence_interval = 1-Math.exp(-1/2*scale**2);
+            const description = `${scale.toFixed(2)}σ: ${(confidence_interval*100).toFixed(2)}%`;
+            traces.push({
+                x: ellipseX,
+                y: ellipseY,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: shades[i] },
+                name: description,
+                hovertemplate: description,
+                showlegend: false
+            });
+        }
+        return traces;
+    }
+
+    function updatePlot(means, sigmas) {
+        const layout = {
+            title: 'Gaussian Contour Plot',
+            xaxis: { 
+                title: 'Position',
+                range: [-3, 3]
+            },
+            yaxis: { 
+                title: 'Velocity',
+                range: [-3, 3]
+            }
+        };
+
+        let traces_old = generateGaussianEllipticalContours(means[0], sigmas[0], 'blue');
+        let traces_new = generateGaussianEllipticalContours(means[1], sigmas[1], 'red');
+        let traces = traces_old.concat(traces_new);
+        Plotly.react('plot', traces, layout);
+    }
+
+    // current state and covariance are draggable and will be plotted
+    const x0 = getDraggable("fig2-x-mean-0");
+    const x1 = getDraggable("fig2-x-mean-1");
+    const P00 = getDraggable("fig2-P-sigma-00");
+    const P01 = getDraggable("fig2-P-sigma-01");
+    const P10 = getDraggable("fig2-P-sigma-10");
+    const P11 = getDraggable("fig2-P-sigma-11");
+
+    // state transition matrix and process noise are draggable but won't be directly plotted
+    const F00 = getDraggable("fig2-F-00");
+    const F01 = getDraggable("fig2-F-01");
+    const F10 = getDraggable("fig2-F-10");
+    const F11 = getDraggable("fig2-F-11");
+    const Q00 = getDraggable("fig2-Q-00");
+    const Q01 = getDraggable("fig2-Q-01");
+    const Q10 = getDraggable("fig2-Q-10");
+    const Q11 = getDraggable("fig2-Q-11");
+
+    // Non-draggable control matrix and control input
+    const B00 = document.getElementById("fig2-B-00");
+    const B01 = document.getElementById("fig2-B-01");
+    const B10 = document.getElementById("fig2-B-10");
+    const B11 = document.getElementById("fig2-B-11");
+    const u0 = document.getElementById("fig2-u-0");
+    const u1 = document.getElementById("fig2-u-1");
+
+    // The state transition matrix has two mirrors which need to track the draggable values
+    const F00_mirror1 = document.getElementById("fig2-F-00-mirror1");
+    const F01_mirror1 = document.getElementById("fig2-F-01-mirror1");
+    const F10_mirror1 = document.getElementById("fig2-F-10-mirror1");
+    const F11_mirror1 = document.getElementById("fig2-F-11-mirror1");
+    const F00_mirror2 = document.getElementById("fig2-F-00-mirror2");
+    const F01_mirror2 = document.getElementById("fig2-F-01-mirror2");
+    const F10_mirror2 = document.getElementById("fig2-F-10-mirror2");
+    const F11_mirror2 = document.getElementById("fig2-F-11-mirror2");
+
+    // New state and covariance aren't draggable but will be plotted
+    const newx0 = document.getElementById("fig2-new-x-mean-0");
+    const newx1 = document.getElementById("fig2-new-x-mean-1");
+    const newP00 = document.getElementById("fig2-new-P-sigma-00");
+    const newP01 = document.getElementById("fig2-new-P-sigma-01");
+    const newP10 = document.getElementById("fig2-new-P-sigma-10");
+    const newP11 = document.getElementById("fig2-new-P-sigma-11");
+
+    function updateNewStateEstimate() {
+        newx0.textContent = (
+            F00.value * x0.value +
+            F01.value * x1.value +
+            parseFloat(B00.textContent) * parseFloat(u0.textContent) +
+            parseFloat(B01.textContent) * parseFloat(u1.textContent)
+        ).toFixed(2);
+
+        newx1.textContent = (
+            F10.value * x0.value +
+            F11.value * x1.value +
+            parseFloat(B10.textContent) * parseFloat(u0.textContent) +
+            parseFloat(B11.textContent) * parseFloat(u1.textContent)    
+        ).toFixed(2);
+
+        newP00.textContent = (
+            F00.value * P00.value * F00.value +
+            F01.value * P10.value * F10.value +
+            Q00.value
+        ).toFixed(2);
+
+        newP01.textContent = (
+            F00.value * P01.value * F10.value +
+            F01.value * P11.value * F11.value +
+            Q01.value
+        ).toFixed(2);
+
+        newP10.textContent = (
+            F10.value * P00.value * F00.value +
+            F11.value * P10.value * F10.value +
+            Q10.value
+        ).toFixed(2);
+
+        newP11.textContent = (
+            F10.value * P01.value * F00.value +
+            F11.value * P11.value * F10.value +
+            Q11.value
+        ).toFixed(2);
+
+        // Update the State Transition Matrix mirrors
+        F00_mirror1.textContent = F00.value.toFixed(2);
+        F01_mirror1.textContent = F01.value.toFixed(2);
+        F10_mirror1.textContent = F10.value.toFixed(2);
+        F11_mirror1.textContent = F11.value.toFixed(2);
+        F00_mirror2.textContent = F00.value.toFixed(2);
+        F01_mirror2.textContent = F01.value.toFixed(2);
+        F10_mirror2.textContent = F10.value.toFixed(2);
+        F11_mirror2.textContent = F11.value.toFixed(2);
+
+        // Get the new and old state means and covariances, then plot them
+        const new_state_mean = [parseFloat(newx0.textContent), parseFloat(newx1.textContent)];
+        const new_state_cov = [
+            [parseFloat(newP00.textContent), parseFloat(newP01.textContent)],
+            [parseFloat(newP10.textContent), parseFloat(newP11.textContent)]
+        ];
+        const old_state_mean = [x0.value, x1.value];
+        const old_state_cov = [
+            [P00.value, P01.value],
+            [P10.value, P11.value]
+        ];
+
+        updatePlot([old_state_mean, new_state_mean], [old_state_cov, new_state_cov]);
+    }
+
+    // Tie the draggable callbacks to updateNewStateEstimate
+    [F00, F01, F10, F11, x0, x1, P00, P01, P10, P11, Q00, Q01, Q10, Q11].forEach(element => {
+        element.addEventListener('change', updateNewStateEstimate);
     });
 
+    // Initial plot
+    updateNewStateEstimate();
 </script>
 
 </body>
