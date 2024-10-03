@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Annotated Kalman Filter</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
     <!-- put window.MathJax script before importing the rest of MathJax 
      https://docs.mathjax.org/en/latest/web/configuration.html describes async vs defer for loading
@@ -49,12 +50,54 @@
     <script src="https://unpkg.com/tippy.js@6"></script>
     <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/scale.css">
     
+    <!-- Draggable number component -->
+    <script src="js/draggable-number.js"></script>
 </head>
 <body>
     <select id="naming-convention">
         <option value="alt0">Alt0</option>
         <option value="alt1">Alt1</option>
     </select>
+
+    <h1>The Annotated Kalman Filter</h1>
+
+    <h2>Predict Step</h2>
+    <p id="predict-step-state"></p>
+    <p id="predict-step-covariance"></p>
+    <h2>Update Step</h2>
+    <!-- <p id="update-step-state"></p>
+    <p id="update-step-covariance"></p> -->
+
+
+    <h2>Summary</h2>
+    <p>
+        The <strong>Kalman Filter</strong> is an algorithmic blueprint for incorporating different sources 
+        of information into a unified probailistic state estimate. It outlines two ways to 
+        propagate the current state estimate to the next:
+        <ol>
+            <li>Predict: Information about the default dynamics of the system</li>
+            <li>Update: Sensor information is fused with the most recent state estimate 
+                using the Kalman Gain</li>
+        </ol>
+        The <strong>Kalman Gain</strong> is an operator that takes vectors in the 
+        measurement space as input, and outputs the weighted contribution of that measurement 
+        vector to the total state estimate. This operation can be interpreted as having two 
+        steps (in either order):
+        <ul>
+            <li>Convert from the space of measurements to the space of states</li>
+            <li>Weight the contribution of the measurement to the state estimate in proportion
+                to the inverse of the measurement's variance</li>
+        </ul>
+        Note that in this interpretation, the inverse measurement matrix <span id="measurement-matrix-inverse"></span>
+        is imagined to convert back from the space of measurements to the space of states, even though
+        in practice it is <em>almost never invertible</em>. This is why the Kalman Filter is usually 
+        defined without it. 
+    </p>
+    <p>
+        The Kalman Gain has been proven to be the Best Linear Unbiased Estimator (BLUE) for 
+        gaussian random variables.
+    </p>
+
     <!-- TODO: create highlight groupings: 'Parametrize a gaussian', 'supplied by user', 'observed', 'estimated'-->
     <table id="variable-description-table">
         <thead>
@@ -109,6 +152,13 @@
                 <td id="process-noise-covariance-example"></td>
                 <td id="process-noise-covariance-dimension"></td>
             </tr>
+            <tr id="measurement-matrix-row">
+                <td id="measurement-matrix"></td>
+                <td id="measurement-matrix-name"></td>
+                <td id="measurement-matrix-description"></td>
+                <td id="measurement-matrix-example"></td>
+                <td id="measurement-matrix-dimension"></td>
+            </tr>
             <tr id="discrete-time-row">
                 <td id="discrete-time"></td>
                 <td id="discrete-time-name"></td>
@@ -119,15 +169,9 @@
         </tbody>
     </table>
 
-    <h1>The Annotated Kalman Filter</h1>
-    <h2>Predict Step</h2>
-    <p id="predict-step-state"></p>
-    <p id="predict-step-covariance"></p>
-    <h2>Update Step</h2>
-    <!-- <p id="update-step-state"></p>
-    <p id="update-step-covariance"></p> -->
-
     <script>
+        // TODO HoverEffectManager class that manages hover effects. FormulaElements should register with it.
+        // (perhaps the create_mouse_hover_effects() should also be in this class, not FormulaElement)
         let currently_hovered_elements = []; // contains {element, color, tooltip} pairs
         function add_hovered_element(element, color, tooltip) {
             currently_hovered_elements.push({element, color, tooltip});
@@ -231,7 +275,12 @@
 
             str(delimiter="") {
                 const string_fn = this.convention_to_latex[this.convention];
-                return `${delimiter}\\class{${this.div_name}}{${string_fn(this.child_elements)}}${delimiter}`;
+                if (delimiter === "inline") {
+                    return `\\(\\class{${this.div_name}}{${string_fn(this.child_elements)}}\\)`;
+                }
+                else {
+                    return `${delimiter}\\class{${this.div_name}}{${string_fn(this.child_elements)}}${delimiter}`;
+                }
             }
         }
 
@@ -290,6 +339,15 @@
                 '\\(n_x \\times n_x\\)',
                 'rgba(0, 0, 255, 0.8)'
             ),
+            measurement_matrix: new FormulaElement("measurement-matrix", 
+                "Measurement Matrix", 
+                "Converts vectors from the space of states to the space of measurements", 
+                "The matrix that converts the state to the measurement",
+                {'alt0': (v) => `\\mathbf{H}`,
+                 'alt1': (v) => `\\mathbf{M}`},
+                '\\(n_y \\times n_x\\)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
             discrete_time: new FormulaElement("discrete-time", 
                 "Discrete Time",
                 "Indicates a discrete moment in time", 
@@ -322,6 +380,17 @@
                 variables
             ),
         }
+        const inline_formulas = {
+            measurement_matrix_inverse: new FormulaElement("measurement-matrix-inverse", 
+                "Inverse Measurement Matrix", 
+                "Converts vectors from the space of measurements to the space of states", 
+                "The matrix that converts the measurement to the state",
+                {'all': (v) => `${v.measurement_matrix.str()}^{-1}`},
+                '*Usually not invertible*',
+                'rgba(0, 0, 255, 0.8)',
+                variables
+            ),
+        }
 
         // Fill in all divs with formulas according to the naming convention
         function set_naming_convention(convention) {
@@ -335,6 +404,14 @@
                 }
                 else {
                     console.log(`set_naming_convention(): no div found for ${object.div_name}`);
+                }
+            }
+            for (const object of [...Object.values(inline_formulas)]) {
+                object.update_naming_convention(convention);
+                const formulaDiv = document.getElementById(object.div_name);
+                if (formulaDiv) {
+                    formulaDiv.innerHTML = object.str("inline");
+                    elements_to_typeset.push(formulaDiv);
                 }
             }
             return elements_to_typeset;
