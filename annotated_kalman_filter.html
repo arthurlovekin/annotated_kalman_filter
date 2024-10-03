@@ -5,26 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Annotated Kalman Filter</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="js/formula-element.js"></script>
+    <script src="js/mouse-effects-manager.js"></script>
 
     <!-- put window.MathJax script before importing the rest of MathJax 
      https://docs.mathjax.org/en/latest/web/configuration.html describes async vs defer for loading
      https://docs.mathjax.org/en/latest/web/configuration.html#performing-actions-after-typesetting 
      describes how to perform actions after typesetting-->
     <script>
-        function create_all_tooltips(formula_elements) {
-            // must be called AFTER MathJax typesets everything and generates the divs
-            for (const object of formula_elements) {
-                object.create_tooltip();
-            }
-        }
-
-        function create_all_hover_effects(formula_elements) {
-            // must be called AFTER MathJax typesets everything and generates the divs
-            for (const object of formula_elements) {
-                object.create_mouse_hover_effects();
-            }
-        }
-
         window.MathJax = {
             //Enable macros \class, \cssId, \href, \style
             loader: {load: ['[tex]/html']}, 
@@ -34,8 +22,7 @@
                 ready: () => {
                     MathJax.startup.defaultReady();
                     MathJax.startup.promise.then(() => {
-                        create_all_tooltips([...Object.values(formulas), ...Object.values(variables)]);
-                        create_all_hover_effects([...Object.values(formulas), ...Object.values(variables)]);
+                        mouseEffectsManager.initialize();
                     });
                 }
             }
@@ -170,120 +157,6 @@
     </table>
 
     <script>
-        // TODO HoverEffectManager class that manages hover effects. FormulaElements should register with it.
-        // (perhaps the create_mouse_hover_effects() should also be in this class, not FormulaElement)
-        let currently_hovered_elements = []; // contains {element, color, tooltip} pairs
-        function add_hovered_element(element, color, tooltip) {
-            currently_hovered_elements.push({element, color, tooltip});
-            currently_hovered_elements.sort((a, b) => a.element.offsetWidth - b.element.offsetWidth);
-            highlight_smallest_width_element();
-        }
-
-        function remove_hovered_element(element) {
-            element.style.backgroundColor = '';
-            currently_hovered_elements.shift(); // remove first element since array is sorted
-            highlight_smallest_width_element();
-        }
-
-        function highlight_smallest_width_element() {
-            for (let i = 0; i < currently_hovered_elements.length; i++) {
-                const el_color_tooltip = currently_hovered_elements[i];
-                if (i === 0) { 
-                    // first element is sorted to have smallest width
-                    el_color_tooltip.element.style.backgroundColor = el_color_tooltip.color;
-                    // TODO: Padding and margin changes the MathJax formatting which is suboptimal but maybe unnoticeable.
-                    el_color_tooltip.element.style.paddingTop = '3px';
-                    el_color_tooltip.element.style.paddingBottom = '3px';
-                    el_color_tooltip.element.style.marginTop = '-3px';
-                    el_color_tooltip.element.style.marginBottom = '-3px';
-                    el_color_tooltip.element.style.borderRadius = '3px';
-                    el_color_tooltip.tooltip.enable();
-                }
-                else {
-                    el_color_tooltip.element.style.backgroundColor = '';
-                    el_color_tooltip.tooltip.disable();
-                }
-            }
-        }
-
-        class FormulaElement {
-            constructor(div_name,
-                        display_name, 
-                        description, 
-                        example, 
-                        convention_to_latex,
-                        dimension,
-                        highlight_color = 'rgba(255, 255, 0, 0.8)',
-                        child_elements = {}) {
-                this.div_name = div_name; // eg. predict-step-state
-                this.display_name = display_name; // What IS it? Name + matrix/vector/equation
-                this.description = description;  // What does it variable DO?
-                this.example = example;
-                this.convention_to_latex = convention_to_latex; // eg. alt0 (affects how string is rendered)
-                this.convention = Object.keys(convention_to_latex)[0];
-                this.dimension = dimension;
-                this.color = highlight_color;
-                this.child_elements = child_elements;
-            }
-
-            create_tooltip() {
-                this.tooltips = tippy(`[class="${this.div_name}"]`, {
-                    content: this.display_name,
-                    // animation: 'fade', // fade is default; others need to be imported
-                    // theme: 'light', // not sure what the default is, but themes need to be imported
-                    trigger: 'manual',
-                    placement: 'top',
-                });
-            }
-
-            create_mouse_hover_effects() {
-                // add event listeners to achieve highlight and tooltip on hover (and avoid overlapping effects)
-                const elements = document.querySelectorAll(`[class="${this.div_name}"]`);
-                for (const el of elements) {
-                    el.addEventListener('mouseenter', (event) => {
-                        const tooltipInstance = this.tooltips.find(tooltip => tooltip.reference === el);
-                        add_hovered_element(el, this.color, tooltipInstance);
-                    });
-
-                    el.addEventListener('mouseleave', (event) => {
-                        remove_hovered_element(el);
-                    });
-
-                    el.addEventListener('click', (event) => {
-                        if (currently_hovered_elements.length > 0) {
-                            if (currently_hovered_elements[0].element === el) {
-                                currently_hovered_elements[0].tooltip.show();
-                            }
-                        } 
-                    });
-                }
-            }
-
-            update_naming_convention(convention) {
-                if (this.convention !== 'all') {
-                    if (this.convention_to_latex.hasOwnProperty(convention)) {
-                        this.convention = convention;
-                    }
-                    else {
-                        console.log(`Naming convention ${convention} not found for ${this.div_name}`);
-                    }
-                }
-                for (const child of Object.values(this.child_elements)) {
-                    child.update_naming_convention(convention);
-                }
-            }
-
-            str(delimiter="") {
-                const string_fn = this.convention_to_latex[this.convention];
-                if (delimiter === "inline") {
-                    return `\\(\\class{${this.div_name}}{${string_fn(this.child_elements)}}\\)`;
-                }
-                else {
-                    return `${delimiter}\\class{${this.div_name}}{${string_fn(this.child_elements)}}${delimiter}`;
-                }
-            }
-        }
-
         const variables = {
             state: new FormulaElement("state", 
                 "State Vector",
@@ -291,7 +164,7 @@
                 "The position and velocity of a moving object", 
                 {'alt0': (v) => `\\mathbf{x}`,
                  'alt1': (v) => `\\mathbf{s}`},
-                '\\(n_x\\)',
+                '(state_dim,)',
                 'rgba(0, 255, 0, 0.8)'
             ),
             state_transition: new FormulaElement("state-transition-matrix", 
@@ -300,7 +173,7 @@
                 "Velocity matrix",
                 {'alt0': (v) => `\\mathbf{F}`,
                  'alt1': (v) => `\\mathbf{A}`},
-                '\\(n_x \\times n_x\\)',
+                '(state_dim, state_dim)',
                 'rgba(255, 0, 0, 0.8)'
             ),
             control_input: new FormulaElement("control-input", 
@@ -309,7 +182,7 @@
                 "The control input to the object",
                 {'alt0': (v) => `\\mathbf{u}`,
                  'alt1': (v) => `\\mathbf{w}`},
-                '\\(n_u\\)',
+                '(control_dim,)',
                 'rgba(0, 0, 255, 0.8)'
             ),
             control_matrix: new FormulaElement("control-matrix", 
@@ -318,7 +191,7 @@
                 "The matrix that transforms the control input to the state",
                 {'alt0': (v) => `\\mathbf{B}`,
                  'alt1': (v) => `\\mathbf{W}`},
-                '\\(n_x \\times n_u\\)',
+                '(state_dim, control_dim)',
                 'rgba(0, 0, 255, 0.8)'
             ),
             process_noise_covariance: new FormulaElement("process-noise-covariance", 
@@ -327,7 +200,7 @@
                 "The covariance of the process noise",
                 {'alt0': (v) => `\\mathbf{Q}`,
                  'alt1': (v) => `\\mathbf{W}`},
-                '\\(n_x \\times n_x\\)',
+                '(state_dim, state_dim)',
                 'rgba(0, 0, 255, 0.8)'
             ),
             state_covariance: new FormulaElement("state-covariance", 
@@ -336,7 +209,7 @@
                 "The uncertainty in the state estimate",
                 {'alt0': (v) => `\\mathbf{P}`,
                  'alt1': (v) => `\\mathbf{\\Sigma}`},
-                '\\(n_x \\times n_x\\)',
+                '(state_dim, state_dim)',
                 'rgba(0, 0, 255, 0.8)'
             ),
             measurement_matrix: new FormulaElement("measurement-matrix", 
@@ -345,7 +218,7 @@
                 "The matrix that converts the state to the measurement",
                 {'alt0': (v) => `\\mathbf{H}`,
                  'alt1': (v) => `\\mathbf{M}`},
-                '\\(n_y \\times n_x\\)',
+                '(measurement_dim, state_dim)',
                 'rgba(0, 0, 255, 0.8)'
             ),
             discrete_time: new FormulaElement("discrete-time", 
@@ -354,7 +227,7 @@
                 "The time step of the system",
                 {'alt0': (v) => `k`,
                  'alt1': (v) => `n`},
-                '\\(\\text{scalar}\\)',
+                '(1,)',
                 'rgba(255, 255, 0, 0.8)'
             ),
         }
@@ -391,6 +264,8 @@
                 variables
             ),
         }
+
+        const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables), ...Object.values(formulas)]);
 
         // Fill in all divs with formulas according to the naming convention
         function set_naming_convention(convention) {
@@ -442,34 +317,25 @@
             }
         }
 
-        // safe version of MathJax.typesetPromise that doesn't throw an error when MathJax is not yet loaded,
-        // creates tooltips, and logs errors
-        function safeTypesetPromise(elements_to_typeset) {
+        function typesetPromiseAndHoverEffects(elements_to_typeset) {
             MathJax.startup.promise = MathJax.startup.promise
                 .then(() => {
                     MathJax.typesetPromise(elements_to_typeset);
                     console.log("MathJax Typeset success");
-                    create_all_tooltips([...Object.values(formulas), ...Object.values(variables)]);
-                    create_all_hover_effects([...Object.values(formulas), ...Object.values(variables)]);
+                    mouseEffectsManager.initialize();
                 })
                 .catch((err) => console.log('MathJax typeset() failed: ' + err.message));
             return MathJax.startup.promise;
         }
 
-        set_naming_convention('alt0');
-        set_text_descriptions();
-        // calling the typeset function here fails because MathJax is not defined yet. 
-        // It's ok to not call it because by default, MathJax waits for the HTML to load 
-        // (including the set_naming_convention() function which fills in all the divs)
-        // and then typesets the entire page and then adds tooltips.
-        // safeTypesetPromise();
-
         document.getElementById('naming-convention').addEventListener('change', function(event) {
             const convention = event.target.value;
-            elements_to_typeset = set_naming_convention(convention);
-            safeTypesetPromise(elements_to_typeset);
+            const elements_to_typeset = set_naming_convention(convention);
+            typesetPromiseAndHoverEffects(elements_to_typeset);
         });
 
+        set_naming_convention('alt0');
+        set_text_descriptions();
     </script>
 </body>
 </html>
