@@ -7,8 +7,8 @@ class MouseEffectsManager {
         this.formulaElements = formulaElements; // Array of FormulaElement instances
         this.tooltips = {}; // Map div_name to all tooltips associated with it
         this.currentlyHovered = []; // sorted smallest-width first (first element is the only one highlighted)
-        this.initialize();
         this.currentTooltipAndIndex = {tooltip: null, index: 0};    
+        this.initialize();
     }
 
     initialize() {
@@ -23,6 +23,9 @@ class MouseEffectsManager {
                 trigger: 'manual', // need to stop propagation of clicks to prevent other tooltips from showing
                 placement: 'top',
                 maxWidth: '24rem',
+                onCreate(instance) {
+                    instance.popper.style.textAlign = 'center';
+                },
             });
         });
     }
@@ -88,7 +91,13 @@ class MouseEffectsManager {
                     tooltip.setContent(formulaElement.description);
                     break;
                 case 2:
-                    tooltip.setContent(`Dimension: ${formulaElement.dimension}`);
+                    if (formulaElement.dimension) {
+                        tooltip.setContent(`Dimension: ${formulaElement.dimension}`);
+                    }
+                    else {
+                        this.currentTooltipAndIndex.index = 0;
+                        tooltip.setContent(formulaElement.display_name);
+                    }
                     break;
             }
             tooltip.show();
