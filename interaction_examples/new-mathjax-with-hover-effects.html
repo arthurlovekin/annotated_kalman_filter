@@ -60,7 +60,7 @@
                 "The position and velocity of a moving object", 
                 {'alt0': (v) => `\\mathbf{x}`,
                  'alt1': (v) => `\\mathbf{s}`},
-                '\\(n_x\\)',
+                '(state_dim,)',//'\\(n_x\\)',
                 'rgba(0, 255, 0, 0.8)'
             ),
             state_transition: new FormulaElement("state-transition-matrix", 
@@ -69,7 +69,7 @@
                 "Velocity matrix",
                 {'alt0': (v) => `\\mathbf{F}`,
                  'alt1': (v) => `\\mathbf{A}`},
-                '\\(n_x \\times n_x\\)',
+                '(state_dim, state_dim)',
                 'rgba(255, 0, 0, 0.8)'
             ),
             control_input: new FormulaElement("control-input", 
@@ -78,7 +78,7 @@
                 "The control input to the object",
                 {'alt0': (v) => `\\mathbf{u}`,
                  'alt1': (v) => `\\mathbf{w}`},
-                '\\(n_u\\)',
+                '(control_dim,)',
                 'rgba(0, 0, 255, 0.8)'
             ),
             control_matrix: new FormulaElement("control-matrix", 
@@ -87,7 +87,7 @@
                 "The matrix that transforms the control input to the state",
                 {'alt0': (v) => `\\mathbf{B}`,
                  'alt1': (v) => `\\mathbf{W}`},
-                '\\(n_x \\times n_u\\)',
+                '(state_dim, control_dim)',
                 'rgba(0, 0, 255, 0.8)'
             ),
             discrete_time: new FormulaElement("discrete-time", 
@@ -96,7 +96,7 @@
                 "The time step of the system",
                 {'alt0': (v) => `k`,
                  'alt1': (v) => `n`},
-                '\\(\\text{scalar}\\)',
+                '(1,)',
                 'rgba(255, 255, 0, 0.8)'
             ),
         }

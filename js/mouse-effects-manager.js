@@ -8,6 +8,7 @@ class MouseEffectsManager {
         this.tooltips = {}; // Map div_name to all tooltips associated with it
         this.currentlyHovered = []; // sorted smallest-width first (first element is the only one highlighted)
         this.initialize();
+        this.currentTooltipAndIndex = {tooltip: null, index: 0};    
     }
 
     initialize() {
@@ -19,10 +20,9 @@ class MouseEffectsManager {
         this.formulaElements.forEach(element => {
             this.tooltips[element.div_name] = tippy(`[class="${element.div_name}"]`, {
                 content: `${element.display_name}`,
-                trigger: 'manual',
+                trigger: 'manual', // need to stop propagation of clicks to prevent other tooltips from showing
                 placement: 'top',
-                allowHTML: true,
-                // interactive: true, // 
+                maxWidth: '24rem',
             });
         });
     }
@@ -74,6 +74,23 @@ class MouseEffectsManager {
         // of the tooltips associated with the formulaElement, find the one corresponding to the clicked element
         const tooltip = this.tooltips[formulaElement.div_name].find(tooltip => tooltip.reference === documentElement);
         if (tooltip) {
+            if (this.currentTooltipAndIndex.tooltip !== tooltip) {
+                this.currentTooltipAndIndex = {tooltip: tooltip, index: 0};
+            }
+            else {
+                this.currentTooltipAndIndex.index = (this.currentTooltipAndIndex.index + 1) % 3;
+            }
+            switch(this.currentTooltipAndIndex.index) {
+                case 0:
+                    tooltip.setContent(formulaElement.display_name);
+                    break;
+                case 1:
+                    tooltip.setContent(formulaElement.description);
+                    break;
+                case 2:
+                    tooltip.setContent(`Dimension: ${formulaElement.dimension}`);
+                    break;
+            }
             tooltip.show();
         }
     }
