@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adding Hover Effects to MathJax Equations</title>
+    <!-- The key to adding hover effects to MathJax equations \
+     is to enable the MathJax \class macro so that 
+     other parts of the code can reference html elements. (note the class is sometimes prepended with mjx-i)
+    Make sure you're 
+     adding these effects AFTER MathJax typesets everything (before it typesets
+     the divs do not exist). 
+     
+     Then you also have to deal with the fact that you only want to highlight 
+     the smallest object over which the mouse hovers, not all "layers"
+     (this is sort of achievable with modern CSS (eg. [class*="propagate-covariance"]:hover:not(:has([class*="state-covariance"]:hover))),
+      but javascript offers a way to unify tooltips and highlights and
+      also works on older browsers)-->
+    <script src="../js/formula-element.js"></script>
+    <script src="../js/mouse-effects-manager.js"></script>
+    <script>
+        window.MathJax = {
+            //Enable macros \class, \cssId, \href, \style
+            loader: {load: ['[tex]/html']}, 
+            tex: {packages: {'[+]': ['html']}},
+            // Once MathJax has finished its initial typesetting, create tooltips for the new divs
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(() => {
+                        mouseEffectsManager.initialize()
+                    });
+                }
+            }
+        };
+    </script>
+    <script id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+
+    <!-- Tippy.js for hover tooltips -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/scale.css">
+</head>
+<body>
+    <h1>Adding Hover Effects to MathJax Equations</h1>
+    <select id="naming-convention">
+        <option value="alt0">Alt0</option>
+        <option value="alt1">Alt1</option>
+    </select>
+
+    <p id="predict-step-state"></p>
+
+    <script>
+        const variables = {
+            state: new FormulaElement("state", 
+                "State Vector",
+                "Represents the estimated state of the system", 
+                "The position and velocity of a moving object", 
+                {'alt0': (v) => `\\mathbf{x}`,
+                 'alt1': (v) => `\\mathbf{s}`},
+                '\\(n_x\\)',
+                'rgba(0, 255, 0, 0.8)'
+            ),
+            state_transition: new FormulaElement("state-transition-matrix", 
+                "State Transition Matrix", 
+                "Transforms the current state estimate to the next state estimate", 
+                "Velocity matrix",
+                {'alt0': (v) => `\\mathbf{F}`,
+                 'alt1': (v) => `\\mathbf{A}`},
+                '\\(n_x \\times n_x\\)',
+                'rgba(255, 0, 0, 0.8)'
+            ),
+            control_input: new FormulaElement("control-input", 
+                "Control Input Vector",
+                "Contains the user-supplied input to the system", 
+                "The control input to the object",
+                {'alt0': (v) => `\\mathbf{u}`,
+                 'alt1': (v) => `\\mathbf{w}`},
+                '\\(n_u\\)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            control_matrix: new FormulaElement("control-matrix", 
+                "Control Matrix", 
+                "Transforms the control input to the space of the state", 
+                "The matrix that transforms the control input to the state",
+                {'alt0': (v) => `\\mathbf{B}`,
+                 'alt1': (v) => `\\mathbf{W}`},
+                '\\(n_x \\times n_u\\)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            discrete_time: new FormulaElement("discrete-time", 
+                "Discrete Time",
+                "Indicates a discrete moment in time", 
+                "The time step of the system",
+                {'alt0': (v) => `k`,
+                 'alt1': (v) => `n`},
+                '\\(\\text{scalar}\\)',
+                'rgba(255, 255, 0, 0.8)'
+            ),
+        }
+        // All of the formulas that should be wrapped in $$ and typeset
+        const formulas = {
+            predict_step_state: new FormulaElement("predict-step-state", 
+                "Predict Step: State Equation",
+                "How the state evolves based on the dynamical model of the system", 
+                "The position and velocity of a moving object", 
+                {"all": (v) => `${v.state.str()}_{${v.discrete_time.str()}+1} = ${v.state_transition.str()} ${v.state.str()}_{${v.discrete_time.str()}} + ${v.control_matrix.str()} ${v.control_input.str()}_${v.discrete_time.str()}`},
+                '',
+                'rgba(255, 155, 0, 0.8)',
+                variables
+            ),    
+        }
+
+        // Fill in all divs with formulas according to the naming convention
+        function set_naming_convention(convention) {
+            let elements_to_typeset = [];
+            for (const object of [...Object.values(formulas)]) {
+                object.update_naming_convention(convention);
+                const formulaDiv = document.getElementById(object.div_name);
+                if (formulaDiv) {
+                    formulaDiv.innerHTML = object.str("$$");
+                    elements_to_typeset.push(formulaDiv);
+                }
+                else {
+                    console.log(`set_naming_convention(): no div found for ${object.div_name}`);
+                }
+            }
+            return elements_to_typeset;
+        }
+
+
+        // safe version of MathJax.typesetPromise that doesn't throw an error when MathJax is not yet loaded,
+        // creates tooltips, and logs errors.
+        // Note that if MathJax is not yet loaded, this will still fail. It must be called 
+        function typesetPromiseAndHoverEffects(elements_to_typeset) {
+            MathJax.startup.promise = MathJax.startup.promise
+                .then(() => {
+                    MathJax.typesetPromise(elements_to_typeset);
+                    console.log("MathJax Typeset success");
+                    mouseEffectsManager.initialize()
+                })
+                .catch((err) => console.log('MathJax typeset() failed: ' + err.message));
+            return MathJax.startup.promise;
+        }
+
+        document.getElementById('naming-convention').addEventListener('change', function(event) {
+            const convention = event.target.value;
+            const elements_to_typeset = set_naming_convention(convention);
+            typesetPromiseAndHoverEffects(elements_to_typeset);
+        });
+
+        set_naming_convention('alt0');
+        const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables), ...Object.values(formulas)]);
+
+    </script>
+</body>
+</html>
+
+<!--Notes:
+Consider using KaTeX instead of MathJax. It's not as feature-rich, but may be faster to load.
+Tried to update individual variables within the formula but I couldn't get it to work.
+I tried writing formulas like $$<span id="state">x</state> = ...$$ but MathJax wouldn't recognize
+    this as an equation to render. 
+Reversing this, doing <span id="state">$$x$$</state> $$=$$ <span id="control_input">$$u$$</span>
+also didn't work since a new line was made for each $$
+Finally, I tried using MathJax macros so I could write $$\state = F \state$$ but this
+    didn't work because when I tried to redefine the macros, it would no longer apply to the html
+    (I think the html might have been changed on first rendering so a second pass didn't see the \state anymore)
+    (a closer read of https://docs.mathjax.org/en/latest/web/configuration.html#configuring-mathjax-after-it-is-loaded
+    might make it possible to use macros)
+It wasn't clear how to define the relationship between the Variables and the naming_convention, 
+so I decided to use the variables as my single source of truth. 
+-->
