@@ -49,6 +49,8 @@ class MouseEffectsManager {
 
     removeHoveredElement(formulaElement, documentElement) {
         documentElement.style.backgroundColor = '';
+        documentElement.style.boxShadow = '';
+        documentElement.style.borderRadius = '';
         this.currentlyHovered = this.currentlyHovered.filter(el => el.documentElement !== documentElement);
         this.highlightSmallestElement();
     }
@@ -58,14 +60,13 @@ class MouseEffectsManager {
             const { formulaElement, documentElement } = this.currentlyHovered[i];
             if (i === 0) { // list is sorted so first element has smallest width
                 documentElement.style.backgroundColor = formulaElement.color;
-                documentElement.style.paddingTop = '3px';
-                documentElement.style.paddingBottom = '3px';
-                documentElement.style.marginTop = '-3px';
-                documentElement.style.marginBottom = '-3px';
+                documentElement.style.boxShadow = `0 0 5px 2px ${formulaElement.color}`;
                 documentElement.style.borderRadius = '3px';
             }
             else {
                 documentElement.style.backgroundColor = '';
+                documentElement.style.boxShadow = '';
+                documentElement.style.borderRadius = '';
             }
         }
     }
