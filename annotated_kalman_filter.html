@@ -62,11 +62,11 @@
 
     <h2>Predict Step</h2>
     When a linear process (eg. F) is applied to our gaussian state estimate, how should 
-    <p id="predict-step-state"></p>
-    <p id="predict-step-covariance"></p>
+    <p class="predict-step-state"></p>
+    <p class="predict-step-covariance"></p>
     <h2>Update Step</h2>
     How to combine two gaussian variables? The Kalman gain.
-    <p id="variance-ratio-formula"></p>
+    <p class="variance-ratio-formula"></p>
 
 
     One challenge is that you're trying to combine different "types" of things: a state estimate is a vector with a particular dimension and units,
@@ -133,62 +133,83 @@
                 <th>Dimension</th>
             </tr>
         </thead>
-        <tbody id="variable-description-table-body">
+        <tbody class="variable-description-table-body">
             <tr id="state-row">
-                <td id="state"></td>
-                <td id="state-name"></td>
-                <td id="state-description"></td>
-                <td id="state-example"></td>
-                <td id="state-dimension"></td>
+                <td class="state"></td>
+                <td class="state-name"></td>
+                <td class="state-description"></td>
+                <td class="state-example"></td>
+                <td class="state-dimension"></td>
             </tr>
             <tr id="state-covariance-row">
-                <td id="state-covariance"></td>
-                <td id="state-covariance-name"></td>
-                <td id="state-covariance-description"></td>
-                <td id="state-covariance-example"></td>
-                <td id="state-covariance-dimension"></td>
+                <td class="state-covariance"></td>
+                <td class="state-covariance-name"></td>
+                <td class="state-covariance-description"></td>
+                <td class="state-covariance-example"></td>
+                <td class="state-covariance-dimension"></td>
             </tr>
             <tr id="control-input-row">
-                <td id="control-input"></td>
-                <td id="control-input-name"></td>
-                <td id="control-input-description"></td>
-                <td id="control-input-example"></td>
-                <td id="control-input-dimension"></td>
+                <td class="control-input"></td>
+                <td class="control-input-name"></td>
+                <td class="control-input-description"></td>
+                <td class="control-input-example"></td>
+                <td class="control-input-dimension"></td>
             </tr>
             <tr id="state-transition-matrix-row">
-                <td id="state-transition-matrix"></td>
-                <td id="state-transition-matrix-name"></td>
-                <td id="state-transition-matrix-description"></td>
-                <td id="state-transition-matrix-example"></td>
-                <td id="state-transition-matrix-dimension"></td>
+                <td class="state-transition-matrix"></td>
+                <td class="state-transition-matrix-name"></td>
+                <td class="state-transition-matrix-description"></td>
+                <td class="state-transition-matrix-example"></td>
+                <td class="state-transition-matrix-dimension"></td>
             </tr>
             <tr id="control-matrix-row">
-                <td id="control-matrix"></td>
-                <td id="control-matrix-name"></td>
-                <td id="control-matrix-description"></td>
-                <td id="control-matrix-example"></td>
-                <td id="control-matrix-dimension"></td>
+                <td class="control-matrix"></td>
+                <td class="control-matrix-name"></td>
+                <td class="control-matrix-description"></td>
+                <td class="control-matrix-example"></td>
+                <td class="control-matrix-dimension"></td>
             </tr>
             <tr id="process-noise-covariance-row">
-                <td id="process-noise-covariance"></td>
-                <td id="process-noise-covariance-name"></td>
-                <td id="process-noise-covariance-description"></td>
-                <td id="process-noise-covariance-example"></td>
-                <td id="process-noise-covariance-dimension"></td>
+                <td class="process-noise-covariance"></td>
+                <td class="process-noise-covariance-name"></td>
+                <td class="process-noise-covariance-description"></td>
+                <td class="process-noise-covariance-example"></td>
+                <td class="process-noise-covariance-dimension"></td>
             </tr>
             <tr id="measurement-matrix-row">
-                <td id="measurement-matrix"></td>
-                <td id="measurement-matrix-name"></td>
-                <td id="measurement-matrix-description"></td>
-                <td id="measurement-matrix-example"></td>
-                <td id="measurement-matrix-dimension"></td>
+                <td class="measurement-matrix"></td>
+                <td class="measurement-matrix-name"></td>
+                <td class="measurement-matrix-description"></td>
+                <td class="measurement-matrix-example"></td>
+                <td class="measurement-matrix-dimension"></td>
             </tr>
             <tr id="discrete-time-row">
-                <td id="discrete-time"></td>
-                <td id="discrete-time-name"></td>
-                <td id="discrete-time-description"></td>
-                <td id="discrete-time-example"></td>
-                <td id="discrete-time-dimension"></td>
+                <td class="discrete-time"></td>
+                <td class="discrete-time-name"></td>
+                <td class="discrete-time-description"></td>
+                <td class="discrete-time-example"></td>
+                <td class="discrete-time-dimension"></td>
+            </tr>
+            <tr id="measurement-row">
+                <td class="measurement"></td>
+                <td class="measurement-name"></td>
+                <td class="measurement-description"></td>
+                <td class="measurement-example"></td>
+                <td class="measurement-dimension"></td>
+            </tr>
+            <tr id="measurement-noise-covariance-row">
+                <td class="measurement-noise-covariance"></td>
+                <td class="measurement-noise-covariance-name"></td>
+                <td class="measurement-noise-covariance-description"></td>
+                <td class="measurement-noise-covariance-example"></td>
+                <td class="measurement-noise-covariance-dimension"></td>
+            </tr>
+            <tr id="kalman-gain-row">
+                <td class="kalman-gain"></td>
+                <td class="kalman-gain-name"></td>
+                <td class="kalman-gain-description"></td>
+                <td class="kalman-gain-example"></td>
+                <td class="kalman-gain-dimension"></td>
             </tr>
         </tbody>
     </table>
@@ -363,27 +384,30 @@
         }
 
         const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables), ...Object.values(formulas)]);
-
         // Fill in all divs with formulas according to the naming convention
         function set_naming_convention(convention) {
             let elements_to_typeset = [];
             for (const object of [...Object.values(formulas), ...Object.values(variables)]) {
                 object.update_naming_convention(convention);
-                const formulaDiv = document.getElementById(object.div_name);
-                if (formulaDiv) {
-                    formulaDiv.innerHTML = object.str("$$");
-                    elements_to_typeset.push(formulaDiv);
+                const formulaDivs = document.getElementsByClassName(object.div_name);
+                if (formulaDivs.length > 0) {
+                    for (const formulaDiv of formulaDivs) {
+                        formulaDiv.innerHTML = object.str("$$");
+                        elements_to_typeset.push(formulaDiv);
+                    }
                 }
                 else {
-                    console.log(`set_naming_convention(): no div found for ${object.div_name}`);
+                    console.log(`set_naming_convention(): no divs found for class ${object.div_name}`);
                 }
             }
             for (const object of [...Object.values(inline_formulas)]) {
                 object.update_naming_convention(convention);
-                const formulaDiv = document.getElementById(object.div_name);
-                if (formulaDiv) {
-                    formulaDiv.innerHTML = object.str("inline");
-                    elements_to_typeset.push(formulaDiv);
+                const formulaDivs = document.getElementsByClassName(object.div_name);
+                if (formulaDivs.length > 0) {
+                    for (const formulaDiv of formulaDivs) {
+                        formulaDiv.innerHTML = object.str("inline");
+                        elements_to_typeset.push(formulaDiv);
+                    }
                 }
             }
             return elements_to_typeset;
@@ -392,24 +416,26 @@
         // Fill in the table with non-formula text descriptions
         function set_text_descriptions() {
             for (const object of Object.values(variables)) {
-                display_div = document.getElementById(`${object.div_name}-name`);
-                if (display_div) {
+                const display_divs = document.getElementsByClassName(`${object.div_name}-name`);
+                for (const display_div of display_divs) {
                     display_div.textContent = object.display_name;
                 }
-                description_div = document.getElementById(`${object.div_name}-description`);
-                if (description_div) {
+                const description_divs = document.getElementsByClassName(`${object.div_name}-description`);
+                for (const description_div of description_divs) {
                     description_div.textContent = object.description;
                 }
-                example_div = document.getElementById(`${object.div_name}-example`);
-                if (example_div) {
+                const example_divs = document.getElementsByClassName(`${object.div_name}-example`);
+                for (const example_div of example_divs) {
                     example_div.textContent = object.example;
                 }
-                dimension_div = document.getElementById(`${object.div_name}-dimension`);
-                if (dimension_div) {
-                    dimension_div.textContent = object.dimension;
+                const dimension_divs = document.getElementsByClassName(`${object.div_name}-dimension`);
+                if (dimension_divs.length > 0) {
+                    for (const dimension_div of dimension_divs) {
+                        dimension_div.textContent = object.dimension;
+                    }
                 }
                 else {
-                    console.log(`${object.div_name}-dimension div not found for ${object.div_name}`);
+                    console.log(`${object.div_name}-dimension class not found for ${object.div_name}`);
                 }
             }
         }
