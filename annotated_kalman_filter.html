@@ -48,12 +48,43 @@
 
     <h1>The Annotated Kalman Filter</h1>
 
+    <h2>Introduction</h2>
+    What made me care?
+    Anywhere there is time-series data: Target tracking, navigation, control, robotics, neuroscience, finance
+
+    <h2>Building a model</h2>
+    I've just thrown you 15 variables -- that can be a lot to keep track of! I've tabulated all of them here,
+    but throughout the article you can also click on any variable to see its name, and keep clicking to get more information.
+    You can also choose the naming convention using the dropdown menu above, which should make it easier to learn across multiple sources.
+
+    Link to Visually Explained:https://www.youtube.com/watch?v=IFeCIbljreY
+    Link to Steve Brunton: https://www.youtube.com/watch?v=s_9InuQAx-g
+
     <h2>Predict Step</h2>
+    When a linear process (eg. F) is applied to our gaussian state estimate, how should 
     <p id="predict-step-state"></p>
     <p id="predict-step-covariance"></p>
     <h2>Update Step</h2>
+    How to combine two gaussian variables? The Kalman gain.
+    <p id="variance-ratio-formula"></p>
+
+
+    One challenge is that you're trying to combine different "types" of things: a state estimate is a vector with a particular dimension and units,
+    while the measurements coming from the sensors have entirely different dimensions and units. How do we put them on equal footing and combine them appropriately?
+
     <!-- <p id="update-step-state"></p>
     <p id="update-step-covariance"></p> -->
+    Note that in general, *convolving* multiplying two likelihood distributions together does not result in another 
+    Gaussains are the only shape where this is true (Central Limit Theorem is the reason why Gaussians are so common)
+    https://stats.stackexchange.com/questions/230596/why-do-the-probability-distributions-multiply-here for difference between likelihood and probability distribution.
+
+
+    <h2>The Full Algorithm</h2>
+    Now we have all the pieces to write out the full algorithm, but we'll make a few adjustments to make it more numberically stable
+    <ul>
+        <li>(I-KH) can be numerically unstable, so we distribute it out to get</li>
+        <li>All of the matrices (F,B,H,etc.) can vary with time, so we'll subscript them with the current timestep</li>
+    </ul>
 
 
     <h2>Summary</h2>
@@ -84,7 +115,13 @@
         The Kalman Gain has been proven to be the Best Linear Unbiased Estimator (BLUE) for 
         gaussian random variables.
     </p>
+    <p>Hopefully while playing you realized that 1) it's not magic, and 2) there are many obvious shortcomings. For example, 
+        What if your model isn't linear? What if you don't know the covariance matrix for your sensors? How do small changes 
+        in parameters like the timestep affect the filter's behavior? The key takeaway is the underlying principles: 
+        how to combine and propagate gaussian random variables.
+    </p>
 
+    <h2>Variable Descriptions</h2>
     <!-- TODO: create highlight groupings: 'Parametrize a gaussian', 'supplied by user', 'observed', 'estimated'-->
     <table id="variable-description-table">
         <thead>
@@ -161,7 +198,7 @@
             state: new FormulaElement("state", 
                 "State Vector",
                 "Represents the estimated state of the system", 
-                "The position and velocity of a moving object", 
+                "The position and velocity of a robot", 
                 {'alt0': (v) => `\\mathbf{x}`,
                  'alt1': (v) => `\\mathbf{s}`},
                 '(state_dim,)',
@@ -170,7 +207,7 @@
             state_transition: new FormulaElement("state-transition-matrix", 
                 "State Transition Matrix", 
                 "Transforms the current state estimate to the next state estimate", 
-                "Velocity matrix",
+                "The dynamics of the robot system, expressed in matrix form. Each state depends on the pwhere each ",
                 {'alt0': (v) => `\\mathbf{F}`,
                  'alt1': (v) => `\\mathbf{A}`},
                 '(state_dim, state_dim)',
@@ -179,7 +216,7 @@
             control_input: new FormulaElement("control-input", 
                 "Control Input Vector",
                 "Contains the user-supplied input to the system", 
-                "The control input to the object",
+                "A throttle input from [0,1] for the robot",
                 {'alt0': (v) => `\\mathbf{u}`,
                  'alt1': (v) => `\\mathbf{w}`},
                 '(control_dim,)',
@@ -188,7 +225,7 @@
             control_matrix: new FormulaElement("control-matrix", 
                 "Control Matrix", 
                 "Transforms the control input to the space of the state", 
-                "The matrix that transforms the control input to the state",
+                "Describes how the robot's velocity changes in response to a throttle command",
                 {'alt0': (v) => `\\mathbf{B}`,
                  'alt1': (v) => `\\mathbf{W}`},
                 '(state_dim, control_dim)',
@@ -197,7 +234,7 @@
             process_noise_covariance: new FormulaElement("process-noise-covariance", 
                 "Process Noise Covariance Matrix", 
                 "Describes the amount of uncertainty in the dynamical model of the system", 
-                "The covariance of the process noise",
+                "Uncertainty in the robot's dynamics as a result of things like friction, uneven terrain, etc.",
                 {'alt0': (v) => `\\mathbf{Q}`,
                  'alt1': (v) => `\\mathbf{W}`},
                 '(state_dim, state_dim)',
@@ -211,6 +248,22 @@
                  'alt1': (v) => `\\mathbf{\\Sigma}`},
                 '(state_dim, state_dim)',
                 'rgba(0, 0, 255, 0.8)'
+            ),
+            measurement: new FormulaElement("measurement",
+                "Measurement Vector",
+                "The observed sensor measurement",
+                "The position of a robot as measured by an ultrasonic sensor",
+                {'all': (v) => `\\mathbf{z}`},
+                '(measurement_dim,)',
+                'rgba(0, 255, 255, 0.8)',
+            ),
+            measurement_noise_covariance: new FormulaElement("measurement-noise-covariance",
+                "Measurement Noise Covariance Matrix",
+                "Describes the amount of uncertainty in the measurement", // TODO: make this more precise
+                "The uncertainty in the measurement",
+                {'all': (v) => `\\mathbf{R}`},
+                '(measurement_dim, measurement_dim)',
+                'rgba(0, 255, 255, 0.8)'
             ),
             measurement_matrix: new FormulaElement("measurement-matrix", 
                 "Measurement Matrix", 
@@ -230,6 +283,39 @@
                 '(1,)',
                 'rgba(255, 255, 0, 0.8)'
             ),
+            kalman_gain: new FormulaElement("kalman-gain",
+            "Kalman Gain",
+            "The gain that transforms the measurement space to the state space",
+            "The gain that transforms the measurement space to the state space",
+            {'all': (v) => `\\mathbf{K}`},
+            '(state_dim, measurement_dim)',
+            'rgba(0, 100, 100, 0.8)',
+            ),
+        }
+
+        const formula_chunks = {
+            HPHt: new FormulaElement("state-covariance-mspace",
+            "State covariance in measurement space",
+            "The covariance of the state estimate in the measurement space",
+            "The covariance of the state estimate in the measurement space",
+            {'all': (v) => `${v.measurement_matrix.str()} ${v.state_covariance.str()} ${v.measurement_matrix.str()}^T`},
+            '',
+            'rgba(0, 100, 100, 0.8)',
+            {measurement_matrix: variables.measurement_matrix,
+             state_covariance: variables.state_covariance}
+            ),
+            variance_ratio_m: new FormulaElement("variance-ratio-m",
+                "Variance Ratio in the space of measurements",
+                "The ratio of the variance of the measurement to the variance of the state",
+                "The ratio of the variance of the measurement to the variance of the state",
+                {'all': (v) => `\\widetilde{${v.kalman_gain.str()}}_{${v.measurement.str()}}`},
+                '(measurement_dim, measurement_dim)',
+                'rgba(0, 100, 100, 0.8)',
+                {
+                    kalman_gain: variables.kalman_gain,
+                    measurement: variables.measurement,
+                }
+            ),
         }
 
         // All of the formulas that should be wrapped in $$ and typeset
@@ -238,7 +324,7 @@
                 "Predict Step: State Equation",
                 "How the state evolves based on the dynamical model of the system", 
                 "The position and velocity of a moving object", 
-                {"all": (v) => `${v.state.str()}_{${v.discrete_time.str()}+1} = ${v.state_transition.str()} ${v.state.str()}_{${v.discrete_time.str()}} + ${v.control_matrix.str()} ${v.control_input.str()}_${v.discrete_time.str()}`},
+                {"all": (v) => `${v.state.str()}_{${v.discrete_time.str()}} = ${v.state_transition.str()} ${v.state.str()}_{${v.discrete_time.str()}-1} + ${v.control_matrix.str()} ${v.control_input.str()}_{${v.discrete_time.str()}-1}`},
                 '',
                 'rgba(255, 155, 0, 0.8)',
                 variables
@@ -247,10 +333,21 @@
                 "Predict Step: Covariance Equation", 
                 "How the uncertainty in the state estimate evolves based on our dynamical model of the system", 
                 "The uncertainty in the position and velocity of a moving object", 
-                {"all": (v) => `${v.state_covariance.str()}_{${v.discrete_time.str()}+1} = ${v.state_transition.str()} ${v.state_covariance.str()}_{${v.discrete_time.str()}} ${v.state_transition.str()}^T + ${v.process_noise_covariance.str()}`},
+                {"all": (v) => `${v.state_covariance.str()}_{${v.discrete_time.str()}} = ${v.state_transition.str()} ${v.state_covariance.str()}_{${v.discrete_time.str()}-1} ${v.state_transition.str()}^T + ${v.process_noise_covariance.str()}`},
                 '',
                 'rgba(255, 155, 0, 0.8)',
                 variables
+            ),
+            variance_ratio_formula: new FormulaElement("variance-ratio-formula",
+            "Variance Ratio Formula",
+            "The formula for the variance ratio",
+            "The formula for the variance ratio",
+            {'all': (v) => `${v.variance_ratio_m.str()} = ${v.HPHt.str()} \\left(${v.HPHt.str()} + ${v.measurement_noise_covariance.str()}\\right)^{-1}`},
+            '',
+            'rgba(0, 100, 100, 0.8)',
+            {variance_ratio_m: formula_chunks.variance_ratio_m, 
+                HPHt: formula_chunks.HPHt,
+                measurement_noise_covariance: variables.measurement_noise_covariance}
             ),
         }
         const inline_formulas = {

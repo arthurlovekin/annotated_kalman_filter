@@ -30,7 +30,12 @@ class FormulaElement {
             }
         }
         for (const child of Object.values(this.child_elements)) {
-            child.update_naming_convention(convention);
+            if (child instanceof FormulaElement) {
+                child.update_naming_convention(convention);
+            }
+            else {
+                console.log(`update_naming_convention(): ${this.div_name} has a child that is not a FormulaElement: ${child}`);
+            }
         }
     }
 
