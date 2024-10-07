@@ -1,0 +1,62 @@
+<!-- Courtesy of Davide Cervone from the MathJax user community -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic MathJax Macros</title>
+    <script>
+    MathJax = {
+        // save custom TexMacros in the MathJax configuration object 
+        // (becomes MathJax.config.TexMacros after MathJax is loaded)
+        TexMacros: {
+            alt0: `
+            \\def\\state{\\mathbf{x}}
+            \\def\\stateTransition{\\mathbf{F}}
+            \\def\\discreteTime{n}
+            `,
+            alt1: `
+            \\def\\state{\\mathbf{s}}
+            \\def\\stateTransition{\\mathbf{A}}
+            \\def\\discreteTime{t}
+            `
+        },
+      // Custom function to get the desired set of macros,
+      // then have the renderer to go back to the compile step so the new macros get used.
+      setMacros(name) {
+        return MathJax.startup.promise = MathJax.startup.promise.then(() => {
+          const {mathjax} = MathJax._.mathjax;
+          const {STATE} = MathJax._.core.MathItem;
+          MathJax.tex2mml(MathJax.config.TexMacros[name]);
+          mathjax.handleRetriesFor(() => MathJax.startup.document.rerender(STATE.COMPILED));
+        });
+      },
+      startup: {
+        typeset: false, //disable the initial typesetting pass since setMacros() will do typesetting
+        ready() {
+          MathJax.startup.defaultReady();
+          MathJax.config.setMacros('alt0');
+          const dropdown = document.getElementById('naming-convention-dropdown');
+          dropdown.addEventListener('input', (event) => MathJax.config.setMacros(event.target.value));
+        }
+      }
+    }
+    </script>
+    <script id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+</head>
+<body>
+
+    <h1>Dynamic MathJax Macros</h1>
+
+    <select id="naming-convention-dropdown">
+        <option value="alt0">Alt0</option>
+        <option value="alt1">Alt1</option>
+    </select>
+
+    <p>Test inline: \( \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} \),
+       and block: $$ \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} $$</p>
+
+</body>
+</html>
