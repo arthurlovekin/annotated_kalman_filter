@@ -351,12 +351,12 @@
                                         <draggable-number id="kalman-gain-old-state-covariance-00" min="0" max="10" step="0.01" value="1">1.0</draggable-number>
                                     </td>
                                     <td>
-                                        <draggable-number id="kalman-gain-old-state-covariance-01" min="0" max="10" step="0.01" value="0">0.0</draggable-number>
+                                        <draggable-number id="kalman-gain-old-state-covariance-01" min="0" max="10" step="0.01" value="0.0">0.0</draggable-number>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>
-                                        <draggable-number id="kalman-gain-old-state-covariance-10" min="0" max="10" step="0.01" value="0">0.0</draggable-number>
+                                        <div class="dynamic-number-container" id="kalman-gain-old-state-covariance-10">0.0</div>
                                     </td>
                                     <td>
                                         <draggable-number id="kalman-gain-old-state-covariance-11" min="0" max="10" step="0.01" value="1">1.0</draggable-number>
@@ -505,17 +505,20 @@
     </table>
 
     <script>
-        // Make the math actually work
+        //// Make variables for the elements on the page
+        // Draggable Elements
         const xtm1_0 = document.getElementById("kalman-gain-old-state-0");
         const xtm1_1 = document.getElementById("kalman-gain-old-state-1");
         const Ptm1_00 = document.getElementById("kalman-gain-old-state-covariance-00");
         const Ptm1_01 = document.getElementById("kalman-gain-old-state-covariance-01");
-        const Ptm1_10 = document.getElementById("kalman-gain-old-state-covariance-10");
         const Ptm1_11 = document.getElementById("kalman-gain-old-state-covariance-11");
-        const Hx_0 = document.getElementById("kalman-gain-state-measurement-space-0");
-        const HPH_00 = document.getElementById("kalman-gain-state-measurement-space-covariance-00");
         const z_0 = document.getElementById("kalman-gain-measurement-0");
         const R_00 = document.getElementById("kalman-gain-measurement-covariance-00");
+        
+        // Not Draggable, but still dynamic elements
+        const Ptm1_10 = document.getElementById("kalman-gain-old-state-covariance-10");
+        const Hx_0 = document.getElementById("kalman-gain-state-measurement-space-0");
+        const HPH_00 = document.getElementById("kalman-gain-state-measurement-space-covariance-00");
         const VR_00 = document.getElementById("kalman-gain-variance-ratio-00");
         const xt_0 = document.getElementById("kalman-gain-new-state-0");
         const xt_1 = document.getElementById("kalman-gain-new-state-1");
@@ -523,13 +526,47 @@
         const P_01 = document.getElementById("kalman-gain-new-state-covariance-01");
         const P_10 = document.getElementById("kalman-gain-new-state-covariance-10");
         const P_11 = document.getElementById("kalman-gain-new-state-covariance-11");
-        // constants
-        const H_00 = document.getElementById("kalman-gain-measurement-matrix-00").textContent;
-        const H_01 = document.getElementById("kalman-gain-measurement-matrix-01").textContent;
         
+        // constants
+        const H_00 = parseFloat(document.getElementById("kalman-gain-measurement-matrix-00").textContent);
+        const H_01 = parseFloat(document.getElementById("kalman-gain-measurement-matrix-01").textContent);
+        
+        //// Make the old state covariance be positive semi-definite and symmetric
+        function eigenvalues2x2(matrix) {
+            // Fun fact: if you derive the eigenvalues of a general 2x2 matrix,
+            // you can write it in terms of the trace and determinant
+            const trace = matrix[0][0] + matrix[1][1];
+            const det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+            if (trace**2 - 4*det < 0) {
+                throw new Error("Matrix is not positive semi-definite");
+            }
+            const val1 = (trace + Math.sqrt(trace**2 - 4*det)) / 2;
+            const val2 = (trace - Math.sqrt(trace**2 - 4*det)) / 2;
+
+            return [val1, val2]; // not sorted
+        }
+
+        function isPositiveSemiDefinite(matrix) {
+            const eig = eigenvalues2x2(matrix);
+            return eig[0] >= 0 && eig[1] >= 0;
+        }
+        Ptm1_00.setValidityCondition((newValue) => {
+            return isPositiveSemiDefinite([[newValue, Ptm1_01.value], [Ptm1_01.value, Ptm1_11.value]])
+        });
+        Ptm1_01.setValidityCondition((newValue) => {
+            console.log(`Ptm1_00: ${Ptm1_00.value}, Ptm1_01: ${Ptm1_01.value}, Ptm1_11: ${Ptm1_11.value}`);
+            return isPositiveSemiDefinite([[Ptm1_00.value, newValue], [newValue, Ptm1_11.value]])
+        });
+        Ptm1_11.setValidityCondition((newValue) => {
+            return isPositiveSemiDefinite([[Ptm1_00.value, Ptm1_01.value], [Ptm1_01.value, newValue]])
+        });
+
+
+        //// Update the matrices whenever one is changed
         function updateMatrices() {
+            // Note: Ptm1_01 is always used instead of Ptm1_10 because the matrix is symmetric
             const _Hx_0 = H_00 * xtm1_0.value + H_01 * xtm1_1.value;
-            const _HPH_00 = H_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) + H_01 * (Ptm1_10.value * H_00 + Ptm1_11.value * H_01);
+            const _HPH_00 = H_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) + H_01 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
             const _VR_00 = _HPH_00 / (_HPH_00 + R_00.value);
             // Use the kalman gain formula to update x since can't do H^{-1}
             // K = P_{t|t-1} H^T (H P_{t|t-1} H^T + R)^{-1}
@@ -540,13 +577,13 @@
             let K_10 = 0;
             if (K_denominator !== 0) {
                 K_00 = (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) / K_denominator;
-                K_10 = (Ptm1_10.value * H_00 + Ptm1_11.value * H_01) / K_denominator;
+                K_10 = (Ptm1_01.value * H_00 + Ptm1_11.value * H_01) / K_denominator;
             }
             const _xt_0 = xtm1_0.value + K_00 * (z_0.value - _Hx_0);
             const _xt_1 = xtm1_1.value + K_10 * (z_0.value - _Hx_0);
-            const _P_00 = Ptm1_00.value - K_00 * (Ptm1_00.value * H_00 + Ptm1_10.value * H_01);
+            const _P_00 = Ptm1_00.value - K_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01);
             const _P_01 = Ptm1_01.value - K_00 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
-            const _P_10 = Ptm1_10.value - K_10 * (Ptm1_00.value * H_00 + Ptm1_10.value * H_01);
+            const _P_10 = Ptm1_01.value - K_10 * (Ptm1_00.value * H_00 + Ptm1_11.value * H_01);
             const _P_11 = Ptm1_11.value - K_10 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
 
             Hx_0.textContent = _Hx_0.toFixed(2);
@@ -558,13 +595,13 @@
             P_01.textContent = _P_01.toFixed(2);
             P_10.textContent = _P_10.toFixed(2);
             P_11.textContent = _P_11.toFixed(2);
+            Ptm1_10.textContent = Ptm1_01.value.toFixed(2);
         }
 
-        [xtm1_0, xtm1_1, Ptm1_00, Ptm1_01, Ptm1_10, Ptm1_11, Hx_0, HPH_00, z_0, R_00, VR_00, xt_0, xt_1, P_00, P_01, P_10, P_11].forEach(el => el.addEventListener("change", updateMatrices));
+        // Add event listeners to all the draggable elements
+        [xtm1_0, xtm1_1, Ptm1_00, Ptm1_01, Ptm1_11, z_0, R_00].forEach(el => el.addEventListener("input", updateMatrices));
 
         updateMatrices();
-
-        
         
     </script>
 </body>
