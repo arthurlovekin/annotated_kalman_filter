@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalman Gain Diagram</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="js/formula-element.js"></script>
+    <script src="js/mouse-effects-manager.js"></script>
+    <script src="js/draggable-number.js"></script>
+    <!-- Tippy.js for hover tooltips -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <script>
+        const variables = {
+            state: new FormulaElement("state", 
+                "State Vector",
+                "Represents the estimated state of the system", 
+                "The position and velocity of a robot", 
+                {'alt0': (v) => `\\mathbf{x}`,
+                 'alt1': (v) => `\\mathbf{s}`},
+                '(state_dim,)',
+                'rgba(0, 255, 0, 0.8)'
+            ),
+            state_transition: new FormulaElement("state-transition-matrix", 
+                "State Transition Matrix", 
+                "Transforms the current state estimate to the next state estimate", 
+                "The dynamics of the robot system, expressed in matrix form. Each state depends on the pwhere each ",
+                {'alt0': (v) => `\\mathbf{F}`,
+                 'alt1': (v) => `\\mathbf{A}`},
+                '(state_dim, state_dim)',
+                'rgba(255, 0, 0, 0.8)'
+            ),
+            control_input: new FormulaElement("control-input", 
+                "Control Input Vector",
+                "Contains the user-supplied input to the system", 
+                "A throttle input from [0,1] for the robot",
+                {'alt0': (v) => `\\mathbf{u}`,
+                 'alt1': (v) => `\\mathbf{w}`},
+                '(control_dim,)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            control_matrix: new FormulaElement("control-matrix", 
+                "Control Matrix", 
+                "Transforms the control input to the space of the state", 
+                "Describes how the robot's velocity changes in response to a throttle command",
+                {'alt0': (v) => `\\mathbf{B}`,
+                 'alt1': (v) => `\\mathbf{W}`},
+                '(state_dim, control_dim)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            process_noise_covariance: new FormulaElement("process-noise-covariance", 
+                "Process Noise Covariance Matrix", 
+                "Describes the amount of uncertainty in the dynamical model of the system", 
+                "Uncertainty in the robot's dynamics as a result of things like friction, uneven terrain, etc.",
+                {'alt0': (v) => `\\mathbf{Q}`,
+                 'alt1': (v) => `\\mathbf{W}`},
+                '(state_dim, state_dim)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            state_covariance: new FormulaElement("state-covariance", 
+                "State Covariance Matrix", 
+                "Describes the amount of uncertainty in the state estimate", 
+                "The uncertainty in the state estimate",
+                {'alt0': (v) => `\\mathbf{P}`,
+                 'alt1': (v) => `\\mathbf{\\Sigma}`},
+                '(state_dim, state_dim)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            measurement: new FormulaElement("measurement",
+                "Measurement Vector",
+                "The observed sensor measurement",
+                "The position of a robot as measured by an ultrasonic sensor",
+                {'all': (v) => `\\mathbf{z}`},
+                '(measurement_dim,)',
+                'rgba(0, 255, 255, 0.8)',
+            ),
+            measurement_noise_covariance: new FormulaElement("measurement-noise-covariance",
+                "Measurement Noise Covariance Matrix",
+                "Describes the amount of uncertainty in the measurement", // TODO: make this more precise
+                "The uncertainty in the measurement",
+                {'all': (v) => `\\mathbf{R}`},
+                '(measurement_dim, measurement_dim)',
+                'rgba(0, 255, 255, 0.8)'
+            ),
+            measurement_matrix: new FormulaElement("measurement-matrix", 
+                "Measurement Matrix", 
+                "Converts vectors from the space of states to the space of measurements", 
+                "The matrix that converts the state to the measurement",
+                {'alt0': (v) => `\\mathbf{H}`,
+                 'alt1': (v) => `\\mathbf{M}`},
+                '(measurement_dim, state_dim)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            discrete_time: new FormulaElement("discrete-time", 
+                "Discrete Time",
+                "Indicates a discrete moment in time", 
+                "The time step of the system",
+                {'alt0': (v) => `k`,
+                 'alt1': (v) => `n`},
+                '(1,)',
+                'rgba(255, 255, 0, 0.8)'
+            ),
+            kalman_gain: new FormulaElement("kalman-gain",
+            "Kalman Gain",
+            "The gain that transforms the measurement space to the state space",
+            "The gain that transforms the measurement space to the state space",
+            {'all': (v) => `\\mathbf{K}`},
+            '(state_dim, measurement_dim)',
+            'rgba(0, 100, 100, 0.8)',
+            ),
+            variance_ratio: new FormulaElement("variance-ratio",
+            "Variance Ratio",
+            "The ratio of the variance of the state to the total variance in the measurement space",
+            "The ratio of the variance of the measurement to the variance of the state",
+            {'all': (v) => `\\frac{\\text{measurement noise}}{\\text{process noise}}`},
+            '(1,)',
+            'rgba(0, 100, 100, 0.8)',
+            ),
+        }
+
+        const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables)]);
+    </script>
+    <script>
+        MathJax = {
+            //Enable macros \class, \cssId, \href, \style
+            loader: {load: ['[tex]/html']}, 
+            tex: {packages: {'[+]': ['html']}},
+            // save custom TexMacros in the MathJax configuration object 
+            // (becomes MathJax.config.TexMacros after MathJax is loaded)
+            TexMacros: {
+                wikipedia: `
+                \\def\\state{\\class{state}{\\mathbf{x}}}
+                \\def\\stateTransition{\\class{stateTransition}{\\mathbf{F}}}
+                \\def\\controlInput{\\class{controlInput}{\\mathbf{u}}}
+                \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
+                \\def\\measurementNoiseCovariance{\\class{measurement-noise-covariance}{\\mathbf{R}}}
+                \\def\\measurementMatrix{\\class{measurement-matrix}{\\mathbf{H}}}
+                \\def\\stateCovariance{\\class{state-covariance}{\\mathbf{P}}}
+                \\def\\processNoiseCovariance{\\class{process-noise-covariance}{\\mathbf{Q}}}
+                \\def\\controlMatrix{\\class{control-matrix}{\\mathbf{B}}}
+                \\def\\kalmanGain{\\class{kalman-gain}{\\mathbf{K}}}
+                \\def\\varianceRatio{\\class{variance-ratio}{\\widetilde{\\mathbf{K}}_{z}}}
+                \\def\\varianveRatioState{\\class{variance-ratio-state}{\\widetilde{\\mathbf{K}}_{x}}}
+                \\def\\discreteTime{n}
+                `,
+                kalmanfilterdotnet: `
+                \\def\\state{\\\class{state}{\\mathbf{s}}}
+                \\def\\stateTransition{\\class{stateTransition}{\\mathbf{A}}}
+                \\def\\controlInput{\\class{controlInput}{\\mathbf{u}}}
+                \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
+                \\def\\measurementNoiseCovariance{\\class{measurement-noise-covariance}{\\mathbf{R}}}
+                \\def\\measurementMatrix{\\class{measurement-matrix}{\\mathbf{C}}}
+                \\def\\stateCovariance{\\class{state-covariance}{\\mathbf{P}}}
+                \\def\\processNoiseCovariance{\\class{process-noise-covariance}{\\mathbf{Q}}}
+                \\def\\controlMatrix{\\class{control-matrix}{\\mathbf{B}}}
+                \\def\\kalmanGain{\\class{kalman-gain}{\\mathbf{K}}}
+                \\def\\varianceRatio{\\class{variance-ratio}{\\widetilde{\\mathbf{K}}_{z}}}
+                \\def\\varianveRatioState{\\class{variance-ratio-state}{\\widetilde{\\mathbf{K}}_{x}}}
+                \\def\\discreteTime{t}
+                `
+            },
+          // Custom function to get the desired set of macros,
+          // then have the renderer to go back to the compile step so the new macros get used.
+          setMacros(name) {
+            if (!MathJax.config.TexMacros.hasOwnProperty(name)) {
+              console.warn(`TexMacros for "${name}" not found.`);
+              return Promise.resolve();
+            }
+            
+            return MathJax.startup.promise = MathJax.startup.promise.then(() => {
+              const {mathjax} = MathJax._.mathjax;
+              const {STATE} = MathJax._.core.MathItem;
+              MathJax.tex2mml(MathJax.config.TexMacros[name]);
+              mathjax.handleRetriesFor(() => MathJax.startup.document.rerender(STATE.COMPILED));
+            });
+          },
+          startup: {
+            typeset: false, //disable the initial typesetting pass since setMacros() will do typesetting
+            ready() {
+              MathJax.startup.defaultReady();
+              MathJax.config.setMacros('wikipedia');
+              const dropdown = document.getElementById('naming-convention-dropdown');
+              dropdown.addEventListener('input', (event) => MathJax.config.setMacros(event.target.value));
+              
+              mouseEffectsManager.initialize();
+            }
+          }
+        }
+    </script>
+    <script id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+    <style>
+        .matrix-table {
+            position: relative;
+        }
+        /* Rectangular pseudo-element before and after the table */
+        .matrix-table::before,
+        .matrix-table::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px; 
+        }
+        /* Make the left pseudo-element look like a bracket */
+        .matrix-table::before {
+            left: 0px;
+            border-left: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+        }
+        /* Make the right pseudo-element look like a bracket */
+        .matrix-table::after {
+            right: 0px;
+            border-right: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+        }
+        .matrix-table td {
+            text-align: center;
+            vertical-align: middle;
+            width: 6ch; /* matches the DraggableNumber width */
+        }
+        .matrix-table tr {
+            line-height: 1.5;
+        }
+
+        .equation-table {
+            border-collapse: collapse;
+            margin: 20px auto;
+        }
+
+        .equation-table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .equation-table {
+            border: 1px solid #ddd;
+        }
+
+        .equation-table td {
+            border: 1px solid #ddd;
+        }
+
+        .equation-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <select id="naming-convention-dropdown">
+        <option value="wikipedia">Wikipedia</option>
+        <option value="kalmanfilterdotnet">kalmanfilter.net</option>
+    </select>
+    <p>Test inline: \( \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} \),
+        and block: $$ \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} $$</p>
+ 
+    <table class="equation-table">
+        <tr>
+            <td></td>
+            <td>
+                <table class="normal-distribution-table">
+                    <tr>
+                        <td>\( \mathcal{N} \left( 
+                            \begin{eqnarray}
+                            \\
+                            \state_{\discreteTime - 1} \\
+                            \\
+                        \end{eqnarray}
+                        \right. =\)
+                        <td>
+                            <table class="matrix-table" id="kalman-gain-old-state">
+                                <tr><td id="kalman-gain-old-state-0">2.0</td></tr>
+                                <tr><td id="kalman-gain-old-state-1">1.0</td></tr>
+                            </table>
+                        </td>
+                        <td>, \( \stateCovariance_{\discreteTime-1} = \)</td>
+                        <td>
+                            <table class="matrix-table" id="kalman-gain-old-state-covariance">
+                                <tr>
+                                <td id="kalman-gain-old-state-covariance-00">1.0</td>
+                                <td id="kalman-gain-old-state-covariance-01">0.0</td>
+                            </tr>
+                            <tr>
+                                <td id="kalman-gain-old-state-covariance-10">1.0</td>
+                                <td id="kalman-gain-old-state-covariance-11">0.0</td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>\( \left. 
+                                \begin{eqnarray}
+                                \\
+                                \\
+                                \\
+                            \end{eqnarray}
+                            \right) \)
+
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div id="update-step-plot"></div>
+            </td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>
+                <div class="variance-ratio-formula"></div>
+            </td>
+            <td>
+                <div class="measurement_matrix"></div><div class="state"></div>
+            </td>
+        </tr>
+        <tr>
+            <td></td>
+            <td>\(\mathcal{N} \left( (I-\varianceRatio)\measurementMatrix + \varianceRatio \measurement \text{, } \space \space \space (I-\varianceRatio) \measurementMatrix \stateCovariance \measurementMatrix^T (I-\varianceRatio)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \right) \)
+            </td>
+        </tr>
+    </table>
+</body>
+
+    
