@@ -263,7 +263,62 @@
  
     <table class="math-diagram-structure-table">
         <tr>
-            <td></td>
+            <td>
+                <table class="math-diagram-structure-table">
+                    <tr>
+                        <td>\( \mathcal{N} \left( 
+                            \begin{eqnarray}
+                            \\
+                            \state_{\discreteTime} \\
+                            \\
+                        \end{eqnarray}
+                        \right. =\)
+                        <td>
+                            <table class="matrix-table" id="kalman-gain-new-state">
+                                <tr>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-new-state-0">1.0</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-new-state-1">1.0</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>, \( \stateCovariance_{\discreteTime} = \)</td>
+                        <td>
+                            <table class="matrix-table" id="kalman-gain-new-state-covariance">
+                                <tr>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-new-state-covariance-00">1.0</div>
+                                    </td>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-new-state-covariance-01">0.0</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-new-state-covariance-10">0.0</div>
+                                    </td>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-new-state-covariance-11">1.0</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>\( \left. 
+                                \begin{eqnarray}
+                                \\
+                                \\
+                                \\
+                            \end{eqnarray}
+                            \right) \)
+
+                    </tr>
+                </table>
+            </td>
             <td>
                 <table class="math-diagram-structure-table">
                     <tr>
@@ -277,13 +332,13 @@
                         <td>
                             <table class="matrix-table" id="kalman-gain-old-state">
                                 <tr>
-                                    <td id="kalman-gain-old-state-0">
-                                        <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                                    <td>
+                                        <draggable-number id="kalman-gain-old-state-0" min="0" max="10" step="0.01" value="1">1.0</draggable-number>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td id="kalman-gain-old-state-1">
-                                        <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                                    <td>
+                                        <draggable-number id="kalman-gain-old-state-1" min="0" max="10" step="0.01" value="1">1.0</draggable-number>
                                     </td>
                                 </tr>
                             </table>
@@ -292,19 +347,19 @@
                         <td>
                             <table class="matrix-table" id="kalman-gain-old-state-covariance">
                                 <tr>
-                                    <td id="kalman-gain-old-state-covariance-00">
-                                        <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                                    <td>
+                                        <draggable-number id="kalman-gain-old-state-covariance-00" min="0" max="10" step="0.01" value="1">1.0</draggable-number>
                                     </td>
-                                    <td id="kalman-gain-old-state-covariance-01">
-                                        <draggable-number min="0" max="10" step="0.01" value="1">0.0</draggable-number>
+                                    <td>
+                                        <draggable-number id="kalman-gain-old-state-covariance-01" min="0" max="10" step="0.01" value="0">0.0</draggable-number>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td id="kalman-gain-old-state-covariance-10">
-                                        <draggable-number min="0" max="10" step="0.01" value="1">0.0</draggable-number>
+                                    <td>
+                                        <draggable-number id="kalman-gain-old-state-covariance-10" min="0" max="10" step="0.01" value="0">0.0</draggable-number>
                                     </td>
-                                    <td id="kalman-gain-old-state-covariance-11">
-                                        <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                                    <td>
+                                        <draggable-number id="kalman-gain-old-state-covariance-11" min="0" max="10" step="0.01" value="1">1.0</draggable-number>
                                     </td>
                                 </tr>
                             </table>
@@ -325,7 +380,27 @@
             <td>
                 <div id="update-step-plot"></div>
             </td>
-            <td></td>
+            <td>
+                <table class="math-diagram-structure-table">
+                    <tr>
+                        <td>
+                            \( \measurementMatrix = \)
+                        </td>
+                        <td>
+                            <table class="matrix-table">
+                                <tr>
+                                    <td>
+                                        <div id="kalman-gain-measurement-matrix-00">1.0</div>
+                                    </td>
+                                    <td>
+                                        <div id="kalman-gain-measurement-matrix-01">0.0</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
         </tr>
         <tr>
             <td>
@@ -338,7 +413,7 @@
                             <table class="matrix-table">
                                 <tr>
                                     <td>
-                                        <div class="dynamic-number-container" id="kalman-gain-variance-ratio-0">1.0</div>
+                                        <div class="dynamic-number-container" id="kalman-gain-variance-ratio-00">1.0</div>
                                     </td>
                                 </tr>
                             </table>
@@ -401,8 +476,8 @@
                         <td>
                             <table class="matrix-table">
                                 <tr>
-                                    <td id="kalman-gain-measurement-0">
-                                        <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                                    <td>
+                                        <draggable-number id="kalman-gain-measurement-0" min="0" max="10" step="0.01" value="1">1.0</draggable-number>
                                     </td>
                                 </tr>
                             </table>
@@ -411,8 +486,8 @@
                         <td>
                             <table class="matrix-table">
                                 <tr>
-                                    <td id="kalman-gain-measurement-covariance-00">
-                                        <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                                    <td>
+                                        <draggable-number id="kalman-gain-measurement-covariance-00" min="0" max="10" step="0.01" value="1">1.0</draggable-number>
                                     </td>
                                 </tr>
                             </table>
@@ -428,6 +503,70 @@
             </td>
         </tr>
     </table>
+
+    <script>
+        // Make the math actually work
+        const xtm1_0 = document.getElementById("kalman-gain-old-state-0");
+        const xtm1_1 = document.getElementById("kalman-gain-old-state-1");
+        const Ptm1_00 = document.getElementById("kalman-gain-old-state-covariance-00");
+        const Ptm1_01 = document.getElementById("kalman-gain-old-state-covariance-01");
+        const Ptm1_10 = document.getElementById("kalman-gain-old-state-covariance-10");
+        const Ptm1_11 = document.getElementById("kalman-gain-old-state-covariance-11");
+        const Hx_0 = document.getElementById("kalman-gain-state-measurement-space-0");
+        const HPH_00 = document.getElementById("kalman-gain-state-measurement-space-covariance-00");
+        const z_0 = document.getElementById("kalman-gain-measurement-0");
+        const R_00 = document.getElementById("kalman-gain-measurement-covariance-00");
+        const VR_00 = document.getElementById("kalman-gain-variance-ratio-00");
+        const xt_0 = document.getElementById("kalman-gain-new-state-0");
+        const xt_1 = document.getElementById("kalman-gain-new-state-1");
+        const P_00 = document.getElementById("kalman-gain-new-state-covariance-00");
+        const P_01 = document.getElementById("kalman-gain-new-state-covariance-01");
+        const P_10 = document.getElementById("kalman-gain-new-state-covariance-10");
+        const P_11 = document.getElementById("kalman-gain-new-state-covariance-11");
+        // constants
+        const H_00 = document.getElementById("kalman-gain-measurement-matrix-00").textContent;
+        const H_01 = document.getElementById("kalman-gain-measurement-matrix-01").textContent;
+        
+        function updateMatrices() {
+            const _Hx_0 = H_00 * xtm1_0.value + H_01 * xtm1_1.value;
+            const _HPH_00 = H_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) + H_01 * (Ptm1_10.value * H_00 + Ptm1_11.value * H_01);
+            const _VR_00 = _HPH_00 / (_HPH_00 + R_00.value);
+            // Use the kalman gain formula to update x since can't do H^{-1}
+            // K = P_{t|t-1} H^T (H P_{t|t-1} H^T + R)^{-1}
+            // x_{t|t} = x_{t|t-1} + K (z - H x_{t|t-1})
+            // P_{t|t} = (I - K H) P_{t|t-1}
+            const K_denominator = _HPH_00 + R_00.value;
+            let K_00 = 0;
+            let K_10 = 0;
+            if (K_denominator !== 0) {
+                K_00 = (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) / K_denominator;
+                K_10 = (Ptm1_10.value * H_00 + Ptm1_11.value * H_01) / K_denominator;
+            }
+            const _xt_0 = xtm1_0.value + K_00 * (z_0.value - _Hx_0);
+            const _xt_1 = xtm1_1.value + K_10 * (z_0.value - _Hx_0);
+            const _P_00 = Ptm1_00.value - K_00 * (Ptm1_00.value * H_00 + Ptm1_10.value * H_01);
+            const _P_01 = Ptm1_01.value - K_00 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
+            const _P_10 = Ptm1_10.value - K_10 * (Ptm1_00.value * H_00 + Ptm1_10.value * H_01);
+            const _P_11 = Ptm1_11.value - K_10 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
+
+            Hx_0.textContent = _Hx_0.toFixed(2);
+            HPH_00.textContent = _HPH_00.toFixed(2);
+            VR_00.textContent = _VR_00.toFixed(2);
+            xt_0.textContent = _xt_0.toFixed(2);
+            xt_1.textContent = _xt_1.toFixed(2);
+            P_00.textContent = _P_00.toFixed(2);
+            P_01.textContent = _P_01.toFixed(2);
+            P_10.textContent = _P_10.toFixed(2);
+            P_11.textContent = _P_11.toFixed(2);
+        }
+
+        [xtm1_0, xtm1_1, Ptm1_00, Ptm1_01, Ptm1_10, Ptm1_11, Hx_0, HPH_00, z_0, R_00, VR_00, xt_0, xt_1, P_00, P_01, P_10, P_11].forEach(el => el.addEventListener("change", updateMatrices));
+
+        updateMatrices();
+
+        
+        
+    </script>
 </body>
 
     
