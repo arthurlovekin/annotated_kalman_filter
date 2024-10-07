@@ -227,25 +227,28 @@
             line-height: 1.5;
         }
 
-        .equation-table {
+        .math-diagram-structure-table {
             border-collapse: collapse;
-            margin: 20px auto;
+            margin-left: auto;
+            margin-right: auto;
         }
 
-        .equation-table td {
+        .math-diagram-structure-table td {
             text-align: center;
             vertical-align: middle;
         }
 
-        .equation-table {
+        /* Outline the table temporarily so I can see what I'm doing */
+
+        .math-diagram-structure-table {
             border: 1px solid #ddd;
         }
 
-        .equation-table td {
+        .math-diagram-structure-table td {
             border: 1px solid #ddd;
         }
 
-        .equation-table tr:nth-child(even) {
+        .math-diagram-structure-table tr:nth-child(even) {
             background-color: #f2f2f2;
         }
     </style>
@@ -258,11 +261,11 @@
     <p>Test inline: \( \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} \),
         and block: $$ \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} $$</p>
  
-    <table class="equation-table">
+    <table class="math-diagram-structure-table">
         <tr>
             <td></td>
             <td>
-                <table class="normal-distribution-table">
+                <table class="math-diagram-structure-table">
                     <tr>
                         <td>\( \mathcal{N} \left( 
                             \begin{eqnarray}
@@ -273,20 +276,36 @@
                         \right. =\)
                         <td>
                             <table class="matrix-table" id="kalman-gain-old-state">
-                                <tr><td id="kalman-gain-old-state-0">2.0</td></tr>
-                                <tr><td id="kalman-gain-old-state-1">1.0</td></tr>
+                                <tr>
+                                    <td id="kalman-gain-old-state-0">
+                                        <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td id="kalman-gain-old-state-1">
+                                        <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                                    </td>
+                                </tr>
                             </table>
                         </td>
                         <td>, \( \stateCovariance_{\discreteTime-1} = \)</td>
                         <td>
                             <table class="matrix-table" id="kalman-gain-old-state-covariance">
                                 <tr>
-                                <td id="kalman-gain-old-state-covariance-00">1.0</td>
-                                <td id="kalman-gain-old-state-covariance-01">0.0</td>
-                            </tr>
-                            <tr>
-                                <td id="kalman-gain-old-state-covariance-10">1.0</td>
-                                <td id="kalman-gain-old-state-covariance-11">0.0</td>
+                                    <td id="kalman-gain-old-state-covariance-00">
+                                        <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                                    </td>
+                                    <td id="kalman-gain-old-state-covariance-01">
+                                        <draggable-number min="0" max="10" step="0.01" value="1">0.0</draggable-number>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td id="kalman-gain-old-state-covariance-10">
+                                        <draggable-number min="0" max="10" step="0.01" value="1">0.0</draggable-number>
+                                    </td>
+                                    <td id="kalman-gain-old-state-covariance-11">
+                                        <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                                    </td>
                                 </tr>
                             </table>
                         </td>
@@ -310,15 +329,102 @@
         </tr>
         <tr>
             <td>
-                <div class="variance-ratio-formula"></div>
+                <table class="math-diagram-structure-table">
+                    <tr>
+                        <td>
+                            \( \varianceRatio = \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}{\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance} = \)
+                        </td>
+                        <td>
+                            <table class="matrix-table">
+                                <tr>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-variance-ratio-0">1.0</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
             </td>
             <td>
-                <div class="measurement_matrix"></div><div class="state"></div>
+                <table class="math-diagram-structure-table">
+                    <td>
+                        \(\mathcal{N} \left( \measurementMatrix \state_{\discreteTime-1} =                             \begin{eqnarray}
+                        \\
+                        \\
+                        \end{eqnarray}\right.
+                        \)
+                    </td>
+                    <td>
+                        <table class="matrix-table">
+                            <tr>
+                                <td>
+                                    <div class="dynamic-number-container" id="kalman-gain-state-measurement-space-0">1.0</div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td>
+                        , \( \measurementMatrix \stateCovariance \measurementMatrix^T = \)
+                    </td>
+                    <td>
+                        <table class="matrix-table">
+                            <tr>
+                                <td>
+                                    <div class="dynamic-number-container" id="kalman-gain-state-measurement-space-covariance-00">1.0</div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td>
+                        \( \left.
+                        \begin{eqnarray}
+                        \\
+                        \\
+                        \end{eqnarray}
+                        \right) \)
+                    </td>
+                </table>
             </td>
         </tr>
         <tr>
-            <td></td>
             <td>\(\mathcal{N} \left( (I-\varianceRatio)\measurementMatrix + \varianceRatio \measurement \text{, } \space \space \space (I-\varianceRatio) \measurementMatrix \stateCovariance \measurementMatrix^T (I-\varianceRatio)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \right) \)
+            </td>
+            <td>
+                <table class="math-diagram-structure-table">
+                    <tr>
+                        <td>\( \mathcal{N} \left( \measurement = 
+                            \begin{eqnarray}
+                            \\
+                            \\
+                            \end{eqnarray}\right. \)</td>
+                        <td>
+                            <table class="matrix-table">
+                                <tr>
+                                    <td id="kalman-gain-measurement-0">
+                                        <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>, \( \measurementNoiseCovariance = \)</td>
+                        <td>
+                            <table class="matrix-table">
+                                <tr>
+                                    <td id="kalman-gain-measurement-covariance-00">
+                                        <draggable-number min="0" max="10" step="0.01" value="1">1.0</draggable-number>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>\( \left.
+                            \begin{eqnarray}
+                            \\
+                            \\
+                            \end{eqnarray}
+                            \right) \)</td>
+                    </tr>
+                </table>
             </td>
         </tr>
     </table>
