@@ -611,9 +611,26 @@
             const stddev = Math.sqrt(variance);
             return Array.from(xPts, (x) => Math.exp(-0.5 * ((x - mean) / stddev)**2) / (stddev * Math.sqrt(2 * Math.PI)));
         }
+
+        // handle the case where the variance is 0
+        function getUnivariateGaussianXYpts(mean, variance, xAbsMin=-4, xAbsMax=4, yAbsMax=1.5, numPts=80) {
+            const xmin = Math.max(xAbsMin, mean - 3 * Math.sqrt(variance));
+            const xmax = Math.min(xAbsMax, mean + 3 * Math.sqrt(variance));
+            let xPts;
+            let yPts;
+            if (variance <= 0) {
+                xPts = [mean, mean];
+                yPts = [0, yAbsMax];
+            }
+            else {
+                xPts = linspace(xmin, xmax, numPts);
+                yPts = univariateGaussianPts(xPts, mean, variance);
+            }
+            return [xPts, yPts];
+        }
+
         const xmin = -4;
         const xmax = 4; 
-        const xPts = linspace(xmin, xmax, 80);
         function plotGaussians() {
             const Hx_tm1_mean = parseFloat(Hx_0.textContent);
             const Hx_tm1_var = parseFloat(HPH_00.textContent);
@@ -621,25 +638,30 @@
             const z_var = parseFloat(R_00.value);
             const Hx_t_mean = parseFloat(xt_0.textContent);
             const Hx_t_var = parseFloat(P_00.textContent);
+
+            [x_Hx_tm1, y_Hx_tm1] = getUnivariateGaussianXYpts(Hx_tm1_mean, Hx_tm1_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
+            [x_z, y_z] = getUnivariateGaussianXYpts(z_mean, z_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
+            [x_Hx_t, y_Hx_t] = getUnivariateGaussianXYpts(Hx_t_mean, Hx_t_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
+
             const trace_Hx_tm1 = {
-                x: xPts, 
-                y: univariateGaussianPts(xPts, parseFloat(Hx_0.textContent), parseFloat(HPH_00.textContent)),
+                x: x_Hx_tm1, 
+                y: y_Hx_tm1,
                 type: 'scatter',
                 mode: 'lines',
                 name: 'Previous State in Measurement Space',
                 line: {color: 'blue'},
             };
             const trace_z = {
-                x: xPts, 
-                y: univariateGaussianPts(xPts, parseFloat(z_0.value), parseFloat(R_00.value)),
+                x: x_z, 
+                y: y_z,
                 type: 'scatter',
                 mode: 'lines',
                 name: 'Measurement',
                 line: {color: 'red'},
             };
             const trace_Hx_t = {
-                x: xPts, 
-                y: univariateGaussianPts(xPts, parseFloat(xt_0.textContent), parseFloat(P_00.textContent)),
+                x: x_Hx_t, 
+                y: y_Hx_t,
                 type: 'scatter',
                 mode: 'lines',
                 name: 'Combination',
@@ -657,6 +679,9 @@
                 yaxis: {
                     range: [0, 1.3]
                 },
+                xaxis: {
+                    range: [xmin, xmax]
+                }
             };
             
             Plotly.react('kalman-gain-plot', [trace_Hx_tm1, trace_z, trace_Hx_t], layout);
