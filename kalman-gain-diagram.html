@@ -378,7 +378,7 @@
         </tr>
         <tr>
             <td>
-                <div id="update-step-plot"></div>
+                <div id="kalman-gain-plot"></div>
             </td>
             <td>
                 <table class="math-diagram-structure-table">
@@ -598,11 +598,76 @@
             Ptm1_10.textContent = Ptm1_01.value.toFixed(2);
         }
 
-        // Add event listeners to all the draggable elements
-        [xtm1_0, xtm1_1, Ptm1_00, Ptm1_01, Ptm1_11, z_0, R_00].forEach(el => el.addEventListener("input", updateMatrices));
-
         updateMatrices();
-        
+
+        //// Generate a plot of the three univariate gausians: Hx_{t-1}, z, and Hx_{t}
+        function linspace(start, end, num=100) {
+            const step = (end - start) / (num - 1);
+            return Array.from({length: num}, (_, i) => start + i * step);
+        }
+
+        function univariateGaussianPts(xPts, mean, variance) {
+            // return the y values of the gaussian with the given mean and variance at the given x values
+            const stddev = Math.sqrt(variance);
+            return Array.from(xPts, (x) => Math.exp(-0.5 * ((x - mean) / stddev)**2) / (stddev * Math.sqrt(2 * Math.PI)));
+        }
+        const xmin = -4;
+        const xmax = 4; 
+        const xPts = linspace(xmin, xmax, 80);
+        function plotGaussians() {
+            const Hx_tm1_mean = parseFloat(Hx_0.textContent);
+            const Hx_tm1_var = parseFloat(HPH_00.textContent);
+            const z_mean = parseFloat(z_0.value);
+            const z_var = parseFloat(R_00.value);
+            const Hx_t_mean = parseFloat(xt_0.textContent);
+            const Hx_t_var = parseFloat(P_00.textContent);
+            const trace_Hx_tm1 = {
+                x: xPts, 
+                y: univariateGaussianPts(xPts, parseFloat(Hx_0.textContent), parseFloat(HPH_00.textContent)),
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Previous State in Measurement Space',
+                line: {color: 'blue'},
+            };
+            const trace_z = {
+                x: xPts, 
+                y: univariateGaussianPts(xPts, parseFloat(z_0.value), parseFloat(R_00.value)),
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Measurement',
+                line: {color: 'red'},
+            };
+            const trace_Hx_t = {
+                x: xPts, 
+                y: univariateGaussianPts(xPts, parseFloat(xt_0.textContent), parseFloat(P_00.textContent)),
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Combination',
+                line: {color: 'green'},
+            };
+            
+            const layout = {
+                legend: {
+                    orientation: 'h',
+                    yanchor: 'top',
+                    xanchor: 'center',
+                    y: 1.3,
+                    x: 0.5,
+                },
+                yaxis: {
+                    range: [0, 1.3]
+                },
+            };
+            
+            Plotly.react('kalman-gain-plot', [trace_Hx_tm1, trace_z, trace_Hx_t], layout);
+        }
+        plotGaussians();
+
+        // Add event listeners to all the draggable elements
+        [xtm1_0, xtm1_1, Ptm1_00, Ptm1_01, Ptm1_11, z_0, R_00].forEach(el => el.addEventListener("input", () => {
+            updateMatrices();
+            plotGaussians();
+        }));
     </script>
 </body>
 
