@@ -22,7 +22,7 @@
                 '(state_dim,)',
                 'rgba(0, 255, 0, 0.8)'
             ),
-            state_transition: new FormulaElement("state-transition-matrix", 
+            state_transition: new FormulaElement("state-transition", 
                 "State Transition Matrix", 
                 "Transforms the current state estimate to the next state estimate", 
                 "The dynamics of the robot system, expressed in matrix form. Each state depends on the pwhere each ",
@@ -131,8 +131,8 @@
             TexMacros: {
                 wikipedia: `
                 \\def\\state{\\class{state}{\\mathbf{x}}}
-                \\def\\stateTransition{\\class{stateTransition}{\\mathbf{F}}}
-                \\def\\controlInput{\\class{controlInput}{\\mathbf{u}}}
+                \\def\\stateTransition{\\class{state-transition}{\\mathbf{F}}}
+                \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
                 \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
                 \\def\\measurementNoiseCovariance{\\class{measurement-noise-covariance}{\\mathbf{R}}}
                 \\def\\measurementMatrix{\\class{measurement-matrix}{\\mathbf{H}}}
@@ -146,8 +146,8 @@
                 `,
                 kalmanfilterdotnet: `
                 \\def\\state{\\\class{state}{\\mathbf{s}}}
-                \\def\\stateTransition{\\class{stateTransition}{\\mathbf{A}}}
-                \\def\\controlInput{\\class{controlInput}{\\mathbf{u}}}
+                \\def\\stateTransition{\\class{state-transition}{\\mathbf{A}}}
+                \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
                 \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
                 \\def\\measurementNoiseCovariance{\\class{measurement-noise-covariance}{\\mathbf{R}}}
                 \\def\\measurementMatrix{\\class{measurement-matrix}{\\mathbf{C}}}
@@ -173,6 +173,8 @@
               const {STATE} = MathJax._.core.MathItem;
               MathJax.tex2mml(MathJax.config.TexMacros[name]);
               mathjax.handleRetriesFor(() => MathJax.startup.document.rerender(STATE.COMPILED));
+              
+              mouseEffectsManager.initialize();
             });
           },
           startup: {
@@ -182,8 +184,6 @@
               MathJax.config.setMacros('wikipedia');
               const dropdown = document.getElementById('naming-convention-dropdown');
               dropdown.addEventListener('input', (event) => MathJax.config.setMacros(event.target.value));
-              
-              mouseEffectsManager.initialize();
             }
           }
         }
@@ -424,7 +424,8 @@
             <td>
                 <table class="math-diagram-structure-table">
                     <td>
-                        \(\mathcal{N} \left( \measurementMatrix \state_{\discreteTime-1} =                             \begin{eqnarray}
+                        \(\mathcal{N} \left( \measurementMatrix \state_{\discreteTime-1} = 
+                        \begin{eqnarray}
                         \\
                         \\
                         \end{eqnarray}\right.
@@ -554,7 +555,6 @@
             return isPositiveSemiDefinite([[newValue, Ptm1_01.value], [Ptm1_01.value, Ptm1_11.value]])
         });
         Ptm1_01.setValidityCondition((newValue) => {
-            console.log(`Ptm1_00: ${Ptm1_00.value}, Ptm1_01: ${Ptm1_01.value}, Ptm1_11: ${Ptm1_11.value}`);
             return isPositiveSemiDefinite([[Ptm1_00.value, newValue], [newValue, Ptm1_11.value]])
         });
         Ptm1_11.setValidityCondition((newValue) => {
