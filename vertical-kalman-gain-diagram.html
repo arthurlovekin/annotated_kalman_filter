@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalman Gain Diagram</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="js/formula-element.js"></script>
+    <script src="js/mouse-effects-manager.js"></script>
+    <script src="js/draggable-number.js"></script>
+    <!-- Tippy.js for hover tooltips -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <script>
+        const variables = {
+            state: new FormulaElement("state", 
+                "State Vector",
+                "Represents the estimated state of the system", 
+                "The position and velocity of a robot", 
+                {'alt0': (v) => `\\mathbf{x}`,
+                 'alt1': (v) => `\\mathbf{s}`},
+                '(state_dim,)',
+                'rgba(0, 255, 0, 0.8)'
+            ),
+            state_transition: new FormulaElement("state-transition", 
+                "State Transition Matrix", 
+                "Transforms the current state estimate to the next state estimate", 
+                "The dynamics of the robot system, expressed in matrix form. Each state depends on the pwhere each ",
+                {'alt0': (v) => `\\mathbf{F}`,
+                 'alt1': (v) => `\\mathbf{A}`},
+                '(state_dim, state_dim)',
+                'rgba(255, 0, 0, 0.8)'
+            ),
+            control_input: new FormulaElement("control-input", 
+                "Control Input Vector",
+                "Contains the user-supplied input to the system", 
+                "A throttle input from [0,1] for the robot",
+                {'alt0': (v) => `\\mathbf{u}`,
+                 'alt1': (v) => `\\mathbf{w}`},
+                '(control_dim,)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            control_matrix: new FormulaElement("control-matrix", 
+                "Control Matrix", 
+                "Transforms the control input to the space of the state", 
+                "Describes how the robot's velocity changes in response to a throttle command",
+                {'alt0': (v) => `\\mathbf{B}`,
+                 'alt1': (v) => `\\mathbf{W}`},
+                '(state_dim, control_dim)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            process_noise_covariance: new FormulaElement("process-noise-covariance", 
+                "Process Noise Covariance Matrix", 
+                "Describes the amount of uncertainty in the dynamical model of the system", 
+                "Uncertainty in the robot's dynamics as a result of things like friction, uneven terrain, etc.",
+                {'alt0': (v) => `\\mathbf{Q}`,
+                 'alt1': (v) => `\\mathbf{W}`},
+                '(state_dim, state_dim)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            state_covariance: new FormulaElement("state-covariance", 
+                "State Covariance Matrix", 
+                "Describes the amount of uncertainty in the state estimate", 
+                "The uncertainty in the state estimate",
+                {'alt0': (v) => `\\mathbf{P}`,
+                 'alt1': (v) => `\\mathbf{\\Sigma}`},
+                '(state_dim, state_dim)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            measurement: new FormulaElement("measurement",
+                "Measurement Vector",
+                "The observed sensor measurement",
+                "The position of a robot as measured by an ultrasonic sensor",
+                {'all': (v) => `\\mathbf{z}`},
+                '(measurement_dim,)',
+                'rgba(0, 255, 255, 0.8)',
+            ),
+            measurement_noise_covariance: new FormulaElement("measurement-noise-covariance",
+                "Measurement Noise Covariance Matrix",
+                "Describes the amount of uncertainty in the measurement", // TODO: make this more precise
+                "The uncertainty in the measurement",
+                {'all': (v) => `\\mathbf{R}`},
+                '(measurement_dim, measurement_dim)',
+                'rgba(0, 255, 255, 0.8)'
+            ),
+            measurement_matrix: new FormulaElement("measurement-matrix", 
+                "Measurement Matrix", 
+                "Converts vectors from the space of states to the space of measurements", 
+                "The matrix that converts the state to the measurement",
+                {'alt0': (v) => `\\mathbf{H}`,
+                 'alt1': (v) => `\\mathbf{M}`},
+                '(measurement_dim, state_dim)',
+                'rgba(0, 0, 255, 0.8)'
+            ),
+            discrete_time: new FormulaElement("discrete-time", 
+                "Discrete Time",
+                "Indicates a discrete moment in time", 
+                "The time step of the system",
+                {'alt0': (v) => `k`,
+                 'alt1': (v) => `n`},
+                '(1,)',
+                'rgba(255, 255, 0, 0.8)'
+            ),
+            kalman_gain: new FormulaElement("kalman-gain",
+            "Kalman Gain",
+            "The gain that transforms the measurement space to the state space",
+            "The gain that transforms the measurement space to the state space",
+            {'all': (v) => `\\mathbf{K}`},
+            '(state_dim, measurement_dim)',
+            'rgba(0, 100, 100, 0.8)',
+            ),
+            variance_ratio: new FormulaElement("variance-ratio",
+            "Variance Ratio",
+            "The ratio of the variance of the state to the total variance in the measurement space",
+            "The ratio of the variance of the measurement to the variance of the state",
+            {'all': (v) => `\\frac{\\text{measurement noise}}{\\text{process noise}}`},
+            '(1,)',
+            'rgba(0, 100, 100, 0.8)',
+            ),
+        }
+
+        const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables)]);
+    </script>
+    <script>
+        MathJax = {
+            //Enable macros \class, \cssId, \href, \style
+            loader: {load: ['[tex]/html']}, 
+            tex: {packages: {'[+]': ['html']}},
+            // save custom TexMacros in the MathJax configuration object 
+            // (becomes MathJax.config.TexMacros after MathJax is loaded)
+            TexMacros: {
+                wikipedia: `
+                \\def\\state{\\class{state}{\\mathbf{x}}}
+                \\def\\stateTransition{\\class{state-transition}{\\mathbf{F}}}
+                \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
+                \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
+                \\def\\measurementNoiseCovariance{\\class{measurement-noise-covariance}{\\mathbf{R}}}
+                \\def\\measurementMatrix{\\class{measurement-matrix}{\\mathbf{H}}}
+                \\def\\stateCovariance{\\class{state-covariance}{\\mathbf{P}}}
+                \\def\\processNoiseCovariance{\\class{process-noise-covariance}{\\mathbf{Q}}}
+                \\def\\controlMatrix{\\class{control-matrix}{\\mathbf{B}}}
+                \\def\\kalmanGain{\\class{kalman-gain}{\\mathbf{K}}}
+                \\def\\varianceRatio{\\class{variance-ratio}{\\widetilde{\\mathbf{K}}_{z}}}
+                \\def\\varianveRatioState{\\class{variance-ratio-state}{\\widetilde{\\mathbf{K}}_{x}}}
+                \\def\\discreteTime{n}
+                `,
+                kalmanfilterdotnet: `
+                \\def\\state{\\\class{state}{\\mathbf{s}}}
+                \\def\\stateTransition{\\class{state-transition}{\\mathbf{A}}}
+                \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
+                \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
+                \\def\\measurementNoiseCovariance{\\class{measurement-noise-covariance}{\\mathbf{R}}}
+                \\def\\measurementMatrix{\\class{measurement-matrix}{\\mathbf{C}}}
+                \\def\\stateCovariance{\\class{state-covariance}{\\mathbf{P}}}
+                \\def\\processNoiseCovariance{\\class{process-noise-covariance}{\\mathbf{Q}}}
+                \\def\\controlMatrix{\\class{control-matrix}{\\mathbf{B}}}
+                \\def\\kalmanGain{\\class{kalman-gain}{\\mathbf{K}}}
+                \\def\\varianceRatio{\\class{variance-ratio}{\\widetilde{\\mathbf{K}}_{z}}}
+                \\def\\varianveRatioState{\\class{variance-ratio-state}{\\widetilde{\\mathbf{K}}_{x}}}
+                \\def\\discreteTime{t}
+                `
+            },
+          // Custom function to get the desired set of macros,
+          // then have the renderer to go back to the compile step so the new macros get used.
+          setMacros(name) {
+            if (!MathJax.config.TexMacros.hasOwnProperty(name)) {
+              console.warn(`TexMacros for "${name}" not found.`);
+              return Promise.resolve();
+            }
+            
+            return MathJax.startup.promise = MathJax.startup.promise.then(() => {
+              const {mathjax} = MathJax._.mathjax;
+              const {STATE} = MathJax._.core.MathItem;
+              MathJax.tex2mml(MathJax.config.TexMacros[name]);
+              mathjax.handleRetriesFor(() => MathJax.startup.document.rerender(STATE.COMPILED));
+              
+              mouseEffectsManager.initialize();
+            });
+          },
+          startup: {
+            typeset: false, //disable the initial typesetting pass since setMacros() will do typesetting
+            ready() {
+              MathJax.startup.defaultReady();
+              MathJax.config.setMacros('wikipedia');
+              const dropdown = document.getElementById('naming-convention-dropdown');
+              dropdown.addEventListener('input', (event) => MathJax.config.setMacros(event.target.value));
+            }
+          }
+        }
+    </script>
+    <script id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+    <style>
+        .matrix-table {
+            position: relative;
+        }
+        /* Rectangular pseudo-element before and after the table */
+        .matrix-table::before,
+        .matrix-table::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px; 
+        }
+        /* Make the left pseudo-element look like a bracket */
+        .matrix-table::before {
+            left: 0px;
+            border-left: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+        }
+        /* Make the right pseudo-element look like a bracket */
+        .matrix-table::after {
+            right: 0px;
+            border-right: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+        }
+        .matrix-table td {
+            text-align: center;
+            vertical-align: middle;
+            width: 6ch; /* matches the DraggableNumber width */
+        }
+        .matrix-table tr {
+            line-height: 1.5;
+        }
+
+        .math-diagram-structure-table {
+            border-collapse: collapse;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .math-diagram-structure-table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .kalman-gain-state-space {
+            background-color: rgb(187, 187, 187);
+        }
+
+        .kalman-gain-intermediate-space {
+            background-color: #dddddd;
+        }
+
+        .kalman-gain-measurement-space {
+            background-color: rgb(255, 252, 238);
+        }
+
+
+        #kalman-gain-Hstate-gaussian {
+            border: 2px solid rgb(0, 0, 255);
+            border-radius: 10px;
+        }
+
+        #kalman-gain-measurement-gaussian {
+            border: 2px solid rgb(255, 0, 0);
+            border-radius: 10px;
+        }
+
+        #kalman-gain-combined-gaussian {
+            border: 2px solid rgb(0, 150, 0);
+            border-radius: 10px;
+        }
+
+        /* Outline the table temporarily so I can see what I'm doing */
+
+        /* .math-diagram-structure-table {
+            border: 1px solid #ddd;
+        } */
+
+        /* .math-diagram-structure-table td {
+            border: 1px solid #ddd;
+        }
+
+        .math-diagram-structure-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        } */
+
+    </style>
+</head>
+<body>
+    <select id="naming-convention-dropdown">
+        <option value="wikipedia">Wikipedia</option>
+        <option value="kalmanfilterdotnet">kalmanfilter.net</option>
+    </select>
+
+    <table id='kalman-gain-diagram-table' class="math-diagram-structure-table">
+        <tr class="kalman-gain-state-space">
+            <td>
+                <table class="math-diagram-structure-table">
+                    <tr>
+                        <td>\( \mathcal{N} \left( 
+                            \begin{eqnarray}
+                            \\
+                            \state_{\discreteTime - 1} \\
+                            \\
+                        \end{eqnarray}
+                        \right. =\)
+                        <td>
+                            <table class="matrix-table" id="kalman-gain-old-state">
+                                <tr>
+                                    <td>
+                                        <draggable-number id="kalman-gain-old-state-0" min="-4" max="4" step="0.01" value="1">1.0</draggable-number>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <draggable-number id="kalman-gain-old-state-1" min="-4" max="4" step="0.01" value="1">1.0</draggable-number>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>, \( \stateCovariance_{\discreteTime-1} = \)</td>
+                        <td>
+                            <table class="matrix-table" id="kalman-gain-old-state-covariance">
+                                <tr>
+                                    <td>
+                                        <draggable-number id="kalman-gain-old-state-covariance-00" min="0" max="5" step="0.01" value="1">1.0</draggable-number>
+                                    </td>
+                                    <td>
+                                        <draggable-number id="kalman-gain-old-state-covariance-01" min="0" max="5" step="0.01" value="0.0">0.0</draggable-number>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-old-state-covariance-10">0.0</div>
+                                    </td>
+                                    <td>
+                                        <draggable-number id="kalman-gain-old-state-covariance-11" min="0" max="5" step="0.01" value="1">1.0</draggable-number>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>\( \left. 
+                                \begin{eqnarray}
+                                \\
+                                \\
+                                \\
+                            \end{eqnarray}
+                            \right) \)
+
+                    </tr>
+                </table>
+            </td>
+            <td></td>
+        </tr>
+        <tr class="kalman-gain-intermediate-space">
+            <td>
+                <table  class="math-diagram-structure-table">
+                    <tr >
+                        <td>
+                            \( \measurementMatrix = \)
+                        </td>
+                        <td>
+                            <table class="matrix-table">
+                                <tr>
+                                    <td>
+                                        <div id="kalman-gain-measurement-matrix-00">1.0</div>
+                                    </td>
+                                    <td>
+                                        <div id="kalman-gain-measurement-matrix-01">0.0</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td></td>
+        </tr>
+        <tr class="kalman-gain-measurement-space">
+            <td>
+                <table id="kalman-gain-Hstate-gaussian" class="math-diagram-structure-table">
+                    <td>
+                        \(\mathcal{N} \left( \measurementMatrix \state_{\discreteTime-1} = 
+                        \begin{eqnarray}
+                        \\
+                        \\
+                        \end{eqnarray}\right.
+                        \)
+                    </td>
+                    <td>
+                        <table class="matrix-table">
+                            <tr>
+                                <td>
+                                    <div class="dynamic-number-container" id="kalman-gain-state-measurement-space-0">1.0</div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td>
+                        , \( \measurementMatrix \stateCovariance \measurementMatrix^T = \)
+                    </td>
+                    <td>
+                        <table class="matrix-table">
+                            <tr>
+                                <td>
+                                    <div class="dynamic-number-container" id="kalman-gain-state-measurement-space-covariance-00">1.0</div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td>
+                        \( \left.
+                        \begin{eqnarray}
+                        \\
+                        \\
+                        \end{eqnarray}
+                        \right) \)
+                    </td>
+                </table>
+            </td>
+            <td>
+                <table id="kalman-gain-measurement-gaussian" class="math-diagram-structure-table">
+                    <tr>
+                        <td>\( \mathcal{N} \left( \measurement = 
+                            \begin{eqnarray}
+                            \\
+                            \\
+                            \end{eqnarray}\right. \)</td>
+                        <td>
+                            <table class="matrix-table">
+                                <tr>
+                                    <td>
+                                        <draggable-number id="kalman-gain-measurement-0" min="-4" max="4" step="0.01" value="-1">-1.0</draggable-number>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>, \( \measurementNoiseCovariance = \)</td>
+                        <td>
+                            <table class="matrix-table">
+                                <tr>
+                                    <td>
+                                        <draggable-number id="kalman-gain-measurement-covariance-00" min="0" max="5" step="0.01" value="1">1.0</draggable-number>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>\( \left.
+                            \begin{eqnarray}
+                            \\
+                            \\
+                            \end{eqnarray}
+                            \right) \)</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr class="kalman-gain-measurement-space">
+            <td colspan="2">
+                <table class="math-diagram-structure-table">
+                    <tr>
+                        <td>
+                            <table class="math-diagram-structure-table">
+                                <tr>
+                                    <td>
+                                        \( \varianceRatio = \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}{\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance} = \)
+                                    </td>
+                                    <td>
+                                        <table class="matrix-table">
+                                            <tr>
+                                                <td>
+                                                    <div class="dynamic-number-container" id="kalman-gain-variance-ratio-00">1.0</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <table class="math-diagram-structure-table" id="kalman-gain-combined-gaussian">
+                            <tr>
+                                <td>
+                                    \(\mathcal{N} \left( (I-\varianceRatio)\measurementMatrix + \varianceRatio \measurement \text{, } \space \space \space (I-\varianceRatio) \measurementMatrix \stateCovariance \measurementMatrix^T (I-\varianceRatio)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \right) \)
+                                </td>
+                            </tr>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr class="kalman-gain-measurement-space">
+            <td colspan="2">
+                <div id="kalman-gain-plot"></div>
+            </td>
+        </tr>
+        <tr class="kalman-gain-intermediate-space">
+            <td colspan="2">
+                \( \measurementMatrix^{-1} \)
+            </td>
+        </tr>
+        <tr class="kalman-gain-state-space">
+            <td colspan="2">
+                <table class="math-diagram-structure-table">
+                    <tr>
+                        <td>\(\text{New State Estimate (not plotted): } \mathcal{N} \left( 
+                            \begin{eqnarray}
+                            \\
+                            \state_{\discreteTime} \\
+                            \\
+                        \end{eqnarray}
+                        \right. =\)
+                        <td>
+                            <table class="matrix-table" id="kalman-gain-new-state">
+                                <tr>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-new-state-0">1.0</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-new-state-1">1.0</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>, \( \stateCovariance_{\discreteTime} = \)</td>
+                        <td>
+                            <table class="matrix-table" id="kalman-gain-new-state-covariance">
+                                <tr>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-new-state-covariance-00">1.0</div>
+                                    </td>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-new-state-covariance-01">0.0</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-new-state-covariance-10">0.0</div>
+                                    </td>
+                                    <td>
+                                        <div class="dynamic-number-container" id="kalman-gain-new-state-covariance-11">1.0</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>\( \left. 
+                                \begin{eqnarray}
+                                \\
+                                \\
+                                \\
+                            \end{eqnarray}
+                            \right) \)
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    <script>
+        //// Make variables for the elements on the page
+        // Draggable Elements
+        const xtm1_0 = document.getElementById("kalman-gain-old-state-0");
+        const xtm1_1 = document.getElementById("kalman-gain-old-state-1");
+        const Ptm1_00 = document.getElementById("kalman-gain-old-state-covariance-00");
+        const Ptm1_01 = document.getElementById("kalman-gain-old-state-covariance-01");
+        const Ptm1_11 = document.getElementById("kalman-gain-old-state-covariance-11");
+        const z_0 = document.getElementById("kalman-gain-measurement-0");
+        const R_00 = document.getElementById("kalman-gain-measurement-covariance-00");
+        
+        // Not Draggable, but still dynamic elements
+        const Ptm1_10 = document.getElementById("kalman-gain-old-state-covariance-10");
+        const Hx_0 = document.getElementById("kalman-gain-state-measurement-space-0");
+        const HPH_00 = document.getElementById("kalman-gain-state-measurement-space-covariance-00");
+        const VR_00 = document.getElementById("kalman-gain-variance-ratio-00");
+        const xt_0 = document.getElementById("kalman-gain-new-state-0");
+        const xt_1 = document.getElementById("kalman-gain-new-state-1");
+        const P_00 = document.getElementById("kalman-gain-new-state-covariance-00");
+        const P_01 = document.getElementById("kalman-gain-new-state-covariance-01");
+        const P_10 = document.getElementById("kalman-gain-new-state-covariance-10");
+        const P_11 = document.getElementById("kalman-gain-new-state-covariance-11");
+        
+        // constants
+        const H_00 = parseFloat(document.getElementById("kalman-gain-measurement-matrix-00").textContent);
+        const H_01 = parseFloat(document.getElementById("kalman-gain-measurement-matrix-01").textContent);
+        
+        //// Make the old state covariance be positive semi-definite and symmetric
+        function eigenvalues2x2(matrix) {
+            // Fun fact: if you derive the eigenvalues of a general 2x2 matrix,
+            // you can write it in terms of the trace and determinant
+            const trace = matrix[0][0] + matrix[1][1];
+            const det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+            if (trace**2 - 4*det < 0) {
+                throw new Error("Matrix is not positive semi-definite");
+            }
+            const val1 = (trace + Math.sqrt(trace**2 - 4*det)) / 2;
+            const val2 = (trace - Math.sqrt(trace**2 - 4*det)) / 2;
+
+            return [val1, val2]; // not sorted
+        }
+
+        function isPositiveSemiDefinite(matrix) {
+            const eig = eigenvalues2x2(matrix);
+            return eig[0] >= 0 && eig[1] >= 0;
+        }
+        Ptm1_00.setValidityCondition((newValue) => {
+            return isPositiveSemiDefinite([[newValue, Ptm1_01.value], [Ptm1_01.value, Ptm1_11.value]])
+        });
+        Ptm1_01.setValidityCondition((newValue) => {
+            return isPositiveSemiDefinite([[Ptm1_00.value, newValue], [newValue, Ptm1_11.value]])
+        });
+        Ptm1_11.setValidityCondition((newValue) => {
+            return isPositiveSemiDefinite([[Ptm1_00.value, Ptm1_01.value], [Ptm1_01.value, newValue]])
+        });
+
+
+        //// Update the matrices whenever one is changed
+        function updateMatrices() {
+            // Note: Ptm1_01 is always used instead of Ptm1_10 because the matrix is symmetric
+            const _Hx_0 = H_00 * xtm1_0.value + H_01 * xtm1_1.value;
+            const _HPH_00 = H_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) + H_01 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
+            const _VR_00 = _HPH_00 / (_HPH_00 + R_00.value);
+            // Use the kalman gain formula to update x since can't do H^{-1}
+            // K = P_{t|t-1} H^T (H P_{t|t-1} H^T + R)^{-1}
+            // x_{t|t} = x_{t|t-1} + K (z - H x_{t|t-1})
+            // P_{t|t} = (I - K H) P_{t|t-1}
+            const K_denominator = _HPH_00 + R_00.value;
+            let K_00 = 0;
+            let K_10 = 0;
+            if (K_denominator !== 0) {
+                K_00 = (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) / K_denominator;
+                K_10 = (Ptm1_01.value * H_00 + Ptm1_11.value * H_01) / K_denominator;
+            }
+            const _xt_0 = xtm1_0.value + K_00 * (z_0.value - _Hx_0);
+            const _xt_1 = xtm1_1.value + K_10 * (z_0.value - _Hx_0);
+            const _P_00 = Ptm1_00.value - K_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01);
+            const _P_01 = Ptm1_01.value - K_00 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
+            const _P_10 = Ptm1_01.value - K_10 * (Ptm1_00.value * H_00 + Ptm1_11.value * H_01);
+            const _P_11 = Ptm1_11.value - K_10 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
+
+            Hx_0.textContent = _Hx_0.toFixed(2);
+            HPH_00.textContent = _HPH_00.toFixed(2);
+            VR_00.textContent = _VR_00.toFixed(2);
+            xt_0.textContent = _xt_0.toFixed(2);
+            xt_1.textContent = _xt_1.toFixed(2);
+            P_00.textContent = _P_00.toFixed(2);
+            P_01.textContent = _P_01.toFixed(2);
+            P_10.textContent = _P_10.toFixed(2);
+            P_11.textContent = _P_11.toFixed(2);
+            Ptm1_10.textContent = Ptm1_01.value.toFixed(2);
+        }
+
+        updateMatrices();
+
+        //// Generate a plot of the three univariate gausians: Hx_{t-1}, z, and Hx_{t}
+        function linspace(start, end, num=100) {
+            const step = (end - start) / (num - 1);
+            return Array.from({length: num}, (_, i) => start + i * step);
+        }
+
+        function univariateGaussianPts(xPts, mean, variance) {
+            // return the y values of the gaussian with the given mean and variance at the given x values
+            const stddev = Math.sqrt(variance);
+            return Array.from(xPts, (x) => Math.exp(-0.5 * ((x - mean) / stddev)**2) / (stddev * Math.sqrt(2 * Math.PI)));
+        }
+
+        // handle the case where the variance is 0
+        function getUnivariateGaussianXYpts(mean, variance, xAbsMin=-4, xAbsMax=4, yAbsMax=1.5, numPts=80) {
+            const xmin = Math.max(xAbsMin, mean - 3 * Math.sqrt(variance));
+            const xmax = Math.min(xAbsMax, mean + 3 * Math.sqrt(variance));
+            let xPts;
+            let yPts;
+            if (variance <= 0) {
+                xPts = [mean, mean];
+                yPts = [0, yAbsMax];
+            }
+            else {
+                xPts = linspace(xmin, xmax, numPts);
+                yPts = univariateGaussianPts(xPts, mean, variance);
+            }
+            return [xPts, yPts];
+        }
+
+        const xmin = -4;
+        const xmax = 4; 
+        function plotGaussians() {
+            const Hx_tm1_mean = parseFloat(Hx_0.textContent);
+            const Hx_tm1_var = parseFloat(HPH_00.textContent);
+            const z_mean = parseFloat(z_0.value);
+            const z_var = parseFloat(R_00.value);
+            const Hx_t_mean = parseFloat(xt_0.textContent);
+            const Hx_t_var = parseFloat(P_00.textContent);
+
+            [x_Hx_tm1, y_Hx_tm1] = getUnivariateGaussianXYpts(Hx_tm1_mean, Hx_tm1_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
+            [x_z, y_z] = getUnivariateGaussianXYpts(z_mean, z_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
+            [x_Hx_t, y_Hx_t] = getUnivariateGaussianXYpts(Hx_t_mean, Hx_t_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
+
+            const trace_Hx_tm1 = {
+                x: x_Hx_tm1, 
+                y: y_Hx_tm1,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Previous State in Measurement Space',
+                line: {color: 'blue'},
+            };
+            const trace_z = {
+                x: x_z, 
+                y: y_z,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Measurement',
+                line: {color: 'red'},
+            };
+            const trace_Hx_t = {
+                x: x_Hx_t, 
+                y: y_Hx_t,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Combination',
+                line: {color: 'green'},
+            };
+            
+            const layout = {
+                legend: {
+                    orientation: 'h',
+                    yanchor: 'top',
+                    xanchor: 'center',
+                    y: 1.3,
+                    x: 0.5,
+                },
+                yaxis: {
+                    range: [0, 1.3]
+                },
+                xaxis: {
+                    range: [xmin, xmax]
+                },
+                width: '100%',
+                // aspectratio: {x: 1, y: 1},  // Ensure the aspect ratio is 1:1
+                margin: {
+                    l: 25,
+                    r: 25,
+                    t: 30,
+                    b: 30,
+                },
+            };
+            
+            Plotly.react('kalman-gain-plot', [trace_Hx_tm1, trace_z, trace_Hx_t], layout);
+        }
+        plotGaussians();
+
+        // Add event listeners to all the draggable elements
+        [xtm1_0, xtm1_1, Ptm1_00, Ptm1_01, Ptm1_11, z_0, R_00].forEach(el => el.addEventListener("input", () => {
+            updateMatrices();
+            plotGaussians();
+        }));
+    </script>
+</body>
+
+    
