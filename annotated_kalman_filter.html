@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Annotated Kalman Filter</title>
+    <title>The Interactive Kalman Filter</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="js/formula-element.js"></script>
     <script src="js/mouse-effects-manager.js"></script>
-
+    <script src="js/draggable-number.js"></script>
     <!-- put window.MathJax script before importing the rest of MathJax 
      https://docs.mathjax.org/en/latest/web/configuration.html describes async vs defer for loading
      https://docs.mathjax.org/en/latest/web/configuration.html#performing-actions-after-typesetting 
@@ -37,8 +37,6 @@
     <script src="https://unpkg.com/tippy.js@6"></script>
     <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/scale.css">
     
-    <!-- Draggable number component -->
-    <script src="js/draggable-number.js"></script>
 </head>
 <body>
     <select id="naming-convention">
@@ -392,7 +390,7 @@
                 const formulaDivs = document.getElementsByClassName(object.div_name);
                 if (formulaDivs.length > 0) {
                     for (const formulaDiv of formulaDivs) {
-                        formulaDiv.innerHTML = object.str("$$");
+                        formulaDiv.innerHTML = object.str(delimiter="$$");
                         elements_to_typeset.push(formulaDiv);
                     }
                 }
@@ -405,7 +403,7 @@
                 const formulaDivs = document.getElementsByClassName(object.div_name);
                 if (formulaDivs.length > 0) {
                     for (const formulaDiv of formulaDivs) {
-                        formulaDiv.innerHTML = object.str("inline");
+                        formulaDiv.innerHTML = object.str(delimiter="inline");
                         elements_to_typeset.push(formulaDiv);
                     }
                 }
