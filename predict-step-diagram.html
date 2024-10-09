@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalman Gain Diagram</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+
+    <script src="js/draggable-number.js"></script>
+    <script src="js/gaussian-functions.js"></script>
+    <script src="js/formula-elements.js"></script>
+    <script src="js/mouse-effects-manager.js"></script>
+    <script>
+        const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables)]);
+    </script>
+    <script>
+        MathJax = {
+            //Enable macros \class, \cssId, \href, \style
+            loader: {load: ['[tex]/html']}, 
+            tex: {packages: {'[+]': ['html']}},
+            // save custom TexMacros in the MathJax configuration object 
+            // (becomes MathJax.config.TexMacros after MathJax is loaded)
+            TexMacros: {
+                wikipedia: `
+                \\def\\state{\\class{state}{\\mathbf{x}}}
+                \\def\\stateTransition{\\class{state-transition}{\\mathbf{F}}}
+                \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
+                \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
+                \\def\\measurementNoiseCovariance{\\class{measurement-noise-covariance}{\\mathbf{R}}}
+                \\def\\measurementMatrix{\\class{measurement-matrix}{\\mathbf{H}}}
+                \\def\\stateCovariance{\\class{state-covariance}{\\mathbf{P}}}
+                \\def\\processNoiseCovariance{\\class{process-noise-covariance}{\\mathbf{Q}}}
+                \\def\\controlMatrix{\\class{control-matrix}{\\mathbf{B}}}
+                \\def\\kalmanGain{\\class{kalman-gain}{\\mathbf{K}}}
+                \\def\\varianceRatio{\\class{variance-ratio}{\\widetilde{\\mathbf{K}}_{z}}}
+                \\def\\varianceRatioState{\\class{variance-ratio-state}{\\widetilde{\\mathbf{K}}_{x}}}
+                \\def\\discreteTime{n}
+                `,
+                kalmanfilterdotnet: `
+                \\def\\state{\\class{state}{\\mathbf{s}}}
+                \\def\\stateTransition{\\class{state-transition}{\\mathbf{A}}}
+                \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
+                \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
+                \\def\\measurementNoiseCovariance{\\class{measurement-noise-covariance}{\\mathbf{R}}}
+                \\def\\measurementMatrix{\\class{measurement-matrix}{\\mathbf{C}}}
+                \\def\\stateCovariance{\\class{state-covariance}{\\mathbf{P}}}
+                \\def\\processNoiseCovariance{\\class{process-noise-covariance}{\\mathbf{Q}}}
+                \\def\\controlMatrix{\\class{control-matrix}{\\mathbf{B}}}
+                \\def\\kalmanGain{\\class{kalman-gain}{\\mathbf{K}}}
+                \\def\\varianceRatio{\\class{variance-ratio}{\\widetilde{\\mathbf{K}}_{z}}}
+                \\def\\varianceRatioState{\\class{variance-ratio-state}{\\widetilde{\\mathbf{K}}_{x}}}
+                \\def\\discreteTime{t}
+                `
+            },
+          // Custom function to get the desired set of macros,
+          // then have the renderer to go back to the compile step so the new macros get used.
+          setMacros(name) {
+            if (!MathJax.config.TexMacros.hasOwnProperty(name)) {
+              console.warn(`TexMacros for "${name}" not found.`);
+              return Promise.resolve();
+            }
+            
+            return MathJax.startup.promise = MathJax.startup.promise.then(() => {
+              const {mathjax} = MathJax._.mathjax;
+              const {STATE} = MathJax._.core.MathItem;
+              MathJax.tex2mml(MathJax.config.TexMacros[name]);
+              mathjax.handleRetriesFor(() => MathJax.startup.document.rerender(STATE.COMPILED));
+              
+              mouseEffectsManager.initialize();
+            });
+          },
+          startup: {
+            typeset: false, //disable the initial typesetting pass since setMacros() will do typesetting
+            ready() {
+              MathJax.startup.defaultReady();
+              MathJax.config.setMacros('wikipedia');
+              const dropdown = document.getElementById('naming-convention-dropdown');
+              dropdown.addEventListener('input', (event) => MathJax.config.setMacros(event.target.value));
+            }
+          }
+        }
+    </script>
+    <script id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+    <style>
+        .matrix-table {
+            position: relative;
+        }
+        /* Rectangular pseudo-element before and after the table */
+        .matrix-table::before,
+        .matrix-table::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px; 
+        }
+        /* Make the left pseudo-element look like a bracket */
+        .matrix-table::before {
+            left: 0px;
+            border-left: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+        }
+        /* Make the right pseudo-element look like a bracket */
+        .matrix-table::after {
+            right: 0px;
+            border-right: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+        }
+        .matrix-table td {
+            text-align: center;
+            vertical-align: middle;
+            width: 6ch; /* matches the DraggableNumber width */
+        }
+        .matrix-table tr {
+            line-height: 1.5;
+        }
+
+        .math-diagram-structure-table {
+            border-collapse: collapse;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .math-diagram-structure-table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        #predict-step-plot {
+            width: 60vw;
+            height: 60vw;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <select id="naming-convention-dropdown">
+        <option value="wikipedia">Wikipedia</option>
+        <option value="kalmanfilterdotnet">kalmanfilter.net</option>
+    </select>
+
+    <h1>Predict Step</h1>
+
+    <div id="predict-step-plot"></div>
+
+
+    <table class="equation-table">
+        <tr>
+            <td>$$\state_{\discreteTime}$$</td>
+            <td>=</td>
+            <td>$$\stateTransition$$</td>
+            <td>$$\state_{\discreteTime -1}$$</td>
+            <td>+</td>
+            <td>$$\controlMatrix$$</td>
+            <td>$$\controlInput_{\discreteTime}$$</td>
+            <td>+</td>
+            <td>$$\mathbf{0}$$</td>
+        </tr>
+        <tr>
+            <td>
+                <table class="matrix-table">
+                    <tr><td id="predict-step-new-x-mean-0">2.0</td></tr>
+                    <tr><td id="predict-step-new-x-mean-1">1.0</td></tr>
+                </table>
+            </td>
+            <td><strong>=</strong></td>
+            <td>
+                <table class="matrix-table">
+                    <tr>
+                        <td>    
+                            <draggable-number id="predict-step-F-00" min="0" max="10" step="0.01" value="1"></draggable-number>
+                        </td>
+                        <td>
+                            <draggable-number id="predict-step-F-01" min="0" max="10" step="0.01" value="0.0"></draggable-number>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <draggable-number id="predict-step-F-10" min="0" max="10" step="0.01" value="0.0"></draggable-number>
+                        </td>
+                        <td>
+                            <draggable-number id="predict-step-F-11" min="0" max="10" step="0.01" value="1"></draggable-number>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td>
+                <table class="matrix-table">
+                    <tr>
+                        <td>
+                            <draggable-number id="predict-step-x-mean-0" min="0" max="10" step="0.01" value="0.0"></draggable-number>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <draggable-number id="predict-step-x-mean-1" min="0" max="10" step="0.01" value="0.0"></draggable-number>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td><strong>+</strong></td>
+            <td>
+                <table class="matrix-table">
+                    <tr>
+                        <td id="predict-step-B-00">0.00</td>
+                    </tr>
+                    <tr>
+                        <td id="predict-step-B-10">1.00</td>
+                    </tr>
+                </table>
+            </td>
+            <td>
+                <table class="matrix-table">
+                    <tr>
+                        <td>
+                            <draggable-number id="predict-step-u-0" min="-10" max="10" step="0.01" value="0"></draggable-number>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td><strong>+</strong></td>
+            <td>
+                <table class="matrix-table">
+                    <tr>
+                        <td id="predict-step-zero-0">0</td>
+                    </tr>
+                    <tr>
+                        <td id="predict-step-zero-1">0</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <table class="equation-table">
+        <tr>
+            <td>$$\stateCovariance_{\discreteTime}$$</td>
+            <td>=</td>
+            <td>$$\stateTransition$$</td>
+            <td>$$\stateCovariance_{\discreteTime - 1}$$</td>
+            <td>$$\stateTransition^T$$</td>
+            <td>+</td>
+            <td>$$\processNoiseCovariance$$</td>
+        </tr>
+        <tr>
+            <td>
+                <table class="matrix-table" id="predict-step-new-P">
+                    <tr>
+                        <td id="predict-step-new-P-sigma-00">0</td>
+                        <td id="predict-step-new-P-sigma-01">0</td>
+                    </tr>
+                    <tr>
+                        <td id="predict-step-new-P-sigma-10">0</td>
+                        <td id="predict-step-new-P-sigma-11">0</td>
+                    </tr>
+                </table>
+            </td>
+            <td><strong>=</strong></td>
+            <td>
+                <table class="matrix-table" id="predict-step-F-mirror1">
+                    <tr>
+                        <td id="predict-step-F-00-mirror1">1.00</td>
+                        <td id="predict-step-F-01-mirror1">0.00</td>
+                    </tr>
+                    <tr>
+                        <td id="predict-step-F-10-mirror1">0.00</td>
+                        <td id="predict-step-F-11-mirror1">1.00</td>
+                    </tr>
+                </table>    
+            </td>
+            <td>
+                <table class="matrix-table" id="predict-step-P">
+                    <tr>
+                        <td>
+                            <draggable-number id="predict-step-P-sigma-00" min="0" max="10" step="0.01" value="0.1">0.10</draggable-number>
+                        </td>
+                        <td>
+                            <draggable-number id="predict-step-P-sigma-01" min="0" max="10" step="0.01" value="0">0.00</draggable-number>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td id="predict-step-P-sigma-10">0.00</td>
+                        <td>
+                            <draggable-number id="predict-step-P-sigma-11" min="0" max="10" step="0.01" value="0.1">0.10</draggable-number>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td>
+                <table class="matrix-table" id="predict-step-F-mirror2">
+                    <tr>
+                        <td id="predict-step-F-00-mirror2">1.00</td>
+                        <td id="predict-step-F-01-mirror2">0.00</td>
+                    </tr>
+                    <tr>
+                        <td id="predict-step-F-10-mirror2">0.00</td>
+                        <td id="predict-step-F-11-mirror2">1.00</td>
+                    </tr>
+                </table>    
+            </td>
+            <td><strong>+</strong></td>
+            <td>
+                <table class="matrix-table" id="predict-step-Q">
+                    <tr>
+                        <td>
+                            <draggable-number id="predict-step-Q-00" min="0" max="10" step="0.01" value="0.1">0.10</draggable-number>
+                        </td>
+                        <td>
+                            <draggable-number id="predict-step-Q-01" min="0" max="10" step="0.01" value="0">0.00</draggable-number>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td id="predict-step-Q-10">0.00</td>
+                        <td>
+                            <draggable-number id="predict-step-Q-11" min="0" max="10" step="0.01" value="0.1">0.10</draggable-number>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <script>
+        function generateGaussianEllipticalContours(mu, sigma, color='blue') {
+            const scales = [1,1.514987,2,2.48509,3];
+            let shades = [];
+            if (color == 'blue') {
+                shades = [
+                    'rgb(0, 0, 255)',      // Darkest blue
+                    'rgb(51, 102, 255)',
+                    'rgb(102, 153, 255)',
+                    'rgb(153, 204, 255)',
+                    'rgb(204, 229, 255)'   // Lightest blue
+                ];
+            }
+            else if (color == 'red') {
+                shades = [
+                    'rgb(255, 0, 0)',
+                    'rgb(255, 51, 51)',
+                    'rgb(255, 102, 102)',
+                    'rgb(255, 153, 153)',
+                    'rgb(255, 204, 204)'
+                ];
+            }
+            else if (color == 'green') {
+                shades = [
+                    'rgb(0, 255, 0)',
+                    'rgb(51, 255, 51)',
+                    'rgb(102, 255, 102)',
+                    'rgb(153, 255, 153)',
+                    'rgb(204, 255, 204)'
+                ];
+            }
+            traces = [];
+            for (let i = 0; i < scales.length; i++) {
+                const scale = scales[i];
+                const [ellipseX, ellipseY] = bivariateGaussianEllipseXYpts(mu, sigma, scale, numPts=80);
+                const confidence_interval = 1-Math.exp(-1/2*scale**2);
+                const description = `${scale.toFixed(2)}σ: ${(confidence_interval*100).toFixed(2)}%`;
+                traces.push({
+                    x: ellipseX,
+                    y: ellipseY,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: shades[i] },
+                    name: description,
+                    hovertemplate: description,
+                    showlegend: false
+                });
+            }
+            return traces;
+        }
+
+        function updatePlot(means, sigmas) {
+            const layout = {
+                title: 'Contours of the Current and Next State Estimates',
+                xaxis: { 
+                    title: 'Position',
+                    range: [-3, 3]
+                },
+                yaxis: { 
+                    title: 'Velocity',
+                    range: [-3, 3]
+                },
+                hovermode: 'closest',
+            };
+
+            let traces_old = generateGaussianEllipticalContours(means[0], sigmas[0], 'blue');
+            let traces_new = generateGaussianEllipticalContours(means[1], sigmas[1], 'green');
+            let traces = traces_old.concat(traces_new);
+            Plotly.react('predict-step-plot', traces, layout);
+        }
+
+        // Draggable+plotted: current state and covariance
+        const x0 = document.getElementById("predict-step-x-mean-0");
+        const x1 = document.getElementById("predict-step-x-mean-1");
+        const P00 = document.getElementById("predict-step-P-sigma-00");
+        const P01 = document.getElementById("predict-step-P-sigma-01");
+        const P11 = document.getElementById("predict-step-P-sigma-11");
+
+        // Draggable+not-plotted: state transition matrix, process noise, and control input
+        const F00 = document.getElementById("predict-step-F-00");
+        const F01 = document.getElementById("predict-step-F-01");
+        const F10 = document.getElementById("predict-step-F-10");
+        const F11 = document.getElementById("predict-step-F-11");
+        const Q00 = document.getElementById("predict-step-Q-00");
+        const Q01 = document.getElementById("predict-step-Q-01");
+        const Q11 = document.getElementById("predict-step-Q-11");
+        const u0 = document.getElementById("predict-step-u-0");
+
+        // Constant: control matrix 
+        const B00 = document.getElementById("predict-step-B-00");
+        const B10 = document.getElementById("predict-step-B-10");
+
+        // Dynamic (not Draggable) + not-plotted: state transition matrix mirrors and Q[1][0]
+        const F00_mirror1 = document.getElementById("predict-step-F-00-mirror1");
+        const F01_mirror1 = document.getElementById("predict-step-F-01-mirror1");
+        const F10_mirror1 = document.getElementById("predict-step-F-10-mirror1");
+        const F11_mirror1 = document.getElementById("predict-step-F-11-mirror1");
+        const F00_mirror2 = document.getElementById("predict-step-F-00-mirror2");
+        const F01_mirror2 = document.getElementById("predict-step-F-01-mirror2");
+        const F10_mirror2 = document.getElementById("predict-step-F-10-mirror2");
+        const F11_mirror2 = document.getElementById("predict-step-F-11-mirror2");
+        const Q10 = document.getElementById("predict-step-Q-10");
+
+        // Dynamic (not Draggable) + plotted: New state and covariance, and P[1][0]
+        const newx0 = document.getElementById("predict-step-new-x-mean-0");
+        const newx1 = document.getElementById("predict-step-new-x-mean-1");
+        const newP00 = document.getElementById("predict-step-new-P-sigma-00");
+        const newP01 = document.getElementById("predict-step-new-P-sigma-01");
+        const newP10 = document.getElementById("predict-step-new-P-sigma-10");
+        const newP11 = document.getElementById("predict-step-new-P-sigma-11");
+        const P10 = document.getElementById("predict-step-P-sigma-10");
+
+        // Restrict P and Q to be positive semi-definite and symmetric
+        P00.setValidityCondition((newValue) => {
+            return isPositiveSemiDefinite([[newValue, P01.value], [P01.value, P11.value]])
+        });
+        P01.setValidityCondition((newValue) => {
+            return isPositiveSemiDefinite([[P00.value, newValue], [newValue, P11.value]])
+        });
+        P11.setValidityCondition((newValue) => {
+            return isPositiveSemiDefinite([[P00.value, P01.value], [P01.value, newValue]])
+        });
+
+        Q00.setValidityCondition((newValue) => {
+            return isPositiveSemiDefinite([[newValue, Q01.value], [Q01.value, Q11.value]])
+        });
+        Q01.setValidityCondition((newValue) => {
+            return isPositiveSemiDefinite([[Q00.value, newValue], [newValue, Q11.value]])
+        });
+        Q11.setValidityCondition((newValue) => {
+            return isPositiveSemiDefinite([[Q00.value, Q01.value], [Q01.value, newValue]])
+        });
+
+        function updateNewStateEstimate() {
+            // const _newx0 = (
+            //     F00.value * x0.value +
+            //     F01.value * x1.value +
+            //     parseFloat(B00.textContent) * u0.value
+            // );
+            // // x_new = F x_old + B u 
+            // const _newx1 = (
+            //     F10.value * x0.value +
+            //     F11.value * x1.value +
+            //     parseFloat(B10.textContent) * u0.value
+            // );
+            // const new_state_mean = [newx0, newx1];
+
+            // // P_new = F P_old F^T + Q
+            // const _newP00 = (
+            //     F00.value * (F00.value * P00.value + F01.value * P10.value) +
+            //     F01.value * (F00.value * P01.value + F01.value * P11.value) +
+            //     Q00.value
+            // );
+            // const _newP01 = (
+            //     F10.value * (F00.value * P00.value + F01.value * P10.value) +
+            //     F11.value * (F00.value * P01.value + F01.value * P11.value) +
+            //     Q01.value
+            // );
+            
+            // // Note: P10=P01 since the matrix is symmetric, and Q10=Q01 since the matrix is symmetric
+            // const _newP10 = (
+            //     F00.value * (F10.value*P00.value + F11.value*P01.value) +
+            //     F01.value * (F10.value*P01.value + F11.value*P11.value) +
+            //     Q01.value
+            // );
+
+            // const _newP11 = (
+            //     F10.value * (F10.value*P00.value + F11.value*P01.value) +
+            //     F11.value * (F10.value*P01.value + F11.value*P11.value) +
+            //     Q11.value
+            // );
+            // const new_state_cov = [
+            //     [_newP00, _newP01],
+            //     [_newP10, _newP11]
+            // ];
+            // const old_state_mean = [x0.value, x1.value];
+            // const old_state_cov = [
+            //     [P00.value, P01.value],
+            //     [P10.value, P11.value]
+            // ];
+
+            // // Update all the new x,P
+            // newx0.textContent = _newx0.toFixed(2);
+            // newx1.textContent = _newx1.toFixed(2);
+            // newP00.textContent = _newP00.toFixed(2);
+            // newP01.textContent = _newP01.toFixed(2);
+            // newP10.textContent = _newP10.toFixed(2);
+            // newP11.textContent = _newP11.toFixed(2);
+
+            // Note: P10=P01 since the matrix is symmetric,
+            const old_state_mean = [[x0.value], [x1.value]];
+            const old_state_cov = [
+                [P00.value, P01.value],
+                [P01.value, P11.value]
+            ];
+
+            const F = [
+                [F00.value, F01.value],
+                [F10.value, F11.value]
+            ];
+            const F_transpose = [
+                [F00.value, F10.value],
+                [F01.value, F11.value]
+            ];
+
+            let new_state_mean = matMul(F, old_state_mean);
+            new_state_mean[0][0] += parseFloat(B00.textContent) * u0.value;
+            new_state_mean[1][0] += parseFloat(B10.textContent) * u0.value;
+
+            let new_state_cov = matMul(matMul(F, old_state_cov), F_transpose);
+            new_state_cov[0][0] += Q00.value;
+            new_state_cov[0][1] += Q01.value;
+            new_state_cov[1][0] += Q01.value;
+            new_state_cov[1][1] += Q11.value;
+
+            // Update all the new x,P
+            newx0.textContent = new_state_mean[0][0].toFixed(2);
+            newx1.textContent = new_state_mean[1][0].toFixed(2);
+            newP00.textContent = new_state_cov[0][0].toFixed(2);
+            newP01.textContent = new_state_cov[0][1].toFixed(2);
+            newP10.textContent = new_state_cov[1][0].toFixed(2);
+            newP11.textContent = new_state_cov[1][1].toFixed(2);
+            
+
+            // Update the State Transition Matrix mirrors
+            F00_mirror1.textContent = F00.value.toFixed(2);
+            F01_mirror1.textContent = F01.value.toFixed(2);
+            F10_mirror1.textContent = F10.value.toFixed(2);
+            F11_mirror1.textContent = F11.value.toFixed(2);
+            F00_mirror2.textContent = F00.value.toFixed(2);
+            F01_mirror2.textContent = F10.value.toFixed(2); // second mirror is a transpose
+            F10_mirror2.textContent = F01.value.toFixed(2); // second mirror is a transpose
+            F11_mirror2.textContent = F11.value.toFixed(2);
+
+            // symmetric covariances
+            P10.textContent = P01.value.toFixed(2);
+            Q10.textContent = Q01.value.toFixed(2);
+
+            updatePlot([old_state_mean, new_state_mean], [old_state_cov, new_state_cov]);
+        }
+
+        // For each draggable, add a callback to update everything else
+        [F00, F01, F10, F11, x0, x1, P00, P01, P11, Q00, Q01, Q11, u0].forEach(element => {
+            element.addEventListener('change', updateNewStateEstimate);
+        });
+
+        // Initial plot
+        updateNewStateEstimate();
+    </script>
+</body>

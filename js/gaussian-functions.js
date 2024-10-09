@@ -23,6 +23,19 @@ function univariateGaussianXYpts(mean, variance, xAbsMin=-4, xAbsMax=4, yAbsMax=
 
 //// Multivariate Gaussian Functions ////
 
+function matMul(A, B) {
+    // Multiply two vectors/matrices, where A is m x n and B is n x p
+    const result = Array.from({length: A.length}, () => Array(B[0].length).fill(0));
+    for (let i = 0; i < A.length; i++) {
+        for (let j = 0; j < B[0].length; j++) {
+            for (let k = 0; k < B.length; k++) {
+                result[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+    return result;
+}
+
 function eigenvalues2x2(matrix) {
     // Fun fact: if you derive the eigenvalues of a general 2x2 matrix,
     // you can write it in terms of the trace and determinant
@@ -69,12 +82,12 @@ function bivariateGaussianEllipseParams(matrix) {
     return [a, b, theta];
 }
 
-function bivariateGaussianEllipseXYpts(mu, sigma, scale=1, numPoints = 100) {
+function bivariateGaussianEllipseXYpts(mu, sigma, scale=1, numPts = 100) {
     if (!isPositiveSemiDefinite(sigma)) {
         throw new Error("Invalid covariance matrix: eigenvalues must be non-negative to be positive semi-definite");
     }
     const [a, b, theta] = bivariateGaussianEllipseParams(sigma);
-    const t = linspace(0, 2 * Math.PI, numPoints);
+    const t = linspace(0, 2 * Math.PI, numPts);
     
     const ellipseX = t.map(angle => 
         mu[0] + scale * a * Math.cos(angle) * Math.cos(theta) - scale * b * Math.sin(angle) * Math.sin(theta)
