@@ -24,9 +24,10 @@ class DraggableNumber extends HTMLElement {
                     text-align: center;
                 }
                 .draggable-txt {
-                    font-size: 16px;
+                    font-size: 1.1em;
                     font-weight: bold;
-                    color: #007bff;
+                    color: #4a4a4f;
+                    text-decoration: underline;
                 }
                 .draggable-slider {
                     position: absolute;
