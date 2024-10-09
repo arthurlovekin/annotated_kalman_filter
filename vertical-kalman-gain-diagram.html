@@ -8,6 +8,7 @@
     <script src="js/formula-element.js"></script>
     <script src="js/mouse-effects-manager.js"></script>
     <script src="js/draggable-number.js"></script>
+    <script src="js/gaussian-functions.js"></script>
     <!-- Tippy.js for hover tooltips -->
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script src="https://unpkg.com/tippy.js@6"></script>
@@ -606,24 +607,6 @@
         const H_01 = parseFloat(document.getElementById("kalman-gain-measurement-matrix-01").textContent);
         
         //// Make the old state covariance be positive semi-definite and symmetric
-        function eigenvalues2x2(matrix) {
-            // Fun fact: if you derive the eigenvalues of a general 2x2 matrix,
-            // you can write it in terms of the trace and determinant
-            const trace = matrix[0][0] + matrix[1][1];
-            const det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
-            if (trace**2 - 4*det < 0) {
-                throw new Error("Matrix is not positive semi-definite");
-            }
-            const val1 = (trace + Math.sqrt(trace**2 - 4*det)) / 2;
-            const val2 = (trace - Math.sqrt(trace**2 - 4*det)) / 2;
-
-            return [val1, val2]; // not sorted
-        }
-
-        function isPositiveSemiDefinite(matrix) {
-            const eig = eigenvalues2x2(matrix);
-            return eig[0] >= 0 && eig[1] >= 0;
-        }
         Ptm1_00.setValidityCondition((newValue) => {
             return isPositiveSemiDefinite([[newValue, Ptm1_01.value], [Ptm1_01.value, Ptm1_11.value]])
         });
@@ -674,33 +657,6 @@
         updateMatrices();
 
         //// Generate a plot of the three univariate gausians: Hx_{t-1}, z, and Hx_{t}
-        function linspace(start, end, num=100) {
-            const step = (end - start) / (num - 1);
-            return Array.from({length: num}, (_, i) => start + i * step);
-        }
-
-        function univariateGaussianPts(xPts, mean, variance) {
-            // return the y values of the gaussian with the given mean and variance at the given x values
-            const stddev = Math.sqrt(variance);
-            return Array.from(xPts, (x) => Math.exp(-0.5 * ((x - mean) / stddev)**2) / (stddev * Math.sqrt(2 * Math.PI)));
-        }
-
-        // handle the case where the variance is 0
-        function getUnivariateGaussianXYpts(mean, variance, xAbsMin=-4, xAbsMax=4, yAbsMax=1.5, numPts=80) {
-            const xmin = Math.max(xAbsMin, mean - 3 * Math.sqrt(variance));
-            const xmax = Math.min(xAbsMax, mean + 3 * Math.sqrt(variance));
-            let xPts;
-            let yPts;
-            if (variance <= 0) {
-                xPts = [mean, mean];
-                yPts = [0, yAbsMax];
-            }
-            else {
-                xPts = linspace(xmin, xmax, numPts);
-                yPts = univariateGaussianPts(xPts, mean, variance);
-            }
-            return [xPts, yPts];
-        }
 
         const xmin = -4;
         const xmax = 4; 
@@ -712,9 +668,9 @@
             const Hx_t_mean = parseFloat(xt_0.textContent);
             const Hx_t_var = parseFloat(P_00.textContent);
 
-            [x_Hx_tm1, y_Hx_tm1] = getUnivariateGaussianXYpts(Hx_tm1_mean, Hx_tm1_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
-            [x_z, y_z] = getUnivariateGaussianXYpts(z_mean, z_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
-            [x_Hx_t, y_Hx_t] = getUnivariateGaussianXYpts(Hx_t_mean, Hx_t_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
+            [x_Hx_tm1, y_Hx_tm1] = univariateGaussianXYpts(Hx_tm1_mean, Hx_tm1_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
+            [x_z, y_z] = univariateGaussianXYpts(z_mean, z_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
+            [x_Hx_t, y_Hx_t] = univariateGaussianXYpts(Hx_t_mean, Hx_t_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
 
             const trace_Hx_tm1 = {
                 x: x_Hx_tm1, 
