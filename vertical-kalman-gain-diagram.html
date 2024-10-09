@@ -349,8 +349,15 @@
             <td></td>
         </tr>
         <tr class="kalman-gain-intermediate-space">
+            <td style="font-size: 24px;">&#x2193;</td> <!-- Down arrow -->
+            <td></td>
+        </tr>
+        <tr class="kalman-gain-intermediate-space">
             <td>
                 <table  class="math-diagram-structure-table">
+                    <tr>
+                        Convert to Measurement Space with
+                    </tr>
                     <tr >
                         <td>
                             \( \measurementMatrix = \)
@@ -370,6 +377,10 @@
                     </tr>
                 </table>
             </td>
+            <td></td>
+        </tr>
+        <tr class="kalman-gain-intermediate-space">
+            <td style="font-size: 24px;">&#x2193;</td> <!-- Down arrow -->
             <td></td>
         </tr>
         <tr class="kalman-gain-measurement-space">
@@ -452,6 +463,10 @@
             </td>
         </tr>
         <tr class="kalman-gain-measurement-space">
+            <td style="font-size: 18px;">&#x2198;</td> <!-- down right arrow -->
+            <td style="font-size: 18px;">&#x2199;</td> <!-- down left arrow -->
+        </tr>
+        <tr class="kalman-gain-measurement-space">
             <td colspan="2">
                 <table class="math-diagram-structure-table">
                     <tr>
@@ -475,12 +490,14 @@
                         </td>
                     </tr>
                     <tr>
-                        <table class="math-diagram-structure-table" id="kalman-gain-combined-gaussian">
-                            <tr>
-                                <td>
-                                    \(\mathcal{N} \left( (I-\varianceRatio)\measurementMatrix + \varianceRatio \measurement \text{, } \space \space \space (I-\varianceRatio) \measurementMatrix \stateCovariance \measurementMatrix^T (I-\varianceRatio)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \right) \)
-                                </td>
-                            </tr>
+                        <td>
+                            <table class="math-diagram-structure-table" id="kalman-gain-combined-gaussian">
+                                <tr>
+                                    <td>
+                                        \(\mathcal{N} \left( (I-\varianceRatio)\measurementMatrix + \varianceRatio \measurement \text{, } \space \space \space (I-\varianceRatio) \measurementMatrix \stateCovariance \measurementMatrix^T (I-\varianceRatio)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \right) \)
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
                 </table>
@@ -492,9 +509,15 @@
             </td>
         </tr>
         <tr class="kalman-gain-intermediate-space">
+            <td colspan="2" style="font-size: 24px;">&#x2193;</td> <!-- Down arrow -->
+        </tr>
+        <tr class="kalman-gain-intermediate-space">
             <td colspan="2">
-                \( \measurementMatrix^{-1} \)
+                Convert back to state space with \( \measurementMatrix^{-1} \)
             </td>
+        </tr>
+        <tr class="kalman-gain-intermediate-space">
+            <td colspan="2" style="font-size: 24px;">&#x2193;</td> <!-- Down arrow -->
         </tr>
         <tr class="kalman-gain-state-space">
             <td colspan="2">
@@ -723,7 +746,7 @@
                     orientation: 'h',
                     yanchor: 'top',
                     xanchor: 'center',
-                    y: 1.3,
+                    y: 1.05,
                     x: 0.5,
                 },
                 yaxis: {
@@ -740,6 +763,7 @@
                     t: 30,
                     b: 30,
                 },
+                hovermode: 'closest',
             };
             
             Plotly.react('kalman-gain-plot', [trace_Hx_tm1, trace_z, trace_Hx_t], layout);
