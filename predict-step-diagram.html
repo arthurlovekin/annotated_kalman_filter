@@ -497,7 +497,7 @@
             return isPositiveSemiDefinite([[Q00.value, Q01.value], [Q01.value, newValue]])
         });
 
-        function updateNewStateEstimate() {
+        function updatePredictStepDiagram() {
             // Note: P10=P01 since the matrix is symmetric,
             const old_state_mean = [[x0.value], [x1.value]];
             const old_state_cov = [
@@ -552,10 +552,10 @@
 
         // For each draggable, add a callback to update everything else
         [F00, F01, F10, F11, x0, x1, P00, P01, P11, Q00, Q01, Q11, u0].forEach(element => {
-            element.addEventListener('change', updateNewStateEstimate);
+            element.addEventListener('change', updatePredictStepDiagram);
         });
 
         // Initial plot
-        updateNewStateEstimate();
+        updatePredictStepDiagram();
     </script>
 </body>
