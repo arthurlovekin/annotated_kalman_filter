@@ -338,7 +338,7 @@
     </table>
 
     <script>
-        function generateGaussianEllipticalContours(mu, sigma, color='blue') {
+        function generateGaussianEllipticalContours(mu, sigma, color='blue', name='') {
             const scales = [1,1.514987,2,2.48509,3];
             let shades = [];
             if (color == 'blue') {
@@ -374,28 +374,32 @@
             }
 
             traces = [];
-            for (let i = 0; i < scales.length; i++) {
+            for (let i = scales.length - 1; i >= 0; i--) { // go backward so dark will be on top when the distribution is a line
                 const scale = scales[i];
                 const [ellipseX, ellipseY] = bivariateGaussianEllipseXYpts(mu, sigma, scale, numPts=80);
                 const confidence_interval = 1-Math.exp(-1/2*scale**2);
                 const description = `${scale.toFixed(2)}σ: ${(confidence_interval*100).toFixed(2)}%`;
-                traces.push({
+                let trace = {
                     x: ellipseX,
                     y: ellipseY,
                     type: 'scatter',
                     mode: 'lines',
                     line: { color: shades[i] },
-                    name: description,
                     hovertemplate: description,
                     showlegend: false
-                });
+                }
+                if (i == 0) { // darkes color
+                    trace.name = name;
+                    trace.showlegend = true;
+                }
+                traces.push(trace);
             }
             return traces;
         }
 
-        function updatePlot(means, sigmas) {
+        function updatePredictStepPlot(means, sigmas) {
             const layout = {
-                title: 'Contours of the Current and Next State Estimates',
+                // title: 'Contours of the Current and Next State Estimates',
                 xaxis: { 
                     title: 'Position',
                     range: [-3, 3]
@@ -404,11 +408,18 @@
                     title: 'Velocity',
                     range: [-3, 3]
                 },
+                legend: {
+                    orientation: 'h',
+                    yanchor: 'top',
+                    xanchor: 'center',
+                    y: 1.1,
+                    x: 0.5,
+                },
                 hovermode: 'closest',
             };
 
-            let traces_old = generateGaussianEllipticalContours(means[0], sigmas[0], 'blue');
-            let traces_new = generateGaussianEllipticalContours(means[1], sigmas[1], 'green');
+            let traces_old = generateGaussianEllipticalContours(means[0], sigmas[0], color='blue', name='Current State');
+            let traces_new = generateGaussianEllipticalContours(means[1], sigmas[1], color='green', name='Next State');
             let traces = traces_old.concat(traces_new);
             Plotly.react('predict-step-plot', traces, layout);
         }
@@ -476,61 +487,6 @@
         });
 
         function updateNewStateEstimate() {
-            // const _newx0 = (
-            //     F00.value * x0.value +
-            //     F01.value * x1.value +
-            //     parseFloat(B00.textContent) * u0.value
-            // );
-            // // x_new = F x_old + B u 
-            // const _newx1 = (
-            //     F10.value * x0.value +
-            //     F11.value * x1.value +
-            //     parseFloat(B10.textContent) * u0.value
-            // );
-            // const new_state_mean = [newx0, newx1];
-
-            // // P_new = F P_old F^T + Q
-            // const _newP00 = (
-            //     F00.value * (F00.value * P00.value + F01.value * P10.value) +
-            //     F01.value * (F00.value * P01.value + F01.value * P11.value) +
-            //     Q00.value
-            // );
-            // const _newP01 = (
-            //     F10.value * (F00.value * P00.value + F01.value * P10.value) +
-            //     F11.value * (F00.value * P01.value + F01.value * P11.value) +
-            //     Q01.value
-            // );
-            
-            // // Note: P10=P01 since the matrix is symmetric, and Q10=Q01 since the matrix is symmetric
-            // const _newP10 = (
-            //     F00.value * (F10.value*P00.value + F11.value*P01.value) +
-            //     F01.value * (F10.value*P01.value + F11.value*P11.value) +
-            //     Q01.value
-            // );
-
-            // const _newP11 = (
-            //     F10.value * (F10.value*P00.value + F11.value*P01.value) +
-            //     F11.value * (F10.value*P01.value + F11.value*P11.value) +
-            //     Q11.value
-            // );
-            // const new_state_cov = [
-            //     [_newP00, _newP01],
-            //     [_newP10, _newP11]
-            // ];
-            // const old_state_mean = [x0.value, x1.value];
-            // const old_state_cov = [
-            //     [P00.value, P01.value],
-            //     [P10.value, P11.value]
-            // ];
-
-            // // Update all the new x,P
-            // newx0.textContent = _newx0.toFixed(2);
-            // newx1.textContent = _newx1.toFixed(2);
-            // newP00.textContent = _newP00.toFixed(2);
-            // newP01.textContent = _newP01.toFixed(2);
-            // newP10.textContent = _newP10.toFixed(2);
-            // newP11.textContent = _newP11.toFixed(2);
-
             // Note: P10=P01 since the matrix is symmetric,
             const old_state_mean = [[x0.value], [x1.value]];
             const old_state_cov = [
@@ -580,7 +536,7 @@
             P10.textContent = P01.value.toFixed(2);
             Q10.textContent = Q01.value.toFixed(2);
 
-            updatePlot([old_state_mean, new_state_mean], [old_state_cov, new_state_cov]);
+            updatePredictStepPlot([old_state_mean, new_state_mean], [old_state_cov, new_state_cov]);
         }
 
         // For each draggable, add a callback to update everything else
