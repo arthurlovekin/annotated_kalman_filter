@@ -133,9 +133,8 @@
         }
 
         #predict-step-plot {
-            width: 60vw;
-            height: 60vw;
-            margin: 0 auto;
+            width: max-content;
+            max-width: 100%;
         }
     </style>
 </head>
@@ -147,178 +146,190 @@
 
     <h1>Predict Step</h1>
 
-    <div id="predict-step-plot"></div>
-
-
-    <table class="equation-table">
+    <table class="math-diagram-structure-table">
         <tr>
-            <td>$$\state_{\discreteTime}$$</td>
-            <td>=</td>
-            <td>$$\stateTransition$$</td>
-            <td>$$\state_{\discreteTime -1}$$</td>
-            <td>+</td>
-            <td>$$\controlMatrix$$</td>
-            <td>$$\controlInput_{\discreteTime}$$</td>
-            <td>+</td>
-            <td>$$\mathbf{0}$$</td>
+            <td>
+                <div id="predict-step-plot"></div>
+            </td>
         </tr>
         <tr>
             <td>
-                <table class="matrix-table">
-                    <tr><td id="predict-step-new-x-mean-0">2.0</td></tr>
-                    <tr><td id="predict-step-new-x-mean-1">1.0</td></tr>
-                </table>
-            </td>
-            <td><strong>=</strong></td>
-            <td>
-                <table class="matrix-table">
+                <table class="math-diagram-structure-table">
                     <tr>
-                        <td>    
-                            <draggable-number id="predict-step-F-00" min="0" max="10" step="0.01" value="1"></draggable-number>
-                        </td>
-                        <td>
-                            <draggable-number id="predict-step-F-01" min="0" max="10" step="0.01" value="0.0"></draggable-number>
-                        </td>
+                        <td>$$\state_{\discreteTime}$$</td>
+                        <td>=</td>
+                        <td>$$\stateTransition$$</td>
+                        <td>$$\state_{\discreteTime -1}$$</td>
+                        <td>+</td>
+                        <td>$$\controlMatrix$$</td>
+                        <td>$$\controlInput_{\discreteTime}$$</td>
+                        <td>+</td>
+                        <td>$$\mathbf{0}$$</td>
                     </tr>
                     <tr>
                         <td>
-                            <draggable-number id="predict-step-F-10" min="0" max="10" step="0.01" value="0.0"></draggable-number>
+                            <table class="matrix-table">
+                                <tr><td id="predict-step-new-x-mean-0">2.0</td></tr>
+                                <tr><td id="predict-step-new-x-mean-1">1.0</td></tr>
+                            </table>
+                        </td>
+                        <td><strong>=</strong></td>
+                        <td>
+                            <table class="matrix-table">
+                                <tr>
+                                    <td>    
+                                        <draggable-number id="predict-step-F-00" min="0" max="2" step="0.01" value="1">1.00</draggable-number>
+                                    </td>
+                                    <td>
+                                        <draggable-number id="predict-step-F-01" min="0" max="0.5" step="0.01" value="0.01">0.01</draggable-number>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <draggable-number id="predict-step-F-10" min="-0.5" max="0.5" step="0.01" value="0.0">0.00</draggable-number>
+                                    </td>
+                                    <td>
+                                        <draggable-number id="predict-step-F-11" min="0" max="2" step="0.01" value="1">1.00</draggable-number>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                         <td>
-                            <draggable-number id="predict-step-F-11" min="0" max="10" step="0.01" value="1"></draggable-number>
+                            <table class="matrix-table">
+                                <tr>
+                                    <td>
+                                        <draggable-number id="predict-step-x-mean-0" min="-3" max="3" step="0.01" value="0.0">0.00</draggable-number>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <draggable-number id="predict-step-x-mean-1" min="-3" max="3" step="0.01" value="0.0">0.00</draggable-number>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
-                    </tr>
-                </table>
-            </td>
-            <td>
-                <table class="matrix-table">
-                    <tr>
+                        <td><strong>+</strong></td>
                         <td>
-                            <draggable-number id="predict-step-x-mean-0" min="0" max="10" step="0.01" value="0.0"></draggable-number>
+                            <table class="matrix-table">
+                                <tr>
+                                    <td id="predict-step-B-00">0.00</td>
+                                </tr>
+                                <tr>
+                                    <td id="predict-step-B-10">1.00</td>
+                                </tr>
+                            </table>
                         </td>
-                    </tr>
-                    <tr>
                         <td>
-                            <draggable-number id="predict-step-x-mean-1" min="0" max="10" step="0.01" value="0.0"></draggable-number>
+                            <table class="matrix-table">
+                                <tr>
+                                    <td>
+                                        <draggable-number id="predict-step-u-0" min="0" max="1" step="0.01" value="0">0.00</draggable-number>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
-                    </tr>
-                </table>
-            </td>
-            <td><strong>+</strong></td>
-            <td>
-                <table class="matrix-table">
-                    <tr>
-                        <td id="predict-step-B-00">0.00</td>
-                    </tr>
-                    <tr>
-                        <td id="predict-step-B-10">1.00</td>
-                    </tr>
-                </table>
-            </td>
-            <td>
-                <table class="matrix-table">
-                    <tr>
+                        <td><strong>+</strong></td>
                         <td>
-                            <draggable-number id="predict-step-u-0" min="-10" max="10" step="0.01" value="0"></draggable-number>
+                            <table class="matrix-table">
+                                <tr>
+                                    <td id="predict-step-zero-0">0</td>
+                                </tr>
+                                <tr>
+                                    <td id="predict-step-zero-1">0</td>
+                                </tr>
+                            </table>
                         </td>
-                    </tr>
-                </table>
-            </td>
-            <td><strong>+</strong></td>
-            <td>
-                <table class="matrix-table">
-                    <tr>
-                        <td id="predict-step-zero-0">0</td>
-                    </tr>
-                    <tr>
-                        <td id="predict-step-zero-1">0</td>
                     </tr>
                 </table>
             </td>
         </tr>
-    </table>
+        <tr>
+            <td>
 
-    <table class="equation-table">
-        <tr>
-            <td>$$\stateCovariance_{\discreteTime}$$</td>
-            <td>=</td>
-            <td>$$\stateTransition$$</td>
-            <td>$$\stateCovariance_{\discreteTime - 1}$$</td>
-            <td>$$\stateTransition^T$$</td>
-            <td>+</td>
-            <td>$$\processNoiseCovariance$$</td>
-        </tr>
-        <tr>
-            <td>
-                <table class="matrix-table" id="predict-step-new-P">
+                <table class="math-diagram-structure-table">
                     <tr>
-                        <td id="predict-step-new-P-sigma-00">0</td>
-                        <td id="predict-step-new-P-sigma-01">0</td>
+                        <td>$$\stateCovariance_{\discreteTime}$$</td>
+                        <td>=</td>
+                        <td>$$\stateTransition$$</td>
+                        <td>$$\stateCovariance_{\discreteTime - 1}$$</td>
+                        <td>$$\stateTransition^T$$</td>
+                        <td>+</td>
+                        <td>$$\processNoiseCovariance$$</td>
                     </tr>
-                    <tr>
-                        <td id="predict-step-new-P-sigma-10">0</td>
-                        <td id="predict-step-new-P-sigma-11">0</td>
-                    </tr>
-                </table>
-            </td>
-            <td><strong>=</strong></td>
-            <td>
-                <table class="matrix-table" id="predict-step-F-mirror1">
-                    <tr>
-                        <td id="predict-step-F-00-mirror1">1.00</td>
-                        <td id="predict-step-F-01-mirror1">0.00</td>
-                    </tr>
-                    <tr>
-                        <td id="predict-step-F-10-mirror1">0.00</td>
-                        <td id="predict-step-F-11-mirror1">1.00</td>
-                    </tr>
-                </table>    
-            </td>
-            <td>
-                <table class="matrix-table" id="predict-step-P">
                     <tr>
                         <td>
-                            <draggable-number id="predict-step-P-sigma-00" min="0" max="10" step="0.01" value="0.1">0.10</draggable-number>
+                            <table class="matrix-table" id="predict-step-new-P">
+                                <tr>
+                                    <td id="predict-step-new-P-sigma-00">0</td>
+                                    <td id="predict-step-new-P-sigma-01">0</td>
+                                </tr>
+                                <tr>
+                                    <td id="predict-step-new-P-sigma-10">0</td>
+                                    <td id="predict-step-new-P-sigma-11">0</td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td><strong>=</strong></td>
+                        <td>
+                            <table class="matrix-table" id="predict-step-F-mirror1">
+                                <tr>
+                                    <td id="predict-step-F-00-mirror1">1.00</td>
+                                    <td id="predict-step-F-01-mirror1">0.00</td>
+                                </tr>
+                                <tr>
+                                    <td id="predict-step-F-10-mirror1">0.00</td>
+                                    <td id="predict-step-F-11-mirror1">1.00</td>
+                                </tr>
+                            </table>    
                         </td>
                         <td>
-                            <draggable-number id="predict-step-P-sigma-01" min="0" max="10" step="0.01" value="0">0.00</draggable-number>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td id="predict-step-P-sigma-10">0.00</td>
-                        <td>
-                            <draggable-number id="predict-step-P-sigma-11" min="0" max="10" step="0.01" value="0.1">0.10</draggable-number>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-            <td>
-                <table class="matrix-table" id="predict-step-F-mirror2">
-                    <tr>
-                        <td id="predict-step-F-00-mirror2">1.00</td>
-                        <td id="predict-step-F-01-mirror2">0.00</td>
-                    </tr>
-                    <tr>
-                        <td id="predict-step-F-10-mirror2">0.00</td>
-                        <td id="predict-step-F-11-mirror2">1.00</td>
-                    </tr>
-                </table>    
-            </td>
-            <td><strong>+</strong></td>
-            <td>
-                <table class="matrix-table" id="predict-step-Q">
-                    <tr>
-                        <td>
-                            <draggable-number id="predict-step-Q-00" min="0" max="10" step="0.01" value="0.1">0.10</draggable-number>
+                            <table class="matrix-table" id="predict-step-P">
+                                <tr>
+                                    <td>
+                                        <draggable-number id="predict-step-P-sigma-00" min="0" max="5" step="0.01" value="0.1">0.10</draggable-number>
+                                    </td>
+                                    <td>
+                                        <draggable-number id="predict-step-P-sigma-01" min="-5" max="5" step="0.01" value="0">0.00</draggable-number>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td id="predict-step-P-sigma-10">0.00</td>
+                                    <td>
+                                        <draggable-number id="predict-step-P-sigma-11" min="0" max="5" step="0.01" value="0.1">0.10</draggable-number>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                         <td>
-                            <draggable-number id="predict-step-Q-01" min="0" max="10" step="0.01" value="0">0.00</draggable-number>
+                            <table class="matrix-table" id="predict-step-F-mirror2">
+                                <tr>
+                                    <td id="predict-step-F-00-mirror2">1.00</td>
+                                    <td id="predict-step-F-01-mirror2">0.00</td>
+                                </tr>
+                                <tr>
+                                    <td id="predict-step-F-10-mirror2">0.00</td>
+                                    <td id="predict-step-F-11-mirror2">1.00</td>
+                                </tr>
+                            </table>    
                         </td>
-                    </tr>
-                    <tr>
-                        <td id="predict-step-Q-10">0.00</td>
+                        <td><strong>+</strong></td>
                         <td>
-                            <draggable-number id="predict-step-Q-11" min="0" max="10" step="0.01" value="0.1">0.10</draggable-number>
+                            <table class="matrix-table" id="predict-step-Q">
+                                <tr>
+                                    <td>
+                                        <draggable-number id="predict-step-Q-00" min="0" max="5" step="0.01" value="0.1">0.10</draggable-number>
+                                    </td>
+                                    <td>
+                                        <draggable-number id="predict-step-Q-01" min="-5" max="5" step="0.01" value="0">0.00</draggable-number>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td id="predict-step-Q-10">0.00</td>
+                                    <td>
+                                        <draggable-number id="predict-step-Q-11" min="0" max="5" step="0.01" value="0.1">0.10</draggable-number>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
                 </table>
@@ -357,6 +368,11 @@
                     'rgb(204, 255, 204)'
                 ];
             }
+            // Convert mu from 2D to 1D array if necessary
+            if (Array.isArray(mu[0])) {
+                mu = mu.map(item => item[0]);
+            }
+
             traces = [];
             for (let i = 0; i < scales.length; i++) {
                 const scale = scales[i];
