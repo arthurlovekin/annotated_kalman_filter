@@ -136,6 +136,16 @@
             width: max-content;
             max-width: 100%;
         }
+
+        .next-state-gaussian {
+            color: green;
+            /* border: 2px solid green; */
+        }
+
+        .previous-state-gaussian {
+            color: blue;
+            /* border: 2px solid blue; */
+        }
     </style>
 </head>
 <body>
@@ -156,10 +166,10 @@
             <td>
                 <table class="math-diagram-structure-table">
                     <tr>
-                        <td>$$\state_{\discreteTime}$$</td>
+                        <td class="next-state-gaussian">$$\state_{\discreteTime}$$</td>
                         <td>=</td>
                         <td>$$\stateTransition$$</td>
-                        <td>$$\state_{\discreteTime -1}$$</td>
+                        <td class="previous-state-gaussian">$$\state_{\discreteTime -1}$$</td>
                         <td>+</td>
                         <td>$$\controlMatrix$$</td>
                         <td>$$\controlInput_{\discreteTime}$$</td>
@@ -248,10 +258,10 @@
 
                 <table class="math-diagram-structure-table">
                     <tr>
-                        <td>$$\stateCovariance_{\discreteTime}$$</td>
+                        <td class="next-state-gaussian">$$\stateCovariance_{\discreteTime}$$</td>
                         <td>=</td>
                         <td>$$\stateTransition$$</td>
-                        <td>$$\stateCovariance_{\discreteTime - 1}$$</td>
+                        <td class="previous-state-gaussian">$$\stateCovariance_{\discreteTime - 1}$$</td>
                         <td>$$\stateTransition^T$$</td>
                         <td>+</td>
                         <td>$$\processNoiseCovariance$$</td>
