@@ -38,7 +38,7 @@
                 \\def\\varianceRatioState{\\class{variance-ratio-state}{\\widetilde{\\mathbf{K}}_{x}}}
                 \\def\\discreteTime{n}
                 \\def\\identityMatrix{\\class{identity-matrix}{\\mathbf{I}}}
-                \\def\\gaussian{\\class{gaussian}{\\mathcal{N}}}
+                \\def\\gaussian{\\class{gaussian-distribution}{\\mathcal{N}}}
                 `,
                 kalmanfilterdotnet: `
                 \\def\\state{\\class{state}{\\mathbf{s}}}
@@ -55,7 +55,7 @@
                 \\def\\varianceRatioState{\\class{variance-ratio-state}{\\widetilde{\\mathbf{K}}_{x}}}
                 \\def\\discreteTime{t}
                 \\def\\identityMatrix{\\class{identity-matrix}{\\mathbf{I}}}
-                \\def\\gaussian{\\class{gaussian}{\\mathcal{N}}}
+                \\def\\gaussian{\\class{gaussian-distribution}{\\mathcal{N}}}
                 `
             },
           // Custom function to get the desired set of macros,
@@ -81,6 +81,10 @@
               MathJax.startup.defaultReady();
               MathJax.config.setMacros('wikipedia');
               const dropdown = document.getElementById('naming-convention-dropdown');
+              if (!dropdown) {
+                console.warn('MathJax ready(): No dropdown element found. Not changing from the default.');
+                return;
+              }
               dropdown.addEventListener('input', (event) => MathJax.config.setMacros(event.target.value));
             }
           }
@@ -90,6 +94,21 @@
         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
     </script>
     <style>
+        /* Formatting for the entire page */
+        body {
+            font-family: serif;
+            margin: 40px auto;
+            /* padding: 40px; This made the text adjust too late */
+            background-color: hsl(40, 100%, 98%);
+            color: hsl(208, 30%, 18%);
+            max-width: 45rem; /* Adjust this value as needed for desired width */
+            width: 100%;
+        }
+
+        h1, h2 {
+            font-family: sans-serif;
+        }
+
         .matrix-table {
             position: relative;
         }
@@ -181,9 +200,9 @@
 </head>
 
 <body>
-    <select id="naming-convention">
-        <option value="alt0">Alt0</option>
-        <option value="alt1">Alt1</option>
+    <select id="naming-convention-dropdown">
+        <option value="wikipedia">Wikipedia</option>
+        <option value="kalmanfilterdotnet">KalmanFilter.net</option>
     </select>
 
     <h1>The Interactive Kalman Filter</h1>
@@ -323,6 +342,7 @@
         There's only one problem: \(\measurementMatrix\) is not necessarily square, so it cannot be inverted. 
     </p>
     <p>
+        This was actually how I first went about trying to understand the Kalman Filter, and how my feelings were:
         <img src="./assets/Grus-plan-Measurement-Matrix-Not-Invertible.png" alt="Gru's Plan meme: Measurement Matrix is not invertible" style="max-width: 100%; height: auto;">
 
     </p>
@@ -418,5 +438,28 @@
         in parameters like the timestep affect the filter's behavior? The key takeaway is the underlying principles: 
         how to combine and propagate gaussian random variables.
     </p>
+
+    <h2>Appendix</h2>
+    Many texts make the distinction between the estimate of the state and the <em>true</em> state. Why don't I?
+    I did this because when I was learning, I found that with some effort I could distinguish between 
+    \( \state \) and \( \hat{\state} \) and \( \bar{\state} \), as well as terms like "a priori" 
+    ( \(x_{\discreteTime | \discreteTime-1} \)) and "a posteriori" ( \(x_{\discreteTime | \discreteTime} \)).
+    but ultimately those distinctions did not speed my learning process or aid my intuition.
+
+    If you distinguish between estimated state and true state, then you have to be able to think in 3 layers:
+    true reality, your model of reality, and then your algorithm, which tracks your model of reality. 
+
+    From the perspective of someone who wants to gain an intuition for how the filter works and possibly implement one 
+    (but not necessarily rigorously prove its optimality in some theoretical environment), the distinction
+    between model and algorithm is just extra fluff. In practice there are only two processes happening: reality, 
+    and the algorithm that tracks reality. When learning and implementing, it is easier to treat the algorithm as 
+    both theoretical model and algorithm, and simplify the notation. We admit that our theoretical model of 
+    reality is wrong (eg. the assumption of linearity and gaussian noise), but we can simply add these to the 
+    list of things that make our algorithm differ from reality (like choosing a timestep and noise parameters).
+
+    I will be the first to admit that I know relatively little about rigorously proving the optimality of the Kalman Filter
+    in a theoretical context (despite having sat through lectures that proved it). I think it may be possible to 
+    rigorously unite the algorithm with the model (and by that I mean stop distinguishing between estimate and true state), 
+    but, not having done so, I cannot say that that distinction is useless in general.    
 </body>
 </html>
