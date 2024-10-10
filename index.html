@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Interactive Kalman Filter</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+
+    <script src="js/draggable-number.js"></script>
+    <script src="js/gaussian-functions.js"></script>
+    <script src="js/formula-elements.js"></script>
+    <script src="js/mouse-effects-manager.js"></script>
+    <script>
+        const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables)]);
+    </script>
+    <script>
+        MathJax = {
+            //Enable macros \class, \cssId, \href, \style
+            loader: {load: ['[tex]/html']}, 
+            tex: {packages: {'[+]': ['html']}},
+            // save custom TexMacros in the MathJax configuration object 
+            // (becomes MathJax.config.TexMacros after MathJax is loaded)
+            TexMacros: {
+                wikipedia: `
+                \\def\\state{\\class{state}{\\mathbf{x}}}
+                \\def\\stateTransition{\\class{state-transition}{\\mathbf{F}}}
+                \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
+                \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
+                \\def\\measurementNoiseCovariance{\\class{measurement-noise-covariance}{\\mathbf{R}}}
+                \\def\\measurementMatrix{\\class{measurement-matrix}{\\mathbf{H}}}
+                \\def\\stateCovariance{\\class{state-covariance}{\\mathbf{P}}}
+                \\def\\processNoiseCovariance{\\class{process-noise-covariance}{\\mathbf{Q}}}
+                \\def\\controlMatrix{\\class{control-matrix}{\\mathbf{B}}}
+                \\def\\kalmanGain{\\class{kalman-gain}{\\mathbf{K}}}
+                \\def\\varianceRatio{\\class{variance-ratio}{\\widetilde{\\mathbf{K}}_{z}}}
+                \\def\\varianceRatioState{\\class{variance-ratio-state}{\\widetilde{\\mathbf{K}}_{x}}}
+                \\def\\discreteTime{n}
+                \\def\\identityMatrix{\\class{identity-matrix}{\\mathbf{I}}}
+                \\def\\gaussian{\\class{gaussian}{\\mathcal{N}}}
+                `,
+                kalmanfilterdotnet: `
+                \\def\\state{\\class{state}{\\mathbf{s}}}
+                \\def\\stateTransition{\\class{state-transition}{\\mathbf{A}}}
+                \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
+                \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
+                \\def\\measurementNoiseCovariance{\\class{measurement-noise-covariance}{\\mathbf{R}}}
+                \\def\\measurementMatrix{\\class{measurement-matrix}{\\mathbf{C}}}
+                \\def\\stateCovariance{\\class{state-covariance}{\\mathbf{P}}}
+                \\def\\processNoiseCovariance{\\class{process-noise-covariance}{\\mathbf{Q}}}
+                \\def\\controlMatrix{\\class{control-matrix}{\\mathbf{B}}}
+                \\def\\kalmanGain{\\class{kalman-gain}{\\mathbf{K}}}
+                \\def\\varianceRatio{\\class{variance-ratio}{\\widetilde{\\mathbf{K}}_{z}}}
+                \\def\\varianceRatioState{\\class{variance-ratio-state}{\\widetilde{\\mathbf{K}}_{x}}}
+                \\def\\discreteTime{t}
+                \\def\\identityMatrix{\\class{identity-matrix}{\\mathbf{I}}}
+                \\def\\gaussian{\\class{gaussian}{\\mathcal{N}}}
+                `
+            },
+          // Custom function to get the desired set of macros,
+          // then have the renderer to go back to the compile step so the new macros get used.
+          setMacros(name) {
+            if (!MathJax.config.TexMacros.hasOwnProperty(name)) {
+              console.warn(`TexMacros for "${name}" not found.`);
+              return Promise.resolve();
+            }
+            
+            return MathJax.startup.promise = MathJax.startup.promise.then(() => {
+              const {mathjax} = MathJax._.mathjax;
+              const {STATE} = MathJax._.core.MathItem;
+              MathJax.tex2mml(MathJax.config.TexMacros[name]);
+              mathjax.handleRetriesFor(() => MathJax.startup.document.rerender(STATE.COMPILED));
+              
+              mouseEffectsManager.initialize();
+            });
+          },
+          startup: {
+            typeset: false, //disable the initial typesetting pass since setMacros() will do typesetting
+            ready() {
+              MathJax.startup.defaultReady();
+              MathJax.config.setMacros('wikipedia');
+              const dropdown = document.getElementById('naming-convention-dropdown');
+              dropdown.addEventListener('input', (event) => MathJax.config.setMacros(event.target.value));
+            }
+          }
+        }
+    </script>
+    <script id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+    <style>
+        .matrix-table {
+            position: relative;
+        }
+        /* Rectangular pseudo-element before and after the table */
+        .matrix-table::before,
+        .matrix-table::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px; 
+        }
+        /* Make the left pseudo-element look like a bracket */
+        .matrix-table::before {
+            left: 0px;
+            border-left: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+        }
+        /* Make the right pseudo-element look like a bracket */
+        .matrix-table::after {
+            right: 0px;
+            border-right: 2px solid black;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+        }
+        .matrix-table td {
+            text-align: center;
+            vertical-align: middle;
+            width: 6ch; /* matches the DraggableNumber width */
+        }
+        .matrix-table tr {
+            line-height: 1.5;
+        }
+
+        .math-diagram-structure-table {
+            border-collapse: collapse;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .math-diagram-structure-table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .kalman-gain-state-space {
+            background-color: rgb(187, 187, 187);
+        }
+
+        .kalman-gain-intermediate-space {
+            background-color: #dddddd;
+        }
+
+        .kalman-gain-measurement-space {
+            background-color: rgb(255, 252, 238);
+        }
+
+        #kalman-gain-Hstate-gaussian {
+            border: 2px solid rgb(0, 0, 255);
+            border-radius: 10px;
+        }
+
+        #kalman-gain-measurement-gaussian {
+            border: 2px solid rgb(255, 0, 0);
+            border-radius: 10px;
+        }
+
+        #kalman-gain-combined-gaussian {
+            border: 2px solid rgb(0, 150, 0);
+            border-radius: 10px;
+        }
+
+        /* Outline the table temporarily so I can see what I'm doing */
+
+        /* .math-diagram-structure-table {
+            border: 1px solid #ddd;
+        } */
+
+        /* .math-diagram-structure-table td {
+            border: 1px solid #ddd;
+        }
+
+        .math-diagram-structure-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        } */
+
+    </style>
+</head>
+
+<body>
+    <select id="naming-convention">
+        <option value="alt0">Alt0</option>
+        <option value="alt1">Alt1</option>
+    </select>
+
+    <h1>The Interactive Kalman Filter</h1>
+
+    <h2>Introduction</h2>
+    What made me care?
+    Anywhere there is time-series data: Target tracking, navigation, control, robotics, neuroscience, finance
+
+    <h2>Building a model</h2>
+    I've just thrown you 15 variables -- that can be a lot to keep track of! I've tabulated all of them here,
+    but throughout the article you can also click on any variable to see its name, and keep clicking to get more information.
+    You can also choose the naming convention using the dropdown menu above, which should make it easier to learn across multiple sources.
+
+    Link to Visually Explained:https://www.youtube.com/watch?v=IFeCIbljreY
+    Link to Steve Brunton: https://www.youtube.com/watch?v=s_9InuQAx-g
+
+    <h2>Predict Step</h2>
+    When a linear process (eg. F) is applied to our gaussian state estimate, how should 
+
+    
+    <h2>Update Step</h2>
+    <p>Previous problem: Our variance keeps growing.</p>
+    <p>Obvious solution: Incorporate our measurements. But both the measurement and the state estimate are gaussians.
+    How do we combine two Gaussians?</p>
+
+    <p>When we combine two gaussians, what we would like to be true of our combined estimate when we combine these Gaussians?</p>
+    <ol>
+        <li>The mean of the combined estimate should always lie between the means of the two original estimates</li>
+        <li>The uncertainty (ie. variance) should be smaller than the uncertainty of either of the original estimates (we have more information)</li>
+        <li>The resulting estimate should more closely resemble the distribution in which we have higher confidence (ie. less variance).</li>
+    </ol>
+    
+    <p>For example, if we know that the ultrasonic sensor is much more accurate than our blind dynamics model, then 
+    we'd want our combined estimate to consist mostly of the sensor measurement, but it should be adjusted slightly by the dynamics model.
+    We would be more confident of our combined estimate than either of the original estimates independently.</p>
+
+    <p>To capture the concept of "giving heavier weight to the estimate with less variance", one logical approach is 
+    to take a weighted sum of the means (a linear operation), and apply the corresponding linear operation to update the variances. 
+    We'll weight the current current state by (1- state variance/total variance)  and </p>
+
+    <p>In other words, we want to do something like: 
+        $$\state_{\discreteTime} = (\identityMatrix-\widetilde{\kalmanGain}) \state + \widetilde{\kalmanGain} \measurement, \space \space \space \text{  where } \space \widetilde{\kalmanGain} = \frac{\text{state variance}}{\text{state variance} + \text{measurement variance}} $$
+    </p>
+
+    <p>But here we run into another challenge: not only are we applying a weight, but we are also trying to combine different "types" of things.
+    A state estimate is a vector with a particular dimension and units,
+    while the measurements coming from the sensors have entirely different dimensions and units. As it is written above, the operation above is not defined, 
+    because on the one hand when K converts x to x+1 it simply applies the weight (always stays in state space), but when it multiplies by Z
+    it is both applying the weight and converting to state space. Another way to see this would be to look at the dimensions: If Kx is valid then K must be (..., state_dim), but if Kz is valid then K must be (..., measurement_dim). In general, 
+    this is a contradiction. K has to either be multiplied by something in state space, or something in measurement space, but can't do both.</p>
+
+    <p>As it happens, there are two ways you could fix this problem:</p>
+
+    <p>You could either</p>
+    <ol>
+        <li>Convert the state into measurement space using H, then define the variance ratio in measurement space:</li>
+        <li>Convert the measurement into state space using H^{-1}, then define the variance ratio in state space:</li>
+    </ol>
+
+    <p> Option 1:
+        <ul>
+            <li>The measurement you'd expect at the state you Predicted: \( \gaussian \left( \measurementMatrix \state, \space \measurementMatrix \stateCovariance \measurementMatrix^T \right) \)</li>
+            <li>The measurement you actually got: \( \gaussian \left( \measurement, \space \measurementNoiseCovariance \right) \)</li>
+        </ul>
+    </p>
+
+    <p>
+        The Variance Ratio, in measurement space:
+        $$ \varianceRatio = \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}{\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance} $$
+    </p>
+    <p> 
+        Since \(\varianceRatio\) is in measurement space, we have to convert the state estimate into measurement space 
+        using \(\measurementMatrix\) before taking the ratio. Then our weighted sum is:
+
+        $$ \state_{\discreteTime} = \measurementMatrix^{-1} \left[ (\identityMatrix - \varianceRatio) \measurementMatrix \state_{\discreteTime-1} + \varianceRatio \measurement \right] $$
+    
+        Hold on, where did that \(\measurementMatrix^{-1}\) come from? Remember, at the end of the equation we need to get something that is in the space of states, 
+        but we're currently in the space of measurements. Since \(\measurementMatrix\) converts from state space to measurement space, 
+        we'd imagine that \(\measurementMatrix^{-1}\) goes the other way from measurements to states. 
+    </p>
+
+    <p> 
+        There's only one problem: \(\measurementMatrix\) is not necessarily square, so it cannot be inverted. 
+    </p>
+
+    <p>
+        Fortunately, there's a workaround! Called matrix algebra. All we have to do is suspend our disbelief and pretend that 
+        \(\identityMatrix = \measurementMatrix^{-1} \measurementMatrix\). Then we can try to bring the \(\measurementMatrix^{-1}\) 
+        inside the formula and cancel it with existing \(\measurementMatrix\) terms in the formula.
+        In particular,  (including those within the variance ratio formula).
+        We'll use the following identities:
+        For any invertible matrices \(\mathbf{A}\), \(\mathbf{B}\): 
+        \( (\mathbf{A} \mathbf{B})^{-1} = \mathbf{B}^{-1} \mathbf{A}^{-1} \), 
+        \( (\mathbf{A}^{-1})^{-T} = (\mathbf{A}^T)^{-1} \), 
+        and we can always multiply anywhere by the identity \( \identityMatrix = \measurementMatrix^{-1} \measurementMatrix = \measurementMatrix^T (\measurementMatrix^T)^{-1} \)
+
+        $$ \begin{align*}
+         \state_{\discreteTime} &= \measurementMatrix^{-1} \left[ (\identityMatrix - \varianceRatio) \measurementMatrix \state_{\discreteTime-1} + \varianceRatio \measurement \right] \\
+         &= \left[ \left( \measurementMatrix^{-1} - \measurementMatrix^{-1} \varianceRatio \right) \measurementMatrix \state_{\discreteTime-1} + \measurementMatrix^{-1} \varianceRatio \measurement \right] \\
+         &= \left( \measurementMatrix^{-1} - \kalmanGain \right) \measurementMatrix \state_{\discreteTime-1} + \kalmanGain \measurement \\
+         \state_{\discreteTime} &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \state_{\discreteTime-1} + \kalmanGain \measurement \\
+         \end{align*}
+         $$
+
+    </p>
+
+    <p> Great! Now we have a matrix formula to combine the means of two Gaussians. The only step left is to propagate the variances too. 
+        Remember our rule of thumb: For a gaussian \( \gaussian \left( \mathbf{\mu}, \mathbf{\Sigma} \right) \), 
+        any time we apply a linear operation on the mean (eg. \( \mathbf{A} \mu \) ), 
+        the variance will get that same operation applied twice (eg. \( \mathbf{A} \mathbf{\Sigma} \mathbf{A}^T \) ).
+    </p>
+
+    <p>
+        Using this rule, we can easily write aout the variance:
+        $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
+    </p>
+
+    <p> Option 2:
+        <ul>
+            <li>The state you Predicted: \( \gaussian \left( \state, \space \stateCovariance \right) \)</li>
+            <li>The state implied by the measurement: \( \gaussian \left( \measurementMatrix^{-1} \measurement, \space \space \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T \right) \)</li>
+        </ul>
+    </p>
+
+    <p>
+        \( \text{The Variance Ratio, in state space } \varianceRatio = \frac{\stateCovariance}{\stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T} \)
+    </p>
+
+    <p>
+        \( \state = (\identityMatrix - \varianceRatio) \state + \varianceRatio \measurementMatrix^{-1} \measurement \)
+    </p>
+
+    <p>
+        Bam!! Just like that we've derived the Kalman Filter! 
+    </p>
+    <p> 
+        There's only one problem: \(\measurementMatrix\) is not necessarily square, so it cannot be inverted. 
+    </p>
+    <p>
+        <img src="./assets/Grus-plan-Measurement-Matrix-Not-Invertible.png" alt="Gru's Plan meme: Measurement Matrix is not invertible" style="max-width: 100%; height: auto;">
+
+    </p>
+
+    <p> 
+        Fortunately, there is a workaround! If we suspend our disbelief and do a bit of matrix algebra as if \( \measurementMatrix^{-1} \) exists,
+         we can avoid ever having to invert the measurement matrix. We'll use the following identities:
+        For any invertible matrices \(\mathbf{A}\), \(\mathbf{B}\): 
+        \( (\mathbf{A} \mathbf{B})^{-1} = \mathbf{B}^{-1} \mathbf{A}^{-1} \), 
+        \( (\mathbf{A}^{-1})^{-T} = (\mathbf{A}^T)^{-1} \), 
+        and we can always multiply anywhere by the identity \( \identityMatrix = \measurementMatrix^{-1} \measurementMatrix = \measurementMatrix^T (\measurementMatrix^T)^{-1} \)
+    </p>
+
+    <p>
+        So let's knock out those inverses!
+        $$ \begin{align*}
+        \varianceRatioState &= \stateCovariance \left[ \stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right]^{-1} \\
+        &= \stateCovariance \left[ \stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right]^{-1} \left( \measurementMatrix^{-1} \measurementMatrix \right)\\
+        &= \stateCovariance \left[ \measurementMatrix \left( \stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right) \right]^{-1} \measurementMatrix \\
+        &= \stateCovariance \left[ \measurementMatrix \stateCovariance + \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right]^{-1} \measurementMatrix \\
+        &= \stateCovariance \left( \measurementMatrix^T \left( \measurementMatrix^T \right)^{-1} \right) \left[ \measurementMatrix \stateCovariance + \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right]^{-1} \measurementMatrix \\
+        &= \stateCovariance \measurementMatrix^T \left[ \left( \measurementMatrix \stateCovariance + \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right) \measurementMatrix^T \right]^{-1} \measurementMatrix \\
+        \varianceRatioState &= \stateCovariance \measurementMatrix^T \left[ \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right]^{-1} \measurementMatrix \\
+        \end{align*}
+        $$
+    </p>
+    <p> Now our Variance ratio is free of \( \measurementMatrix^{-1} \), but there is still one 
+        more remaining in the weighted sum formula. This can be easily disappeared with the 
+        rightmost \(\measurementMatrix\) in the formula, so we'll write our variance ratio in two parts:
+        $$ \begin{align*}
+        \varianceRatioState &= \stateCovariance \measurementMatrix^T \left[ \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right]^{-1} \measurementMatrix \\
+        \varianceRatioState &= \kalmanGain \measurementMatrix \\
+        \end{align*}
+        $$
+        Where we've defined the true kalman gain as:
+        $$ \kalmanGain = \stateCovariance \measurementMatrix^T \left( \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right)^{-1} $$
+    </p>
+    <p>
+        
+    </p>
+
+
+
+    <p>
+    Now we have the Kalman Gain:
+
+    $$ \kalmanGain = \stateCovariance \measurementMatrix^T \left( \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right)^{-1} $$
+
+    Intuitively, you can interpret the Kalman Gain as a process with two steps: Multiplying by the variance ratio, then converting to the space of states (or vice versa if you read the bonus derivation).
+        TODO: Make a diagram here, either just labeling the terms, or a whole flow diagram.
+    $$ \kalmanGain = \measurementMatrix^{-1} \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}{\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance}
+    = \frac{\stateCovariance}{\stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance \measurementMatrix^{-T}} \measurementMatrix^{-1} $$
+    </p>
+
+    <h2>The Full Algorithm</h2>
+    Now we have all the pieces to write out the full algorithm, but we'll make a few adjustments to make it more numberically stable
+    <ul>
+        <li>(I-KH) can be numerically unstable, so we distribute it out to get</li>
+        <li>All of the matrices (F,B,H,etc.) can vary with time, so we'll subscript them with the current timestep</li>
+    </ul>
+
+
+    <h2>Summary</h2>
+    <p>
+        The <strong>Kalman Filter</strong> is an algorithmic blueprint for incorporating different sources 
+        of information into a unified probailistic state estimate. It outlines two ways to 
+        propagate the current state estimate to the next:
+        <ol>
+            <li>Predict: Incorporate information about the default dynamics of the system</li>
+            <li>Update: Fuse sensor information with the most recent state estimate 
+                using the Kalman Gain</li>
+        </ol>
+        The <strong>Kalman Gain</strong> is an operator that takes vectors in the 
+        measurement space as input, and outputs the weighted contribution of that measurement 
+        vector to the total state estimate. This operation can be interpreted as having two 
+        steps (in either order):
+        <ul>
+            <li>Convert from the space of measurements to the space of states</li>
+            <li>Weight the contribution of the measurement to the state estimate in proportion
+                to the inverse of the measurement's variance</li>
+        </ul>
+        Note that in this interpretation, the inverse measurement matrix <span id="measurement-matrix-inverse"></span>
+        is imagined to convert back from the space of measurements to the space of states, even though
+        in practice it is <em>almost never invertible</em>. This is why the Kalman Filter is usually 
+        defined without it. 
+    </p>
+    <p>
+        The Kalman Gain has been proven to be the Best Linear Unbiased Estimator (BLUE) for 
+        gaussian random variables.
+    </p>
+    <p>Hopefully while playing you realized that 1) it's not magic, and 2) there are many obvious shortcomings. For example, 
+        What if your model isn't linear? What if you don't know the covariance matrix for your sensors? How do small changes 
+        in parameters like the timestep affect the filter's behavior? The key takeaway is the underlying principles: 
+        how to combine and propagate gaussian random variables.
+    </p>
+</body>
+</html>
