@@ -23,8 +23,10 @@
             // save custom TexMacros in the MathJax configuration object 
             // (becomes MathJax.config.TexMacros after MathJax is loaded)
             TexMacros: {
+                // Note: use two '\'s because this is first intepreted as a javascript strings, where '\' needs to be escaped
                 wikipedia: `
-                \\def\\state{\\class{state}{\\mathbf{x}}}
+                \\def\\state{\\class{state}{\\mathbf{\\bar{x}}}}
+                \\def\\stateEstimate{\\class{state-estimate}{\\mathbf{x}}}
                 \\def\\stateTransition{\\class{state-transition}{\\mathbf{F}}}
                 \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
                 \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
@@ -41,7 +43,8 @@
                 \\def\\gaussian{\\class{gaussian-distribution}{\\mathcal{N}}}
                 `,
                 kalmanfilterdotnet: `
-                \\def\\state{\\class{state}{\\mathbf{s}}}
+                \\def\\state{\\class{state}{\\mathbf{\\bar{s}}}}
+                \\def\\stateEstimate{\\class{state-estimate}{\\mathbf{s}}}
                 \\def\\stateTransition{\\class{state-transition}{\\mathbf{A}}}
                 \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
                 \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
@@ -217,23 +220,33 @@
         Lightweight tool used for pretty much any system that are continuously changing
         Used everywhere there is time-series data: Target tracking, navigation, control, robotics, neuroscience, finance
 
-    play around with a single gaussian:
-        Covariance, mean
-    
-    Acting on a gaussian: We don't know which of our estimates is the "real"
-    one, so we need a function that works on the whole distribution.
-
-    Introduce the Linear operator F, how it is obtained from the linear system 
-    equations, and how it modifies the covariance. F translates a state to a state. 
     <h2>Building a model</h2>
-
-    <p>
-        $$ \begin{alignat}{3}
+    <p>How to model the world? We try to think of the minimum set of variables needed
+    to make a complete description of the system, and then put them all together in
+    a state vector. In our simple example, this is the position \(p\) and velocity \(v\) of the
+    robot. 
+    </p>
+    <p>TODO: put in popout box:     In general, the state vector could include many different quantities: in
+        Fluid dynamics it would be things like temperature, pressure, flow rate,
+        volume, and in a population dynamics model it might include the number of
+        individuals and their age distribution.
+    </p>
+    <p>$$ \text{State vector }\stateEstimate = \begin{bmatrix} p \\ v \end{bmatrix} 
+            = \begin{bmatrix} \text{position} \\ \text{velocity} \end{bmatrix} $$
+    </p>
+    <p> Once we've defined our state vector, we need to model how it evolves over time.
+    For our robot, we can use a simple kinematics formula:
+    $$ \begin{alignat}{3}
         p_{\discreteTime} &= p_{\discreteTime-1} &+& \Delta t &v_{\discreteTime-1} \\
         v_{\discreteTime} &= 0                   &+&          &v_{\discreteTime-1} \\
         \end{alignat}
-        $$
+    $$
+    </p>
+    <p>We'll package this up into matrix form so it is easy to use later.
+        We'll call the matrix that converts from the old state to a new state 
+        using the dynamics model the state transition matrix \(\stateTransition\).
 
+        $$ \text{State Transition Matrix } \stateTransition = \begin{bmatrix} 1 & \Delta t \\ 0 & 1 \end{bmatrix} $$
         $$
         \begin{alignat}{3}
             \begin{bmatrix}
@@ -251,41 +264,35 @@
                 v_{\discreteTime-1} 
             \end{bmatrix} \\
 
-            \state_{\discreteTime} &= \stateTransition & \state_{\discreteTime-1} \\
+            \stateEstimate_{\discreteTime} &= \stateTransition & \stateEstimate_{\discreteTime-1} \\
         \end{alignat}
         $$
     </p>
 
-    <p>Now we have a simple dynamical model of our robot, but it fails to factor in one thing 
-        that is common to most robots: a way to control it. In the demo above, you (as the operator)
-        are able to control the robot with a velocity throttle command \(u\),
+    <p>
+        Now we have a simple dynamical model of our robot, but it fails to include one
+        thing that is common to most robots: a way to control it. In the demo above, you
+        (as the operator) are able to control the robot with a throttle command \(u\),
+        which can range between [0,1]. Inherently this [0,1] value has no meaning, but
+        the robot is programmed so that the throttle controls the angular speed of
+        the wheels, which in turn determines the robot's linear velocity.
+        If we assume that the wheel radius is \(r\), the maximum angular speed
+        is \(\omega_{max} \) (and that the wheel speed perfectly matches the control 
+        command), then we have the following relationship between the throttle command \(u\) and the velocity \(v\) of the robot:
+
+        $$ v = r \omega = r \omega_{max} u $$
+
+        As with the state equation, we'll package this up in matrix form by defining
+        the control matrix \(\controlMatrix\), which determines how the input 
+        vector \(\controlInput \) impacts the state. Note that the throttle
+        has no effect on the position, so the first row of \(\controlMatrix\) is zero.
+
+        $$ \text{Control Input Vector } \controlInput = \begin{bmatrix} u \end{bmatrix} $$
+
+        $$ \text{Control Matrix } \controlMatrix = \begin{bmatrix} 0 \\ r \omega_{max} \end{bmatrix} $$
         
-        throttle command \(u\), which can range between [0,1].
-        Inherently this [0,1] value has no meaning, but we've programmed the robot so that the 
-        throttle controls the angular speed of the motor, which in turn affects the robot's linear velocity.
-        If we assume that the wheel radius is \(r\), the motor's maximum angular speed is \(\omega_{max} \)
-        (and that the motors match the control command perfectly), then we can define the control matrix \(\controlMatrix\)
-        that will convert the throttle command \(u\) to the robot's state space as follows. Note that the throttle 
-        has no effect on the position:
-
-        $$
-        \begin{bmatrix}
-            p_{\discreteTime} \\
-            v_{\discreteTime}
-        \end{bmatrix}
-        =
-        \begin{bmatrix}
-            0 \\
-            r \omega_{max} \\
-        \end{bmatrix}
-        \begin{bmatrix}
-            u_{\discreteTime} \\
-        \end{bmatrix} \\
-        $$
         Combining this with our dynamics model, our complete dynamical model looks like this:
-    </p>
 
-     <p>
         $$
         \begin{alignat}{5}
             \begin{bmatrix}
@@ -311,37 +318,86 @@
             \begin{bmatrix}
                 u_{\discreteTime} \\
             \end{bmatrix} \\
-            \state_{\discreteTime} &= \stateTransition & \state_{\discreteTime-1} &+ \controlMatrix & \controlInput_{\discreteTime} \\
+            \stateEstimate_{\discreteTime} &= \stateTransition & \stateEstimate_{\discreteTime-1} &+ \controlMatrix & \controlInput_{\discreteTime} \\
         \end{alignat}
         $$
     </p>
-
-    <p>
-        The last important part of the model is the sensor. Ultrasonic
-    </p>
-
     <h2>Bringing Uncertainty into the Model</h2>
     <p>
         The linear model we derived above is great and all, but let's be honest, it's not very realistic.
         In the real world, the robot might slip and bounce over the terrain, the motors might not
         exactly reach the commanded speed. In other words, there is random noise introduced by the 
         messiness of the environment, which in turn makes our state estimate less certain.
-
+    </p>
+    <p>
         One method that can represent both the uncertainty in our state estimate 
-        and the random noise introduced by the environment, is to assign each of them a 
-        probability distribution. For simplicity, let's assume that both of these distributions are gaussian.
+        and the random noise introduced by the environment is to assign each of them a 
+        probability distribution. For simplicity, we assume that both of these distributions are gaussian.
+    </p>
 
+    <p> TODO: Put this in a popout box
+        Why a gaussian? There are a few really compelling reasons: 
+        <ol>
+            <li>We can parametrize the distribution with just the mean and variance, so it is numerically easy to update</li>
+            <li>When we combine two independent gaussians into one estimate, the result is also a gaussian</li>
+            <li>Mathematicians have proven (the Central Limit Theorem)that the combined effect of many random processes (even if individually they are non-gaussian)
+                will result in a gaussian distribution</li>
+        </ol>
 
+        Take heed: we choose a gaussian mostly because it is numerically convenient, but in practice many things (even something as simple
+        as a \( sin \theta \) term in the dynamics model introduced by turning around), will make the distribution non-gaussian.
+    </p>
+    <p> So now, instead of representing our state estimate with a single vector, we'll say that our state estimate 
+        has two parts: a mean \(\state\) and a covariance \(\stateCovariance\).
+        $$ \stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
+    </p>
+    <p>
+        Hopefully you've already seen a 1D normal distribution
+    </p>
+    
+    <p> TODO: Diagram: Play around with a single gaussian: Covariance, mean</p>
+
+    <p>Now comes an important point: In our dynamics equation above we know how to apply the matrix \(\stateTransition\) 
+        to the state estimate \( \stateEstimate \) when it was a single vector. But now our estimate is a gaussian,
+        so we need to apply \(\stateTransition\) to the whole distribution. Fortunately, the mean is a single point,
+        so we can directly apply the state transition matrix as we did before. The variance on the other hand is the 
+        average "squared-distance" from the mean, so how should it be treated?
+    </p>
+    <p> We'll introduce a very useful rule:
+        In order to multiply a gaussian distribution \(\gaussian \left( \mathbf{\bar{\mu}}, \mathbf{\Sigma} \right) \) by a matrix \( \mathbf{A} \), 
+        the mean is simply multiplied normally, while the covariance is multiplied by \( \mathbf{A} \) squared.
+    </p>
+    <p>
+        Linear Transformation of a Normal Distribution:
+        $$
+        \mathbf{\bar{\mu}}_{\discreteTime} = \mathbf{A} \mathbf{\bar{\mu}}_{\discreteTime-1} 
+        $$
+        $$
+        \mathbf{\Sigma}_{\discreteTime} = \mathbf{A} \mathbf{\Sigma}_{\discreteTime-1} \mathbf{A}^T
+        $$
+    </p>
+    <p>
+        One way you can remember this is to think back to a 1D normal distribution. The mean is a single number \(\mu\)
+        and the variance is the standard deviation \(\sigma\) squared. When we multiply by a scalar \(a\), the mean 
+        simply scales by \(a\), and the standard deviation also scales by \(a\) (because it is a distance on the plot).
+    </p>
+
+    <p>With this probabilistic knowledge, we have actually arrived to the point where we can write out the first component of the Kalman Filter:
+        the <strong>Predict Step</strong>! We'll define the covariance of the state estimate to be \(\stateCovariance\), and the mean to be \(\state\). 
+        To handle environmental noise, we'll also add a noise term with mean 0 and covariance \(\processNoiseCovariance\). Writing this out, we have:
+    </p>
+    <p>The Predict Step:
+        $$ \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} + \controlMatrix \controlInput_{\discreteTime} $$
+        $$ \stateCovariance_{\discreteTime} = \stateTransition \stateCovariance_{\discreteTime-1} \stateTransition^T + \processNoiseCovariance $$
     </p>
 
     <h2>Kalman Filter: Predict Step</h2>
     <p> 
-        Before you know it, you've figured out the first step of the Kalman Filter: the Predict Step!
-        Fundamentally, this step simply captures a probabilistic update to the state, based on our 
-        dynamical model of the system. 
-
-        Let's try running this algorithm in state space: 
+        Fundamentally, the predict step describes how a gaussian state estimate propagates from the previous estimate to current estimate, 
+        based on our dynamical model of the system. Let's try running this algorithm in state space: 
     </p>
+
+    <p> TODO: Diagram: Predict Step State Space diagram</p>
 
     <h2>Model Summary</h2>
     I've just thrown you 15 variables -- that can be a lot to keep track of! I've tabulated all of them here,
@@ -364,7 +420,7 @@
         the dynamics model with a zero-mean gaussian, we'll assume that the sensor noise is also zero-mean, and 
         has covariance \(\measurementNoiseCovariance\). To be clear, we're saying that from a particular state \(p\), 
         the sensor will output a value that is close to \(\measurementMatrix \state \), but there is some additional 
-        sensor noise (captured by (\ \measurementNoiseCovariance \) that causes the reading to be slightly different. 
+        sensor noise (captured by \( \measurementNoiseCovariance \) that causes the reading to be slightly different. 
         This means that if we observe a sensor reading of , there is some probability that the true state is actually somewhere else.
 
         Why do we define z = Hx and not x = Hz (since ultimately we want to estimate the state from our measurement)?
@@ -396,7 +452,7 @@
     </p>
 
     <p>In other words, we want to do something like: 
-        $$\state_{\discreteTime} = (\identityMatrix-\widetilde{\kalmanGain}) \state + \widetilde{\kalmanGain} \measurement, \space \space \space \text{  where } \space \widetilde{\kalmanGain} = \frac{\text{state variance}}{\text{state variance} + \text{measurement variance}} $$
+        $$\state_{\discreteTime} = ( \identityMatrix-\widetilde{\kalmanGain}) \state + \widetilde{\kalmanGain} \measurement, \space \space \space \text{  where } \space \widetilde{\kalmanGain} = \frac{\text{state variance}}{\text{state variance} + \text{measurement variance}} $$
     </p>
 
     <p>But here we run into another challenge: not only are we applying a weight, but we are also trying to combine different "types" of things.
