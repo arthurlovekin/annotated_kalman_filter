@@ -208,26 +208,171 @@
     <h1>The Interactive Kalman Filter</h1>
 
     <h2>Introduction</h2>
-    What made me care?
-    Anywhere there is time-series data: Target tracking, navigation, control, robotics, neuroscience, finance
+    <p>The Kalman Filter is a powerful tool for combining information </p>
+    TODO: Make the highilght colors match the diagram colors
 
+    What made me care?
+        Powerful way of combining information in the face of uncertainty
+        Elegant Combination of linear algebra and probability theory,
+        Lightweight tool used for pretty much any system that are continuously changing
+        Used everywhere there is time-series data: Target tracking, navigation, control, robotics, neuroscience, finance
+
+    play around with a single gaussian:
+        Covariance, mean
+    
+    Acting on a gaussian: We don't know which of our estimates is the "real"
+    one, so we need a function that works on the whole distribution.
+
+    Introduce the Linear operator F, how it is obtained from the linear system 
+    equations, and how it modifies the covariance. F translates a state to a state. 
     <h2>Building a model</h2>
+
+    <p>
+        $$ \begin{alignat}{3}
+        p_{\discreteTime} &= p_{\discreteTime-1} &+& \Delta t &v_{\discreteTime-1} \\
+        v_{\discreteTime} &= 0                   &+&          &v_{\discreteTime-1} \\
+        \end{alignat}
+        $$
+
+        $$
+        \begin{alignat}{3}
+            \begin{bmatrix}
+                p_{\discreteTime} \\
+                v_{\discreteTime}
+            \end{bmatrix}
+            &=
+            \begin{bmatrix}
+                1 & \Delta t \\
+                0 & 1
+            \end{bmatrix}
+            &
+            \begin{bmatrix} 
+                p_{\discreteTime-1} \\ 
+                v_{\discreteTime-1} 
+            \end{bmatrix} \\
+
+            \state_{\discreteTime} &= \stateTransition & \state_{\discreteTime-1} \\
+        \end{alignat}
+        $$
+    </p>
+
+    <p>Now we have a simple dynamical model of our robot, but it fails to factor in one thing 
+        that is common to most robots: a way to control it. In the demo above, you (as the operator)
+        are able to control the robot with a velocity throttle command \(u\),
+        
+        throttle command \(u\), which can range between [0,1].
+        Inherently this [0,1] value has no meaning, but we've programmed the robot so that the 
+        throttle controls the angular speed of the motor, which in turn affects the robot's linear velocity.
+        If we assume that the wheel radius is \(r\), the motor's maximum angular speed is \(\omega_{max} \)
+        (and that the motors match the control command perfectly), then we can define the control matrix \(\controlMatrix\)
+        that will convert the throttle command \(u\) to the robot's state space as follows. Note that the throttle 
+        has no effect on the position:
+
+        $$
+        \begin{bmatrix}
+            p_{\discreteTime} \\
+            v_{\discreteTime}
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            0 \\
+            r \omega_{max} \\
+        \end{bmatrix}
+        \begin{bmatrix}
+            u_{\discreteTime} \\
+        \end{bmatrix} \\
+        $$
+        Combining this with our dynamics model, our complete dynamical model looks like this:
+    </p>
+
+     <p>
+        $$
+        \begin{alignat}{5}
+            \begin{bmatrix}
+                p_{\discreteTime} \\
+                v_{\discreteTime}
+            \end{bmatrix}
+            &=
+            \begin{bmatrix}
+                1 & \Delta t \\
+                0 & 1
+            \end{bmatrix}
+            &
+            \begin{bmatrix} 
+                p_{\discreteTime-1} \\ 
+                v_{\discreteTime-1} 
+            \end{bmatrix}
+            &+
+            \begin{bmatrix}
+                0 \\
+                r \omega_{max} \\
+            \end{bmatrix}
+            &
+            \begin{bmatrix}
+                u_{\discreteTime} \\
+            \end{bmatrix} \\
+            \state_{\discreteTime} &= \stateTransition & \state_{\discreteTime-1} &+ \controlMatrix & \controlInput_{\discreteTime} \\
+        \end{alignat}
+        $$
+    </p>
+
+    <p>
+        The last important part of the model is the sensor. Ultrasonic
+    </p>
+
+    <h2>Bringing Uncertainty into the Model</h2>
+    <p>
+        The linear model we derived above is great and all, but let's be honest, it's not very realistic.
+        In the real world, the robot might slip and bounce over the terrain, the motors might not
+        exactly reach the commanded speed. In other words, there is random noise introduced by the 
+        messiness of the environment, which in turn makes our state estimate less certain.
+
+        One method that can represent both the uncertainty in our state estimate 
+        and the random noise introduced by the environment, is to assign each of them a 
+        probability distribution. For simplicity, let's assume that both of these distributions are gaussian.
+
+
+    </p>
+
+    <h2>Kalman Filter: Predict Step</h2>
+    <p> 
+        Before you know it, you've figured out the first step of the Kalman Filter: the Predict Step!
+        Fundamentally, this step simply captures a probabilistic update to the state, based on our 
+        dynamical model of the system. 
+
+        Let's try running this algorithm in state space: 
+    </p>
+
+    <h2>Model Summary</h2>
     I've just thrown you 15 variables -- that can be a lot to keep track of! I've tabulated all of them here,
     but throughout the article you can also click on any variable to see its name, and keep clicking to get more information.
     You can also choose the naming convention using the dropdown menu above, which should make it easier to learn across multiple sources.
 
     Link to Visually Explained:https://www.youtube.com/watch?v=IFeCIbljreY
     Link to Steve Brunton: https://www.youtube.com/watch?v=s_9InuQAx-g
-
-    <h2>Predict Step</h2>
-    When a linear process (eg. F) is applied to our gaussian state estimate, how should 
-
     
-    <h2>Update Step</h2>
-    <p>Previous problem: Our variance keeps growing.</p>
-    <p>Obvious solution: Incorporate our measurements. But both the measurement and the state estimate are gaussians.
-    How do we combine two Gaussians?</p>
+    <h2>Sensing the environment</h2>
+    <p>Ok so the state ... isn't terrible, but it's not great either. And the variance keeps growing!
+        Fortunately, we have endowed this robot with an ultrasonic distance sensor that should help. 
+        The only question is, how do we incorporate it into the model? 
+    </p>
+    <p>First things first, if we assume that the ultrasonic sensor is perfectly accurate, what would the model look like?
+        We'll call the output of the sensor \(z\), and it should be equal to the true position \(p\).
+        From a particular state \(p\), the sensor would always give the same measurement \(z\).
+    </p>
+    <p>That looks like a good start, but we know that the sensor is not perfect. Just as we captured the noise of 
+        the dynamics model with a zero-mean gaussian, we'll assume that the sensor noise is also zero-mean, and 
+        has covariance \(\measurementNoiseCovariance\). To be clear, we're saying that from a particular state \(p\), 
+        the sensor will output a value that is close to \(\measurementMatrix \state \), but there is some additional 
+        sensor noise (captured by (\ \measurementNoiseCovariance \) that causes the reading to be slightly different. 
+        This means that if we observe a sensor reading of , there is some probability that the true state is actually somewhere else.
 
+        Why do we define z = Hx and not x = Hz (since ultimately we want to estimate the state from our measurement)?
+        Try it out! If you try to do it the other way, you'll have no way to fill in the velocity. But we can always 
+        go from state to measurement space, since our state is supposed to capture all of the information about the system.
+    </p>
+
+    <h2>Update Step: Combining two gaussians</h2>
     <p>When we combine two gaussians, what we would like to be true of our combined estimate when we combine these Gaussians?</p>
     <ol>
         <li>The mean of the combined estimate should always lie between the means of the two original estimates</li>
@@ -240,8 +385,15 @@
     We would be more confident of our combined estimate than either of the original estimates independently.</p>
 
     <p>To capture the concept of "giving heavier weight to the estimate with less variance", one logical approach is 
-    to take a weighted sum of the means (a linear operation), and apply the corresponding linear operation to update the variances. 
+    to define the variance ratio: 
+    Then we can take a weighted sum of the means (a linear operation), where each mean is weighed by the inverse of the 
+    variance ratio, and apply the corresponding linear operation to update the variances. 
     We'll weight the current current state by (1- state variance/total variance)  and </p>
+
+    <p>The ratio of variances kind of makes sense, but why choose this as opposed to something else? 
+        In general, to combine two probability distributions you use the operation of convolution. [links to why]
+        If you convolve two gaussians in 1D you can algebraically see that ratio emerges.
+    </p>
 
     <p>In other words, we want to do something like: 
         $$\state_{\discreteTime} = (\identityMatrix-\widetilde{\kalmanGain}) \state + \widetilde{\kalmanGain} \measurement, \space \space \space \text{  where } \space \widetilde{\kalmanGain} = \frac{\text{state variance}}{\text{state variance} + \text{measurement variance}} $$
@@ -398,12 +550,36 @@
     </p>
 
     <h2>The Full Algorithm</h2>
+    <h3>Eg. What you actually need to implement</h3>
     Now we have all the pieces to write out the full algorithm, but we'll make a few adjustments to make it more numberically stable
     <ul>
         <li>(I-KH) can be numerically unstable, so we distribute it out to get</li>
         <li>All of the matrices (F,B,H,etc.) can vary with time, so we'll subscript them with the current timestep</li>
+        <li>You should be calling the Predict function as often as you can (the dynamics never stops so neither should your blind estimate),
+            but the update function can only be called when there is a new measurement. If your
+            sensor is fast, you might always call Predict immediately followed by Update, 
+            but if your sensor is slow, 5 predict steps might go by with no update. 
+            I've accounted 
+        </li>
     </ul>
 
+    <table>
+        <tr>
+            <th>Predict(\( \controlInput_{\discreteTime}, \space \state_{\discreteTime-1}, \space \stateCovariance_{\discreteTime-1} \))</th>
+            <th>Update(\( \measurement_{\discreteTime}, \space \state_{\discreteTime-1}, \space \stateCovariance_{\discreteTime-1} \))</th>
+        </tr>
+        <tr>
+            <th>    
+                $$ \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} + \controlMatrix \controlInput_{\discreteTime} $$
+                $$ \stateCovariance_{\discreteTime} = \stateTransition \stateCovariance_{\discreteTime-1} \stateTransition^T + \processNoiseCovariance $$
+            </th>
+            <th>    
+                $$ \kalmanGain = \stateCovariance_{\discreteTime-1} \measurementMatrix^T \left( \measurementMatrix \stateCovariance_{\discreteTime-1} \measurementMatrix^T + \measurementNoiseCovariance \right)^{-1} $$
+                $$ \state_{\discreteTime} = \state_{\discreteTime-1} + \kalmanGain \left( \measurement_{\discreteTime} - \measurementMatrix \state_{\discreteTime-1} \right) $$
+                $$ \stateCovariance_{\discreteTime} = \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} $$
+            </th>
+        </tr>
+    </table>
 
     <h2>Summary</h2>
     <p>
