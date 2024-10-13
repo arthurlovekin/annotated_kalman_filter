@@ -434,59 +434,37 @@
         using a linear transformation. We can however think about this from a more causal perspective: 
     </p>
     <p>
-        In reality we know that the tobot is in some true state x, and that when the sensor takes a measurement
-        of that state it will generally follow a linear process, but it will also introduce some sensor noise. 
-        We define the measurement matrix \(\measurementMatrix\) to capture this linear measurement process,
-        and say that the sensor noise is some normal distribution with mean 0 and covariance \(\measurementNoiseCovariance\).
-        Therefore, the distribution of possible measurements you'd expect to get from true state x can 
-        be represented as a gaussian:
-        
-        $$ \measurement' = \measurementMatrix \state + \text{sensor noise} $$
-        $$ \text{Measurement Matrix } \measurementMatrix = \begin{bmatrix} 1 & 0 \end{bmatrix} $$
-        $$ \text{Measurement Noise} \sim \gaussian \left( 0, \measurementNoiseCovariance \right) $$
-        $$ \measurement' \sim \gaussian \left( \measurementMatrix x, \measurementNoiseCovariance \right) $$
-
-        The limitation of the model above is that the robot never actually knows the true state, 
-        so it can't actually calculate \(\measurementMatrix x\). The robot only gets 
-        a sample from this distribution: the actual reading \( \measurement \).
-        Since it is the only sample we have, we approximate \( \measurement = \measurementMatrix x \), and 
-        then say that the distribution of possible measurements from true state x is the gaussian centered at
-        \(\measurementMatrix x\) with covariance \(\measurementNoiseCovariance\):
-        $$ \measurement \sim \gaussian \left( \measurementMatrix x, \measurementNoiseCovariance \right) $$
+        In reality we know that the robot is in some true state x, and when the sensor takes a measurement
+        of that state it will generally follow a linear process. If we define the measurement matrix \(\measurementMatrix\)
+        to describe this linear measurement process, then in the ideal case we can write:
+        $$ \measurement_{ideal} = \measurementMatrix \trueState $$
     </p>
+    <p>Let's get into some implementation details to see what \(\measurementMatrix\) looks like. 
+        Most ultrasonic sensors do not directly provide a distance. Instead, they measure 
+        the time (in microseconds, (\ \mu s \)) it takes for a pulse of sound to travel to the wall and back. In order to convert from (\ \mu s \)
+        to meters, we need to multiply by a factor of \( \frac{2 \times 10^6 }{c} \), where \(c\) is the speed of sound in air (343 m/s), 
+        there are \( 10^6 \mu s\) per second, and the factor of 2 accounts for the sound traveling double the distance (to the wall, and then back).
+        Thus to convert from the measurement vector to the state vector, the measurement matrix would be:
+        $$ \measurementMatrix = \begin{bmatrix} \frac{2 \times 10^6 }{c} & 0 \end{bmatrix} $$
+    </p>
+    <p>Of course, no sensor is ever perfect, so we will also say that when the sensor takes a measurement 
+        it will also introduce some sensor noise. We assume that the noise is normally distributed with 
+        zero mean and covariance \(\measurementNoiseCovariance\) (which hopefully is listed in the sensor datasheet).
+        $$ \text{Measurement Noise} \sim \gaussian \left( 0, \measurementNoiseCovariance \right) $$
 
-    <!-- we know that if we are in a particular state \( \trueState' \), then the sensor should return 
-    (plus or minus some sensor noise)a reading \( z' \) 
-    that corresponds to that state's position (where ' indicates that these values correspond to each other). 
-    To put names to these things, 
-    we'll define the measurement matrix \(\measurementMatrix\) to convert from the state to the sensor space, 
-    and the measurement noise \(\measurementNoise\) will be a normal distribution parametrized by a mean of 0 
-    and a covariance \(\measurementNoiseCovariance\) (which is hopefully listed in the sensor datasheet). -->
-<!-- 
-    <p> This still leaves the question, when the robot actually observes a sensor measurement, what 
-        does this say about the state? We need some way of putting the sensor measurement on equal 
-        footing to the state estimate, so that then we can combine them in one unified estimate.  
-        
-        We know that some states are more likely than others to have 
-        produced the measurement we just observed. 
-    </p> -->
-
-    <p> TODO: expand box
-        This \( \measurementMatrix \) seems trivial; why can't we just leave it off?
-    Let's get into the implementation details! As it happens, most ultrasonic sensors actually gives a reading in 
-    microseconds (the time for a pulse of sound to travel to the wall and back), not meters. To convert from meters 
-    to time, we need to multiply by a factor of \( \frac{2 \times 10^6 }{c} \), where \(c\) is the speed of sound in air (343 m/s), 
-    there are \( 10^6 \mu s\) per second, and the factor of 2 accounts for the sound traveling double the distance (to the wall, and then back).
-    This is where the measurement matrix comes in: it converts from the units/dimensions of the state (meters, 2D)
-    to the units/dimensions of the sensor (microseconds, 1D). A more realistic measurement model would thus be 
-    $$ \text{Measurement Matrix } \measurementMatrix = \begin{bmatrix} \frac{2 \times 10^6 }{c} & 0 \end{bmatrix} $$
+        Now instead of the ideal measurement model above, we will say that the measurements you'd expect
+        to get from the true state follow a normal distribution with covariance \(\measurementNoiseCovariance\) and mean \(\measurementMatrix \trueState\).
+        In practice however, \(\measurementMatrix \trueState\) is unobservable; we only ever get a single measurement, which is a 
+        sample from this distribution. Since \( \measurement \) is the only sample we have, we approximate the 
+        distribution of possible measurements from true state x as a gaussian centered at \( \measurement \) with covariance \(\measurementNoiseCovariance\):
+        $$ \measurement \sim \gaussian \left( \measurementMatrix \trueState, \measurementNoiseCovariance \right) $$
     </p>
     
     <h2>Update Step: Combining two gaussians</h2>
     <p>With this measurement model in hand, we're ready to fuse it with our previous state estimate.
         At this point, we have one normal distribution that represents our belief of the true state of the robot,
         and another normal distribution that represents the measurements you'd expect to get from the true state. 
-        How can we combine these two distributions? 
+        How can we combine these two distributions into one new state estimate? 
     </p>
     <p>First of all, what we would like to be true of our combined estimate?</p>
     <ol>
@@ -499,7 +477,7 @@
     we'd want our combined estimate to consist mostly of the sensor measurement, but it should be adjusted slightly by the dynamics model.
     We would be more confident of our combined estimate than either of the original estimates independently.</p>
 
-    <p>To capture the concept of "giving heavier weight to the estimate with less variance", one logical approach is 
+    <p>To capture the concept of "giving heavier weight to the estimate with less variance", one reasonable approach is 
     to define the variance ratio: 
     Then we can take a weighted sum of the means (a linear operation), where each mean is weighed by the inverse of the 
     variance ratio, and apply the corresponding linear operation to update the variances. 
