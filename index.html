@@ -211,20 +211,41 @@
     <h1>The Interactive Kalman Filter</h1>
 
     <h2>Introduction</h2>
-    <p>The Kalman Filter is a powerful tool for combining information </p>
-    TODO: Make the highilght colors match the diagram colors
+    <p>The Kalman Filter is a powerful tool for combining information in the face of uncertainty,
+        and is used widely throughout science and engineering for tracking dynamic systems. 
+        Unfortunately, most of the explanations you'll find are either mathematically dense to 
+        the point of being impenetrable, and/or leave a lot of questions remaining as to why we 
+        intuitively should expect the equations to look as they do. In this article, I hope to 
+        teach you how deep principles in probability and linear algebra (which you probably 
+        already know!) naturally lead to the equations of the Kalman Filter. I've also made 
+        a series of interactive diagrams that will hopefully give you a better 
+        feel for the different parameters in all of their intricacy, and understand both the power and limitations
+        of this method.
+    </p>
 
-    What made me care?
-        Powerful way of combining information in the face of uncertainty
-        Elegant Combination of linear algebra and probability theory,
-        Lightweight tool used for pretty much any system that are continuously changing
-        Used everywhere there is time-series data: Target tracking, navigation, control, robotics, neuroscience, finance
+    <h3>What is the Kalman Filter?</h3>
+    <p>
+    The primary goal of the Kalman Filter is to estimate the state of a dynamical system.
+    The need for state estimation shows up throughout engineering: if you're trying to drive a car, you first need to know where you
+    are and how fast you're going before you can intelligently turn the steering wheel.
+    If you're controlling the central heating in a building, it's very helpful to know
+    the temperature in the rooms. The challenge is that although we often have many sensors,
+    they are usually noisy and cannot individually perceive the full state. These sensors need 
+    to be combined with each other and with the engineer's knowledge of the system in order 
+    to get a complete picture.
+
+    The Kalman Filter is a theoretically optimal way to combine different sources of information into one unified state estimate. 
+
+    </p>
 
     <h2>Building a model</h2>
-    <p>How to model the world? We try to think of the minimum set of variables needed
-    to make a complete description of the system, and then put them all together in
-    a state vector. In our simple example, this is the position \(p\) and velocity \(v\) of the
-    robot. 
+    <p>The easiest way to wrap your head around the Kalman Filter is with an example.
+        Throughout this artile, we'll use this simple robot.
+    </p>
+    <p>We begin with a large question: How to model the world? A common engineering approach is 
+        to think of the minimum set of variables needed to make a complete description of the system, 
+        and then put them all together in a state vector. In our simple example, all we need is the position \(p\) 
+        and velocity \(v\) of the robot. 
     </p>
     <p>TODO: put in popout box:     In general, the state vector could include many different quantities: in
         Fluid dynamics it would be things like temperature, pressure, flow rate,
@@ -276,7 +297,7 @@
         which can range between [0,1]. Inherently this [0,1] value has no meaning, but
         the robot is programmed so that the throttle controls the angular speed of
         the wheels, which in turn determines the robot's linear velocity.
-        If we assume that the wheel radius is \(r\), the maximum angular speed
+        If we assume that the has radius \(r\), the maximum angular speed
         is \(\omega_{max} \) (and that the wheel speed perfectly matches the control 
         command), then we have the following relationship between the throttle command \(u\) and the velocity \(v\) of the robot:
 
@@ -348,7 +369,7 @@
         as a \( sin \theta \) term in the dynamics model introduced by turning around), will make the distribution non-gaussian.
     </p>
     <p> So now, instead of representing our state estimate with a single vector, we'll say that our state estimate 
-        has two parts: a mean \(\state\) and a covariance \(\stateCovariance\).
+        is a normal distribution parametrized by a mean \(\state\) and a covariance \(\stateCovariance\).
         $$ \stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
     </p>
     <p>
@@ -389,47 +410,85 @@
     <p>The Predict Step:
         $$ \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} + \controlMatrix \controlInput_{\discreteTime} $$
         $$ \stateCovariance_{\discreteTime} = \stateTransition \stateCovariance_{\discreteTime-1} \stateTransition^T + \processNoiseCovariance $$
+    where
+    $$ \stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
+    and $$ \text{process noise} \sim \gaussian \left( 0, \processNoiseCovariance \right) $$
     </p>
-
-    <h2>Kalman Filter: Predict Step</h2>
     <p> 
-        Fundamentally, the predict step describes how a gaussian state estimate propagates from the previous estimate to current estimate, 
+        Fundamentally, the predict step describes how to <it>predict</it> the a new gaussian state estimate from the previous estimate, 
         based on our dynamical model of the system. Let's try running this algorithm in state space: 
     </p>
 
     <p> TODO: Diagram: Predict Step State Space diagram</p>
-
-    <h2>Model Summary</h2>
-    I've just thrown you 15 variables -- that can be a lot to keep track of! I've tabulated all of them here,
-    but throughout the article you can also click on any variable to see its name, and keep clicking to get more information.
-    You can also choose the naming convention using the dropdown menu above, which should make it easier to learn across multiple sources.
-
-    Link to Visually Explained:https://www.youtube.com/watch?v=IFeCIbljreY
-    Link to Steve Brunton: https://www.youtube.com/watch?v=s_9InuQAx-g
     
     <h2>Sensing the environment</h2>
-    <p>Ok so the state ... isn't terrible, but it's not great either. And the variance keeps growing!
-        Fortunately, we have endowed this robot with an ultrasonic distance sensor that should help. 
-        The only question is, how do we incorporate it into the model? 
+    <p>Ok so the state ... isn't terrible, but it's not great either, and the variance is exploding (TODO: Popout box explaining why this makes sense)..
+        Fortunately, we have endowed this robot with an ultrasonic distance sensor that should help.         
+        The only question is, how do we incorporate these measurements into the filter? 
     </p>
-    <p>First things first, if we assume that the ultrasonic sensor is perfectly accurate, what would the model look like?
-        We'll call the output of the sensor \(z\), and it should be equal to the true position \(p\).
-        From a particular state \(p\), the sensor would always give the same measurement \(z\).
+    <p>
+        To start with, we need a linear model that relates the measurement vector \( \measurement \) to the state \( \trueState \).
+        Our first instinct might be to write a matrix that converts from the measurement vector to the state vector 
+        (we're trying to update the state after all). The problem is 
+        that since the sensor doesn't measure the velocity, there is no way to fully recover the state from the measurement 
+        using a linear transformation. We can however think about this from a more causal perspective: 
     </p>
-    <p>That looks like a good start, but we know that the sensor is not perfect. Just as we captured the noise of 
-        the dynamics model with a zero-mean gaussian, we'll assume that the sensor noise is also zero-mean, and 
-        has covariance \(\measurementNoiseCovariance\). To be clear, we're saying that from a particular state \(p\), 
-        the sensor will output a value that is close to \(\measurementMatrix \state \), but there is some additional 
-        sensor noise (captured by \( \measurementNoiseCovariance \) that causes the reading to be slightly different. 
-        This means that if we observe a sensor reading of , there is some probability that the true state is actually somewhere else.
+    <p>
+        In reality we know that the tobot is in some true state x, and that when the sensor takes a measurement
+        of that state it will generally follow a linear process, but it will also introduce some sensor noise. 
+        We define the measurement matrix \(\measurementMatrix\) to capture this linear measurement process,
+        and say that the sensor noise is some normal distribution with mean 0 and covariance \(\measurementNoiseCovariance\).
+        Therefore, the distribution of possible measurements you'd expect to get from true state x can 
+        be represented as a gaussian:
+        
+        $$ \measurement' = \measurementMatrix \state + \text{sensor noise} $$
+        $$ \text{Measurement Matrix } \measurementMatrix = \begin{bmatrix} 1 & 0 \end{bmatrix} $$
+        $$ \text{Measurement Noise} \sim \gaussian \left( 0, \measurementNoiseCovariance \right) $$
+        $$ \measurement' \sim \gaussian \left( \measurementMatrix x, \measurementNoiseCovariance \right) $$
 
-        Why do we define z = Hx and not x = Hz (since ultimately we want to estimate the state from our measurement)?
-        Try it out! If you try to do it the other way, you'll have no way to fill in the velocity. But we can always 
-        go from state to measurement space, since our state is supposed to capture all of the information about the system.
+        The limitation of the model above is that the robot never actually knows the true state, 
+        so it can't actually calculate \(\measurementMatrix x\). The robot only gets 
+        a sample from this distribution: the actual reading \( \measurement \).
+        Since it is the only sample we have, we approximate \( \measurement = \measurementMatrix x \), and 
+        then say that the distribution of possible measurements from true state x is the gaussian centered at
+        \(\measurementMatrix x\) with covariance \(\measurementNoiseCovariance\):
+        $$ \measurement \sim \gaussian \left( \measurementMatrix x, \measurementNoiseCovariance \right) $$
     </p>
 
+    <!-- we know that if we are in a particular state \( \trueState' \), then the sensor should return 
+    (plus or minus some sensor noise)a reading \( z' \) 
+    that corresponds to that state's position (where ' indicates that these values correspond to each other). 
+    To put names to these things, 
+    we'll define the measurement matrix \(\measurementMatrix\) to convert from the state to the sensor space, 
+    and the measurement noise \(\measurementNoise\) will be a normal distribution parametrized by a mean of 0 
+    and a covariance \(\measurementNoiseCovariance\) (which is hopefully listed in the sensor datasheet). -->
+<!-- 
+    <p> This still leaves the question, when the robot actually observes a sensor measurement, what 
+        does this say about the state? We need some way of putting the sensor measurement on equal 
+        footing to the state estimate, so that then we can combine them in one unified estimate.  
+        
+        We know that some states are more likely than others to have 
+        produced the measurement we just observed. 
+    </p> -->
+
+    <p> TODO: expand box
+        This \( \measurementMatrix \) seems trivial; why can't we just leave it off?
+    Let's get into the implementation details! As it happens, most ultrasonic sensors actually gives a reading in 
+    microseconds (the time for a pulse of sound to travel to the wall and back), not meters. To convert from meters 
+    to time, we need to multiply by a factor of \( \frac{2 \times 10^6 }{c} \), where \(c\) is the speed of sound in air (343 m/s), 
+    there are \( 10^6 \mu s\) per second, and the factor of 2 accounts for the sound traveling double the distance (to the wall, and then back).
+    This is where the measurement matrix comes in: it converts from the units/dimensions of the state (meters, 2D)
+    to the units/dimensions of the sensor (microseconds, 1D). A more realistic measurement model would thus be 
+    $$ \text{Measurement Matrix } \measurementMatrix = \begin{bmatrix} \frac{2 \times 10^6 }{c} & 0 \end{bmatrix} $$
+    </p>
+    
     <h2>Update Step: Combining two gaussians</h2>
-    <p>When we combine two gaussians, what we would like to be true of our combined estimate when we combine these Gaussians?</p>
+    <p>With this measurement model in hand, we're ready to fuse it with our previous state estimate.
+        At this point, we have one normal distribution that represents our belief of the true state of the robot,
+        and another normal distribution that represents the measurements you'd expect to get from the true state. 
+        How can we combine these two distributions? 
+    </p>
+    <p>First of all, what we would like to be true of our combined estimate?</p>
     <ol>
         <li>The mean of the combined estimate should always lie between the means of the two original estimates</li>
         <li>The uncertainty (ie. variance) should be smaller than the uncertainty of either of the original estimates (we have more information)</li>
@@ -481,6 +540,14 @@
         The Variance Ratio, in measurement space:
         $$ \varianceRatio = \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}{\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance} $$
     </p>
+
+    <p>Hold on! I didn't realize you could write a matrix inverse like a fraction. How does that work? 
+        Technically, writing a matrix fraction is not legitimate because matrices (unlike scalars) 
+        very much care whether they're multiplied on the left or the right. Putting matrices in a fraction is a bit problematic
+        because you can't tell whether the denominator is supposed to be on the left or right of the numerator. 
+        That being said, there is insight to be gained by treating it like a fraction, so as long as you remember that in reality the 
+        inverse goes on the right, this is a useful way to think about it. 
+    </p>
     <p> 
         Since \(\varianceRatio\) is in measurement space, we have to convert the state estimate into measurement space 
         using \(\measurementMatrix\) before taking the ratio. Then our weighted sum is:
@@ -497,16 +564,15 @@
     </p>
 
     <p>
-        Fortunately, there's a workaround! Called matrix algebra. All we have to do is suspend our disbelief and pretend that 
-        \(\identityMatrix = \measurementMatrix^{-1} \measurementMatrix\). Then we can try to bring the \(\measurementMatrix^{-1}\) 
-        inside the formula and cancel it with existing \(\measurementMatrix\) terms in the formula.
-        In particular,  (including those within the variance ratio formula).
-        We'll use the following identities:
-        For any invertible matrices \(\mathbf{A}\), \(\mathbf{B}\): 
-        \( (\mathbf{A} \mathbf{B})^{-1} = \mathbf{B}^{-1} \mathbf{A}^{-1} \), 
-        \( (\mathbf{A}^{-1})^{-T} = (\mathbf{A}^T)^{-1} \), 
-        and we can always multiply anywhere by the identity \( \identityMatrix = \measurementMatrix^{-1} \measurementMatrix = \measurementMatrix^T (\measurementMatrix^T)^{-1} \)
-
+        Fortunately, there's a workaround! All we have to do is suspend our disbelief and pretend that 
+        \(\identityMatrix = \measurementMatrix^{-1} \measurementMatrix\). Then we can distribute the \(\measurementMatrix^{-1}\) 
+        into the formula and cancel it with existing \(\measurementMatrix\) terms, including the leading \(\measurementMatrix\) of 
+        the variance ratio formula. The variance ratio without its leading \(\measurementMatrix\) is actually so important that 
+        we'll give it a name:
+        $$ \text{The Kalman Gain } \kalmanGain = \stateCovariance \measurementMatrix^T \left( \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right)^{-1} $$
+        which can be intuitively understood as: 
+        $$ \kalmanGain = \measurementMatrix^{-1} \varianceRatio = \measurementMatrix^{-1} \left( \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}{\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance} \right) $$
+       Now we can proceed in applying the distributive property to get our state update equation:
         $$ \begin{align*}
          \state_{\discreteTime} &= \measurementMatrix^{-1} \left[ (\identityMatrix - \varianceRatio) \measurementMatrix \state_{\discreteTime-1} + \varianceRatio \measurement \right] \\
          &= \left[ \left( \measurementMatrix^{-1} - \measurementMatrix^{-1} \varianceRatio \right) \measurementMatrix \state_{\discreteTime-1} + \measurementMatrix^{-1} \varianceRatio \measurement \right] \\
@@ -671,6 +737,22 @@
         how to combine and propagate gaussian random variables.
     </p>
 
+    <h2>Model Summary</h2>
+    I've just thrown you 15 variables -- that can be a lot to keep track of! I've tabulated all of them here,
+    but throughout the article you can also click on any variable to see its name, and keep clicking to get more information.
+    You can also choose the naming convention using the dropdown menu above, which should make it easier to learn across multiple sources.
+
+    Link to Visually Explained:https://www.youtube.com/watch?v=IFeCIbljreY
+    Link to Steve Brunton: https://www.youtube.com/watch?v=s_9InuQAx-g
+
+    TODO: Make the highilght colors match the diagram colors
+
+    What made me care?
+        Powerful way of combining information in the face of uncertainty
+        Elegant Combination of linear algebra and probability theory,
+        Lightweight tool used for pretty much any system that are continuously changing
+        Used everywhere there is time-series data: Target tracking, navigation, control, robotics, neuroscience, finance
+        
     <h2>Appendix</h2>
     Many texts make the distinction between the estimate of the state and the <em>true</em> state. Why don't I?
     I did this because when I was learning, I found that with some effort I could distinguish between 
