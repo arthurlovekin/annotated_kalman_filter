@@ -398,9 +398,12 @@
         $$
     </p>
     <p>
-        One way you can remember this is to think back to a 1D normal distribution. The mean is a single number \(\mu\)
-        and the variance is the standard deviation \(\sigma\) squared. When we multiply by a scalar \(a\), the mean 
-        simply scales by \(a\), and the standard deviation also scales by \(a\) (because it is a distance on the plot).
+        One way you can remember this is to think back to what happens when you multiply a 1D normal distribution by a scalar.
+        The standard deviation \( \sigma \) will scale linearly, and the variance is the standard deviation squared
+        (which we can write in a way that is suggestive of what the operation looks like in higher dimensions).
+        <div style="max-width: 100%; text-align: center;">
+            <img src="./assets/variance-diagram-1d.png" alt="Diagram showing the effect of multiplying a 1D Gaussian by a scalar" style="max-width: 100%; height: auto;">
+        </div>
     </p>
 
     <p>With this probabilistic knowledge, we have actually arrived to the point where we can write out the first component of the Kalman Filter:
