@@ -342,6 +342,9 @@
             \stateEstimate_{\discreteTime} &= \stateTransition & \stateEstimate_{\discreteTime-1} &+ \controlMatrix & \controlInput_{\discreteTime} \\
         \end{alignat}
         $$
+
+        In summary, we <it>predict</it> the new state by applying the dynamics model to the previous state estimate, and adding 
+        a correction term for known influences like the control input. 
     </p>
     <h2>Bringing Uncertainty into the Model</h2>
     <p>
@@ -448,22 +451,160 @@
         to meters, we need to multiply by a factor of \( \frac{2 \times 10^6 }{c} \), where \(c\) is the speed of sound in air (343 m/s), 
         there are \( 10^6 \mu s\) per second, and the factor of 2 accounts for the sound traveling double the distance (to the wall, and then back).
         Thus to convert from the measurement vector to the state vector, the measurement matrix would be:
-        $$ \measurementMatrix = \begin{bmatrix} \frac{2 \times 10^6 }{c} & 0 \end{bmatrix} $$
+        $$ \text{Measurement Matrix} \measurementMatrix = \begin{bmatrix} \frac{2 \times 10^6 }{c} & 0 \end{bmatrix} $$
     </p>
     <p>Of course, no sensor is ever perfect, so we will also say that when the sensor takes a measurement 
         it will also introduce some sensor noise. We assume that the noise is normally distributed with 
         zero mean and covariance \(\measurementNoiseCovariance\) (which hopefully is listed in the sensor datasheet).
         $$ \text{Measurement Noise} \sim \gaussian \left( 0, \measurementNoiseCovariance \right) $$
-
-        Now instead of the ideal measurement model above, we will say that the measurements you'd expect
-        to get from the true state follow a normal distribution with covariance \(\measurementNoiseCovariance\) and mean \(\measurementMatrix \trueState\).
-        In practice however, \(\measurementMatrix \trueState\) is unobservable; we only ever get a single measurement, which is a 
-        sample from this distribution. Since \( \measurement \) is the only sample we have, we approximate the 
-        distribution of possible measurements from true state x as a gaussian centered at \( \measurement \) with covariance \(\measurementNoiseCovariance\):
+        
+        Now we can say that when the robot is in state x, the measurements you can expect to get will
+        follow a normal distribution with covariance \(\measurementNoiseCovariance\) and mean \(\measurementMatrix \trueState\).
+        Of course, we never actually see the entirety of this distribution; the robot will only ever take 
+        individual measurements. Since \( \measurement \) is the only sample we have, 
+        we will say that every time we read some measurement, we infer that the distribution of possible 
+        measurements is a gaussian centered at \( \measurement \) with covariance \(\measurementNoiseCovariance\):
         $$ \measurement \sim \gaussian \left( \measurementMatrix \trueState, \measurementNoiseCovariance \right) $$
+    </p>
+
+    <p> To summarize, we've defined the measurement matrix \( \measurementMatrix \), whose role is to 
+        convert from the space of states to the space of measurements. \( \measurementMatrix \) can be 
+        applied to the true state to get the noiseless measurement, but it can also be applied to 
+        the entire distribution of our current state estimate, which yields the measurement we expect given 
+        the current state estimate. 
     </p>
     
     <h2>Update Step: Combining two gaussians</h2>
+    <p>
+        At this point, we have one normal distribution that represents our belief of the true state of the robot,
+        and another normal distribution that represents the measurements you'd expect to get from the true state. 
+        How can we combine these two distributions into one new state estimate? 
+    </p>
+    <p>The first challenge we face is that we're trying to combine different "types" of things.
+        The state estimate distribution has a mean and variance with a particular dimension and units,
+        while the measurement distribution has entirely different dimensions and units. Before
+        we can do any combining, we have to first get both distributions into the same space. 
+        As it happens, there are two directions we could take. Click on the one you want to follow!
+    </p>
+    <p>Option 1: See what measurement we should expect given our current state estimate, compare this 
+        with the actual measurement we got, then convert a "fused measurement" back to state space
+    </p>
+    <p>Option 2: See what states could have led to the measurement we got, and fuse this with our current state estimate
+    </p>
+
+    <p>You've chosen Option 1, so as the first step in combining the measurement distribution with the 
+        state estimate distribution, we'll use \( \measurementMatrix \) to convert our current state estimate 
+        to the space of measurements. Remembering our rule of thumb, when multiply the mean by \( \measurementMatrix \),
+        we have to multiply the variance by \( \measurementMatrix \) on the left and right.
+    </p>
+    <p> Option 1:
+        <ul>
+            <li>The measurement you'd expect at the state you Predicted: \( \gaussian \left( \measurementMatrix \state, \space \measurementMatrix \stateCovariance \measurementMatrix^T \right) \)</li>
+            <li>The measurement you actually got: \( \gaussian \left( \measurement, \space \measurementNoiseCovariance \right) \)</li>
+        </ul>
+    </p>
+
+    <p>Now that we have two distributions in the same space, we can stop to think: what would we like to 
+        be true when we combine these estimates? Here are some things that would be nice:
+    </p>
+    <ol>
+        <li>The mean of the combined estimate should always lie between the means of the two original estimates</li>
+        <li>The uncertainty (ie. variance) should be smaller than the uncertainty of either of the original estimates</li>
+        <li>The resulting estimate should more closely resemble the distribution in which we have higher confidence (ie. less variance).</li>
+    </ol>
+    
+    <p>For example, if we know that the ultrasonic sensor is much more accurate than our dynamics model (which is propagated blindly), then 
+        we'd want our combined estimate to consist mostly of the sensor measurement, with a hint of the dynamics model 
+        to account for small measurement noise. Since we're making use of all of our information, we should 
+        be more certain of our combined estimate than either of the original estimates independently.
+    </p>
+    <p>But how much, exactly, of each estimate do we want to use? One reasonable approach is to weight each distribution 
+        by the inverse of its variance, so the distribution with less uncertainty (ie. smaller variance) will play more of a role.
+        To write this mathematically, we first define the variance ratio:
+        $$ \varianceRatio = 
+        \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}{\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance} =
+        \frac{\text{Uncertainty in expected measurement}}{\text{Total uncertainty from the state estimate and sensor noise}} $$
+    </p>
+    <p>TODO: Popout box:Hold on! I didn't realize you could write a matrix inverse like a fraction. How does that work? 
+        Technically, writing a matrix fraction is not legitimate because matrices (unlike scalars) 
+        very much care whether the numerator is multiplied on the left or right of the denominator, 
+        but the fraction form does not contain this information. That being said, the insight that 
+        this is a simple ratio is hieghtened by the fractional notation, so I ask that you simply 
+        remember that the inverse goes on the right. 
+    </p>
+
+    <p>Then we can use this to write a weighted sum of each distribution:
+        $$ \state_{\discreteTime} = \measurementMatrix^{-1} \left[ \left( \identityMatrix - \varianceRatio \right) \measurementMatrix \state + \varianceRatio \measurement \right] $$
+    </p>
+
+    <p>TODO: Popout box: Is there a deeper mathematical reason why we use the variance ratio? 
+        Yes! You may have learned about Bayes' Rule, which describes how to update your beliefs 
+        in light of new information. In particular, it says that 
+
+        $$ P( A | B ) = \frac{P( B | A ) P( A )}{P( B )}$$
+        $$ \text{Posterior} = \frac{\text{Likelihood} \times \text{Prior}}{\text{Normalizing constant}} $$
+
+        In our case, the prior is the state estimate from the prediction step, 
+        the likelihood comes from our measurement, and the posterior is our combined estimate.
+        $$ P(\state | \measurement) = \frac{P(\measurement | \state) P(\state)}{P(\measurement)} $$
+
+        The primary peculiarity of the Kalman Filter is that instead of having individual numbers 
+        for each probability in the equation, now we have gaussian distributions. Nonetheless, the 
+        principle of multiplying the likelihood by the prior and normalizing is the same. If you 
+        multiply two gaussian probability density functions, you can actually show that
+        the variance ratio emerges! For example, in 1D you could algebraically show :
+
+        $$ C_1 \exp \left( -\frac{(x-\mu_1)^2}{2\sigma_1^2} \right) \times 
+           C_2 \exp \left( -\frac{(x-\mu_2)^2}{2\sigma_2^2} \right) = 
+           C_3 \exp \left( -\frac{(x-\mu_3)^2}{2\sigma_3^2} \right) $$
+
+        Where the \( C \) terms are normalization constants, and the mean and variance of the resulting distribution are:
+        $$ \mu_3 = \left( 1 - \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \right) \mu_1 + 
+                              \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \mu_2 $$
+        $$ \sigma_3^2 = \sigma_1^2 - \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \sigma_1^2 $$
+    </p>
+
+    <p>
+        Hold on, where did that \(\measurementMatrix^{-1}\) come from? Remember, at the end of the equation we need to get something that is in the space of states, 
+        but we're currently in the space of measurements. Since \(\measurementMatrix\) converts from state space to measurement space, 
+        we'd imagine that \(\measurementMatrix^{-1}\) goes the other way from measurements to states. 
+    </p>
+    <p> 
+        There's only one problem: \(\measurementMatrix\) is not necessarily square, so it cannot be inverted. 
+    </p>
+
+    <p>
+        Fortunately, there's a workaround! All we have to do is suspend our disbelief and pretend that 
+        \(\identityMatrix = \measurementMatrix^{-1} \measurementMatrix\). Then we can distribute the \(\measurementMatrix^{-1}\) 
+        into the formula and cancel it with existing \(\measurementMatrix\) terms, including the leading \(\measurementMatrix\) of 
+        the variance ratio formula. The variance ratio without its leading \(\measurementMatrix\) is actually so important that 
+        we'll give it a name:
+        $$ \text{The Kalman Gain } \kalmanGain = \stateCovariance \measurementMatrix^T \left( \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right)^{-1} $$
+        which can be intuitively understood as: 
+        $$ \kalmanGain = \measurementMatrix^{-1} \varianceRatio = \measurementMatrix^{-1} \left( \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}{\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance} \right) $$
+       Now we can proceed in applying the distributive property to get our state update equation:
+        $$ \begin{align*}
+         \state_{\discreteTime} &= \measurementMatrix^{-1} \left[ (\identityMatrix - \varianceRatio) \measurementMatrix \state_{\discreteTime-1} + \varianceRatio \measurement \right] \\
+         &= \left[ \left( \measurementMatrix^{-1} - \measurementMatrix^{-1} \varianceRatio \right) \measurementMatrix \state_{\discreteTime-1} + \measurementMatrix^{-1} \varianceRatio \measurement \right] \\
+         &= \left( \measurementMatrix^{-1} - \kalmanGain \right) \measurementMatrix \state_{\discreteTime-1} + \kalmanGain \measurement \\
+         \state_{\discreteTime} &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \state_{\discreteTime-1} + \kalmanGain \measurement \\
+         \end{align*}
+         $$
+
+    </p>
+
+    <p> Great! Now we have a matrix formula to combine the means of two Gaussians. The only step left is to propagate the variances too. 
+        Remember our rule of thumb: For a gaussian \( \gaussian \left( \mathbf{\mu}, \mathbf{\Sigma} \right) \), 
+        any time we apply a linear operation on the mean (eg. \( \mathbf{A} \mu \) ), 
+        the variance will get that same operation applied twice (eg. \( \mathbf{A} \mathbf{\Sigma} \mathbf{A}^T \) ).
+    </p>
+
+    <p>
+        Using this rule, we can easily write aout the variance:
+        $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
+    </p>
+
+<!-- 
     <p>With this measurement model in hand, we're ready to fuse it with our previous state estimate.
         At this point, we have one normal distribution that represents our belief of the true state of the robot,
         and another normal distribution that represents the measurements you'd expect to get from the true state. 
@@ -524,10 +665,10 @@
 
     <p>Hold on! I didn't realize you could write a matrix inverse like a fraction. How does that work? 
         Technically, writing a matrix fraction is not legitimate because matrices (unlike scalars) 
-        very much care whether they're multiplied on the left or the right. Putting matrices in a fraction is a bit problematic
-        because you can't tell whether the denominator is supposed to be on the left or right of the numerator. 
-        That being said, there is insight to be gained by treating it like a fraction, so as long as you remember that in reality the 
-        inverse goes on the right, this is a useful way to think about it. 
+        very much care whether the numerator is multiplied on the left or right of the denominator, 
+        but the fraction form does not contain this information. That being said, the insight that 
+        this is a simple ratio is hieghtened by the fractional notation, so I ask that you simply 
+        remember that the inverse goes on the right. 
     </p>
     <p> 
         Since \(\varianceRatio\) is in measurement space, we have to convert the state estimate into measurement space 
@@ -573,7 +714,7 @@
     <p>
         Using this rule, we can easily write aout the variance:
         $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
-    </p>
+    </p> -->
 
     <p> Option 2:
         <ul>
