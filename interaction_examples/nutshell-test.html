@@ -1,10 +1,96 @@
+<!-- How to embed a section using native Javascript -->
 <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Snippets</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .snippet {
+      color: blue;
+      text-decoration: underline;
+      cursor: pointer;
+      display: inline;
+    }
+
+    .expanded-content {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background-color: #fafafa;
+      transition: max-height 0.3s ease-in-out;
+    }
+
+    .expanded-content img {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <p>
+    Here’s an example sentence with a <span class="snippet" onclick="toggleSnippet('content1')">clickable snippet</span>. 
+    When you click it, more detailed content will appear.
+  </p>
+
+  <div id="content1" class="expanded-content">
+    <p>This is the expanded explanation. You can include more detailed text or even images here.</p>
+    <img src="https://via.placeholder.com/300" alt="Sample Image">
+  </div>
+
+  <p>
+    Here’s another sentence with a <span class="snippet" onclick="toggleSnippet('content2')">different snippet</span> 
+    that also expands when clicked.
+  </p>
+
+  <div id="content2" class="expanded-content">
+    <p>Here’s another detailed explanation that appears when the second snippet is clicked.</p>
+  </div>
+
+  <h3> Section with a link to a video</h3>
+  <iframe width="560" 
+      height="315" 
+      src="https://www.youtube.com/embed/KGwtit2bFyo?si=cWVWC1Fgix_Gl9C_&amp;start=14" 
+      title="YouTube video player" 
+      frameborder="0" 
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+      referrerpolicy="strict-origin-when-cross-origin" 
+      allowfullscreen>
+  </iframe>
+
+  <script>
+    function toggleSnippet(id) {
+      const content = document.getElementById(id);
+
+      // Toggle visibility
+      if (content.style.display === 'none' || content.style.display === '') {
+        content.style.display = 'block';
+      } else {
+        content.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
+
+<!-- How to avoid CORS restrictions:
+cd path/to/your/html/file
+python3 -m http.server 8000
+In the Browser, go to http://localhost:8000/your-file.html -->
+
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nutshell Test</title>
-    <script src="https://cdn.jsdelivr.net/gh/ncase/nutshell/nutshell.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/ncase/nutshell/nutshell.js"></script>
     <script>
         Nutshell.setOptions({
             startOnLoad: true, // Start Nutshell on load? (default: true)
@@ -17,6 +103,21 @@
     <p>
         This is a test of the <a href="https://github.com/ncase/nutshell">:Nutshell</a> library.
     </p>
-    <h1>Link to cool <a href="https://www.youtube.com/watch?v=lG4VkPoG3ko">:Bayes Rule Video</a> Plus more text</h1>
+    <h1 id="bayes-rule">Link to cool <a href="https://www.youtube.com/watch?v=lG4VkPoG3ko">:Bayes Rule Video</a> Plus more text</h1>
+    <p><a href="https://www.adafruit.com/product/3942">:Ultrasonic for sale (Doesn't work)</a></p>
+    <p>Link to subsection in an article: <a href="https://youtu.be/KGwtit2bFyo?feature=shared&t=14">:Ultrasonic Guide</a></p>
+    
+    <h2>To write a section,</h2>
+    <p>just use headings &amp; paragraphs like this! Then…</p>
+    <h2>To embed a section,</h2>
+    <p>just make a link with :colon at the front… <a href="#ToWriteASection">:LIKE THIS</a>!</p>
+
+    <h2>:xUltrasonic Sensor</h2>
+    <img src="../assets/ultrasonic-sensor-HC-SR04-mouser.png" alt="Ultrasonic Sensor">
+
+    <h2>Section in which I'll link to image</h2>
+    <p>Image is <a href="#UltrasonicSensor">:here</a></p>
+
+
 </body>
-</html>
+</html> -->
