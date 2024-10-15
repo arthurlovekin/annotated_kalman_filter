@@ -12,6 +12,7 @@
     <script src="js/gaussian-functions.js"></script>
     <script src="js/formula-elements.js"></script>
     <script src="js/mouse-effects-manager.js"></script>
+    <script src="js/expandable-content.js"></script>
     <script>
         const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables)]);
     </script>
@@ -112,6 +113,7 @@
             font-family: sans-serif;
         }
 
+        /* Formatting for interactive matrices */
         .matrix-table {
             position: relative;
         }
@@ -158,6 +160,8 @@
             vertical-align: middle;
         }
 
+        /* Formatting for interactive diagrams */
+
         .kalman-gain-state-space {
             background-color: rgb(187, 187, 187);
         }
@@ -199,6 +203,26 @@
             background-color: #f2f2f2;
         } */
 
+        /* Formatting for Expandable Content */
+        .expanded-content {
+            display: none;
+            margin-top: 10px;
+            border: 1px solid #472e1d;
+            border-radius: 10px;
+            padding: 15px;
+            margin-left: 10px;
+            margin-right: 10px;
+            background-color: #fdf0de;
+            transition: max-height 0.3s ease-in-out;
+        }
+
+        .expandable-content-text {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #4a4a4f;
+            text-decoration: underline;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -536,8 +560,10 @@
     <p>Then we can use this to write a weighted sum of each distribution:
         $$ \state_{\discreteTime} = \measurementMatrix^{-1} \left[ \left( \identityMatrix - \varianceRatio \right) \measurementMatrix \state + \varianceRatio \measurement \right] $$
     </p>
-
-    <p>TODO: Popout box: Is there a deeper mathematical reason why we use the variance ratio? 
+    <p class="expandable-content-text" onclick="toggleExpandableContent('bayes-rule-explanation')">
+        Is there a deeper mathematical reason why we use the variance ratio?
+    </p>
+    <p class="expanded-content" id="bayes-rule-explanation"> 
         Yes! You may have learned about Bayes' Rule, which describes how to update your beliefs 
         in light of new information. In particular, it says that 
 
@@ -555,12 +581,12 @@
         the variance ratio emerges! For example, in 1D you could algebraically show :
 
         $$ C_1 \exp \left( -\frac{(x-\mu_1)^2}{2\sigma_1^2} \right) \times 
-           C_2 \exp \left( -\frac{(x-\mu_2)^2}{2\sigma_2^2} \right) = 
-           C_3 \exp \left( -\frac{(x-\mu_3)^2}{2\sigma_3^2} \right) $$
+            C_2 \exp \left( -\frac{(x-\mu_2)^2}{2\sigma_2^2} \right) = 
+            C_3 \exp \left( -\frac{(x-\mu_3)^2}{2\sigma_3^2} \right) $$
 
         Where the \( C \) terms are normalization constants, and the mean and variance of the resulting distribution are:
         $$ \mu_3 = \left( 1 - \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \right) \mu_1 + 
-                              \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \mu_2 $$
+                                \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \mu_2 $$
         $$ \sigma_3^2 = \sigma_1^2 - \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \sigma_1^2 $$
     </p>
 
