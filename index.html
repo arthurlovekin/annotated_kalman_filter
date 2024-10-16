@@ -216,12 +216,39 @@
             transition: max-height 0.3s ease-in-out;
         }
 
+        .expanded-content-long {
+            background-color: #cccccc;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
         .expandable-content-text {
             font-size: 1.1em;
             font-weight: bold;
             color: #4a4a4f;
             text-decoration: underline;
             cursor: pointer;
+        }
+
+        .active-button {
+            background-color: #cccccc; 
+            border: 2px solid #888888; 
+            border-radius: 10px;
+            height: 8rem;
+            width: 98%;
+            text-align: left;
+            padding: 10px;
+        }
+
+        .inactive-button {
+            background-color: #eee; 
+            border: 2px solid #ccc; 
+            color: #777; 
+            border-radius: 10px;
+            height: 8rem;
+            width: 98%;
+            text-align: left;
+            padding: 10px;
         }
     </style>
 </head>
@@ -432,6 +459,10 @@
             <img src="./assets/variance-diagram-1d.png" alt="Diagram showing the effect of multiplying a 1D Gaussian by a scalar" style="max-width: 100%; height: auto;">
         </div>
     </p>
+    <p> The other thing we need to know is that if we add or subtract two independent, normally distributed 
+        random variables, then their variances add. (see <a href="https://apcentral.collegeboard.org/courses/ap-statistics/classroom-resources/why-variances-add-and-why-it-matters">here</a>
+        for a refresher.)
+    </p>
 
     <p>With this probabilistic knowledge, we have actually arrived to the point where we can write out the first component of the Kalman Filter:
         the <strong>Predict Step</strong>! We'll define the covariance of the state estimate to be \(\stateCovariance\), and the mean to be \(\state\). 
@@ -512,230 +543,262 @@
     <p>There are two directions we could take in combining the measurement distribution with the state estimate distribution. 
         Click on the one you want to follow!
     </p>
-    <p>Option 1: See what measurement we should expect given our current state estimate, compare this 
-        with the actual measurement we got, then convert a "fused measurement" back to state space.
-    </p>
+    <table>
+        <tr>
+            <td>
+                <button id='option1-button' onclick="activateButtonsAndContent(['option1-button'], ['update-step-option1'], ['option2-button'], ['update-step-option2'])">
+                    <p>
+                        Option 1:
+                        <ol>
+                            <li>See what measurement we should expect given our current state estimate</li>
+                            <li>Combine this with the actual measurement we got</li>
+                            <li>Convert a "fused measurement" back to state space</li>
+                        </ol>
+                    </p> 
 
-    <p>In order to put our two distributions on the same footing, we'll multiply the
-        state estimate distribution by \( \measurementMatrix \) to bring it into 
-        to the space of measurements. Remembering our rule of thumb, when we multiply the mean by \( \measurementMatrix \),
-        we have to multiply the variance by \( \measurementMatrix \) on the left and right.
-        This will leave us with two normal distributions in the same space:
+                </button>
+            </td>
+            <td>
+                <button id='option2-button' onclick="activateButtonsAndContent(['option2-button'], ['update-step-option2'], ['option1-button'], ['update-step-option1'])">
+                    <p>
+                        Option 2:
+                        <ol>
+                            <li>See what states could have led to the measurement we got</li>
+                            <li>Combine this with our current state estimate</li>
+                        </ol>
+                    </p> 
 
-        <ul>
-            <li>The measurement you'd expect at the state you Predicted: \( \gaussian \left( \measurementMatrix \state, \space \measurementMatrix \stateCovariance \measurementMatrix^T \right) \)</li>
-            <li>The measurement you actually got: \( \gaussian \left( \measurement, \space \measurementNoiseCovariance \right) \)</li>
-        </ul>
-    </p>
-
-    <p>Now that we have two distributions in the same space, we can stop to think: what would we like to 
-        be true when we combine these estimates? Here are some things that would be nice:
-    </p>
-    <ol>
-        <li>The mean of the combined estimate should always lie between the means of the two original estimates</li>
-        <li>The uncertainty (ie. variance) should be smaller than the uncertainty of either of the original estimates</li>
-        <li>The resulting estimate should more closely resemble the distribution in which we have higher confidence (ie. less variance).</li>
-    </ol>
+                </button>
+            </td>
+        </tr>
+    </table>
+    <div id="update-step-option1" class="expanded-content-long">
+        <p>In order to put our two distributions on the same footing, we'll multiply the
+            state estimate distribution by \( \measurementMatrix \) to bring it into 
+            to the space of measurements. Remembering our rule of thumb, when we multiply the mean by \( \measurementMatrix \),
+            we have to multiply the variance by \( \measurementMatrix \) on the left and right.
+            This will leave us with two normal distributions in the same space:
     
-    <p>For example, if we know that the ultrasonic sensor is much more accurate than our dynamics model (which is propagated blindly), then 
-        we'd want our combined estimate to consist mostly of the sensor measurement, with a hint of the dynamics model 
-        to account for small measurement noise. Since we're making use of all of our information, we should 
-        be more certain of our combined estimate than either of the original estimates independently.
-    </p>
-    <p>But how much, exactly, of each estimate do we want to use? One reasonable approach is to weight each distribution 
-        by the inverse of its variance, so the distribution with less uncertainty (ie. smaller variance) will play more of a role.
-        To write this mathematically, we first define the variance ratio (in the space of measurements):
-        $$ \varianceRatio = 
-        \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}{\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance} =
-        \frac{\text{Uncertainty from state estimate}}{\text{Total uncertainty from the state estimate and sensor noise}} $$
-    </p>
-    <p>TODO: Popout box:Hold on! I didn't realize you could write a matrix inverse like a fraction. How does that work? 
-        Technically, writing a matrix fraction is not legitimate because matrices (unlike scalars) 
-        very much care whether the numerator is multiplied on the left or right of the denominator, 
-        but the fraction form does not contain this information. That being said, the insight that 
-        this is a simple ratio is hieghtened by the fractional notation, so I ask that you simply 
-        remember that the inverse goes on the right. 
-    </p>
-
-    <p>Then we can use this to write a weighted sum of each distribution:
-        $$ \state_{\discreteTime} = \measurementMatrix^{-1} \left[ \left( \identityMatrix - \varianceRatio \right) \measurementMatrix \state + \varianceRatio \measurement \right] $$
-    </p>
-    <p class="expandable-content-text" onclick="toggleExpandableContent('bayes-rule-explanation')">
-        Is there a deeper mathematical reason why we use the variance ratio?
-    </p>
-    <p class="expanded-content" id="bayes-rule-explanation"> 
-        Yes! You may have learned about Bayes' Rule, which describes how to update your beliefs 
-        in light of new information. In particular, it says that 
-
-        $$ P( A | B ) = \frac{P( B | A ) P( A )}{P( B )}$$
-        $$ \text{Posterior} = \frac{\text{Likelihood} \times \text{Prior}}{\text{Normalizing constant}} $$
-
-        In our case, the prior is the state estimate from the prediction step, 
-        the likelihood comes from our measurement, and the posterior is our combined estimate.
-        $$ P(\state | \measurement) = \frac{P(\measurement | \state) P(\state)}{P(\measurement)} $$
-
-        The primary peculiarity of the Kalman Filter is that instead of having individual numbers 
-        for each probability in the equation, now we have gaussian distributions. Nonetheless, the 
-        principle of multiplying the likelihood by the prior and normalizing is the same. If you 
-        multiply two gaussian probability density functions, you can actually show that
-        the variance ratio emerges! For example, in 1D you could algebraically show :
-
-        $$ C_1 \exp \left( -\frac{(x-\mu_1)^2}{2\sigma_1^2} \right) \times 
-            C_2 \exp \left( -\frac{(x-\mu_2)^2}{2\sigma_2^2} \right) = 
-            C_3 \exp \left( -\frac{(x-\mu_3)^2}{2\sigma_3^2} \right) $$
-
-        Where the \( C \) terms are normalization constants, and the mean and variance of the resulting distribution are:
-        $$ \mu_3 = \left( 1 - \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \right) \mu_1 + 
-                                \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \mu_2 $$
-        $$ \sigma_3^2 = \sigma_1^2 - \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \sigma_1^2 $$
-    </p>
-
-    <p>
-        Hold on, where did that \(\measurementMatrix^{-1}\) come from? Remember, at the end of the equation we need to get something that is in the space of states, 
-        but we're currently in the space of measurements. Since \(\measurementMatrix\) converts from state space to measurement space, 
-        we'd imagine that \(\measurementMatrix^{-1}\) goes the other way from measurements to states. 
-    </p>
-    <p> 
-        There's only one problem: \(\measurementMatrix\) is not necessarily square, so it cannot be inverted. 
-    </p>
-
-    <p>
-        Fortunately, there's a workaround! All we have to do is suspend our disbelief and pretend that 
-        \(\identityMatrix = \measurementMatrix^{-1} \measurementMatrix\). Then we can distribute the \(\measurementMatrix^{-1}\) 
-        into the formula and cancel it with existing \(\measurementMatrix\) terms, including the leading \(\measurementMatrix\) of 
-        the variance ratio formula. The variance ratio without its leading \(\measurementMatrix\) is actually so important that 
-        we'll give it a name:
-        $$ \text{The Kalman Gain } \kalmanGain = \stateCovariance \measurementMatrix^T \left( \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right)^{-1} $$
-        Then we can write the variance ratio as:
-        $$ \varianceRatio = \measurementMatrix \kalmanGain $$
-        Now we can proceed in applying the distributive property to get our state update equation:
-        $$ \begin{align*}
-         \state_{\discreteTime} &= \measurementMatrix^{-1} \left[ (\identityMatrix - \varianceRatio) \measurementMatrix \state_{\discreteTime-1} + \varianceRatio \measurement \right] \\
-         &= \left[ \left( \measurementMatrix^{-1} - \measurementMatrix^{-1} \varianceRatio \right) \measurementMatrix \state_{\discreteTime-1} + \measurementMatrix^{-1} \varianceRatio \measurement \right] \\
-         &= \left( \measurementMatrix^{-1} - \kalmanGain \right) \measurementMatrix \state_{\discreteTime-1} + \kalmanGain \measurement \\
-         \state_{\discreteTime} &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \state_{\discreteTime-1} + \kalmanGain \measurement \\
-         \end{align*}
-         $$
-    </p>
-
-    <p> Great! Now we have a matrix formula to combine the means of two Gaussians. The only step left is to propagate the variances too. 
-        Remember our rule of thumb: For a gaussian \( \gaussian \left( \mathbf{\mu}, \mathbf{\Sigma} \right) \), 
-        any time we apply a linear operation on the mean (eg. \( \mathbf{A} \mu \) ), 
-        the variance will get that same operation applied twice (eg. \( \mathbf{A} \mathbf{\Sigma} \mathbf{A}^T \) ).
-    </p>
-
-    <p>
-        Using this rule, we can easily write aout the variance:
-        $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
-        And with a bit more algebra (TODO: expand this out) we can reduce this to:
-        $$ \stateCovariance_{\discreteTime} = \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} $$
-    </p>
-
-    <p>Option 2: See what states could have led to the measurement we got, and fuse this with our current state estimate.
-    </p>
-    <p> In order to put our two distributions on the same footing, we'll multiply the
-        measurement distribution by \( \measurementMatrix^{-1} \) to bring it into 
-        the space of states. Remembering our rule of thumb, when we multiply the 
-        mean by \( \measurementMatrix^{-1} \),
-        we also have to multiply the variance by \( \measurementMatrix^{-1} \) on the left and right.
-        This will leave us with two normal distributions in the same space:
-        <ul>
-            <li>The state you Predicted: \( \gaussian \left( \state, \space \stateCovariance \right) \)</li>
-            <li>The state implied by the measurement: \( \gaussian \left( \measurementMatrix^{-1} \measurement, \space \space \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T \right) \)</li>
-        </ul>
-
-        (If you see something wrong here, suspend your disbelief and read on ... )
-    </p>
-    <p>Now that we have two distributions in the same space, we can stop to think: what would we like to 
-        be true when we combine these estimates? Here are some things that would be nice:
-    </p>
-    <ol>
-        <li>The mean of the combined estimate should always lie between the means of the two original estimates</li>
-        <li>The uncertainty (ie. variance) should be smaller than the uncertainty of either of the original estimates</li>
-        <li>The resulting estimate should more closely resemble the distribution in which we have higher confidence (ie. less variance).</li>
-    </ol>
+            <ul>
+                <li>The measurement you'd expect at the state you Predicted: \( \gaussian \left( \measurementMatrix \state, \space \measurementMatrix \stateCovariance \measurementMatrix^T \right) \)</li>
+                <li>The measurement you actually got: \( \gaussian \left( \measurement, \space \measurementNoiseCovariance \right) \)</li>
+            </ul>
+        </p>
     
-    <p>For example, if we know that the ultrasonic sensor is much more accurate than our dynamics model (which is propagated blindly), then 
-        we'd want our combined estimate to consist mostly of the sensor measurement, with a hint of the dynamics model 
-        to account for small measurement noise. Since we're making use of all of our information, we should 
-        be more certain of our combined estimate than either of the original estimates independently.
-    </p>
-    <p>But how much, exactly, of each estimate do we want to use? One reasonable approach is to weight each distribution 
-        by the inverse of its variance, so the distribution with less uncertainty (ie. smaller variance) will play more of a role.
-        To write this mathematically, we first define the variance ratio (in the space of states):
-        $$ \varianceRatioState = \frac{\stateCovariance}{\stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T} $$
-    </p>
+        <p>Now that we have two distributions in the same space, we can stop to think: what would we like to 
+            be true when we combine these estimates? Here are some things that would be nice:
+        </p>
+        <ol>
+            <li>The mean of the combined estimate should always lie between the means of the two original estimates</li>
+            <li>The uncertainty (ie. variance) should be smaller than the uncertainty of either of the original estimates</li>
+            <li>The resulting estimate should more closely resemble the distribution in which we have higher confidence (ie. less variance).</li>
+        </ol>
+        
+        <p>For example, if we know that the ultrasonic sensor is much more accurate than our dynamics model (which is propagated blindly), then 
+            we'd want our combined estimate to consist mostly of the sensor measurement, with a hint of the dynamics model 
+            to account for small measurement noise. Since we're making use of all of our information, we should 
+            be more certain of our combined estimate than either of the original estimates independently.
+        </p>
+        <p>But how much, exactly, of each estimate do we want to use? One reasonable approach is to weight each distribution 
+            by the inverse of its variance, so the distribution with less uncertainty (ie. smaller variance) will play more of a role.
+            To write this mathematically, we first define the variance ratio (in the space of measurements):
+            $$ \varianceRatio = 
+            \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}{\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance} =
+            \frac{\text{Uncertainty from state estimate}}{\text{Total uncertainty from the state estimate and sensor noise}} $$
+        </p>
+        TODO: Make these buttons?
+        <p class="expandable-content-text" onclick="toggleExpandableContent('matrix-fractions-explanation')">
+            Wait, you can write a matrix inverse like a fraction?!
+        </p>
+        <p class="expanded-content" id="matrix-fractions-explanation">
+            Technically, writing a matrix fraction is not legitimate because matrices (unlike scalars) 
+            very much care whether the numerator is multiplied on the left or right of the denominator, 
+            but the fraction form does not contain this information. That being said, the insight that 
+            this is a simple ratio is hieghtened by the fractional notation, so I ask that you simply 
+            remember that the inverse goes on the right. 
+        </p>
+    
+        <p class="expandable-content-text" onclick="toggleExpandableContent('bayes-rule-explanation')">
+            Is there a deeper mathematical reason why we use the variance ratio?
+        </p>
+        <p class="expanded-content" id="bayes-rule-explanation"> 
+            Yes! You may have learned about Bayes' Rule, which describes how to update your beliefs 
+            in light of new information. In particular, it says that 
+    
+            $$ P( A | B ) = \frac{P( B | A ) P( A )}{P( B )}$$
+            $$ \text{Posterior} = \frac{\text{Likelihood} \times \text{Prior}}{\text{Normalizing constant}} $$
+    
+            In our case, the prior is the state estimate from the prediction step, 
+            the likelihood comes from our measurement, and the posterior is our combined estimate.
+            $$ P(\state | \measurement) = \frac{P(\measurement | \state) P(\state)}{P(\measurement)} $$
+    
+            The primary peculiarity of the Kalman Filter is that instead of having individual numbers 
+            for each probability in the equation, now we have gaussian distributions. Nonetheless, the 
+            principle of multiplying the likelihood by the prior and normalizing is the same. If you 
+            multiply two gaussian probability density functions, you can actually show that
+            the variance ratio emerges! For example, in 1D you could algebraically show :
+    
+            $$ C_1 \exp \left( -\frac{(x-\mu_1)^2}{2\sigma_1^2} \right) \times 
+                C_2 \exp \left( -\frac{(x-\mu_2)^2}{2\sigma_2^2} \right) = 
+                C_3 \exp \left( -\frac{(x-\mu_3)^2}{2\sigma_3^2} \right) $$
+    
+            Where the \( C \) terms are normalization constants, and the mean and variance of the resulting distribution are:
+            $$ \mu_3 = \left( 1 - \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \right) \mu_1 + 
+                                    \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \mu_2 $$
+            $$ \sigma_3^2 = \sigma_1^2 - \frac{\sigma_1^2}{\sigma_1^2 + \sigma_2^2} \sigma_1^2 $$
+        </p>
+    
+        <p>Then we can use this to write a weighted sum of each distribution:
+            $$ \state_{\discreteTime} = \measurementMatrix^{-1} \left[ \left( \identityMatrix - \varianceRatio \right) \measurementMatrix \state + \varianceRatio \measurement \right] $$
+        </p>
+    
+        <p>
+            Hold on, where did that \(\measurementMatrix^{-1}\) come from? Remember, at the end of the equation we need to get something that is in the space of states, 
+            but we're currently in the space of measurements. Since \(\measurementMatrix\) converts from state space to measurement space, 
+            we'd imagine that \(\measurementMatrix^{-1}\) goes the other way from measurements to states. 
+        </p>
+        <p> 
+            There's only one problem: \(\measurementMatrix\) is not necessarily square, so it cannot be inverted. 
+        </p>
+    
+        <p>
+            Fortunately, there's a workaround! All we have to do is suspend our disbelief and pretend that 
+            \(\identityMatrix = \measurementMatrix^{-1} \measurementMatrix\). Then we can distribute the \(\measurementMatrix^{-1}\) 
+            into the formula and cancel it with existing \(\measurementMatrix\) terms, including the leading \(\measurementMatrix\) of 
+            the variance ratio formula. The variance ratio without its leading \(\measurementMatrix\) is actually so important that 
+            we'll give it a name:
+            $$ \text{The Kalman Gain } \kalmanGain = \stateCovariance \measurementMatrix^T \left( \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right)^{-1} $$
+            Then we can write the variance ratio as:
+            $$ \varianceRatio = \measurementMatrix \kalmanGain $$
+            Now we can proceed in applying the distributive property to get our state update equation:
+            $$ \begin{align*}
+                \state_{\discreteTime} &= \measurementMatrix^{-1} \left[ (\identityMatrix - \varianceRatio) \measurementMatrix \state_{\discreteTime-1} + \varianceRatio \measurement \right] \\
+                &= \left[ \left( \measurementMatrix^{-1} - \measurementMatrix^{-1} \varianceRatio \right) \measurementMatrix \state_{\discreteTime-1} + \measurementMatrix^{-1} \varianceRatio \measurement \right] \\
+                &= \left( \measurementMatrix^{-1} - \kalmanGain \right) \measurementMatrix \state_{\discreteTime-1} + \kalmanGain \measurement \\
+                \state_{\discreteTime} &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \state_{\discreteTime-1} + \kalmanGain \measurement \\
+                \end{align*}
+                $$
+        </p>
+    
+        <p> Great! Now we have a matrix formula to combine the means of two Gaussians. The only step left is to propagate the variances too. 
+            Remember our rule of thumb: For a gaussian \( \gaussian \left( \mathbf{\mu}, \mathbf{\Sigma} \right) \), 
+            any time we apply a linear operation on the mean (eg. \( \mathbf{A} \mu \) ), 
+            the variance will get that same operation applied twice (eg. \( \mathbf{A} \mathbf{\Sigma} \mathbf{A}^T \) ).
+        </p>
+    
+        <p>
+            Using this rule, we can easily write aout the variance:
+            $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
+            And with a bit more algebra (TODO: expand this out) we can reduce this to:
+            $$ \stateCovariance_{\discreteTime} = \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} $$
+        </p>
+    </div>
 
-    <p>Then we can use this to write a weighted sum of each distribution:</p>
-    <p>
-        $$ \state = (\identityMatrix - \varianceRatioState) \state + \varianceRatioState \measurementMatrix^{-1} \measurement $$
-    </p>
+    <div id="update-step-option2" class="expanded-content-long">
+        <p> In order to put our two distributions on the same footing, we'll multiply the
+            measurement distribution by \( \measurementMatrix^{-1} \) to bring it into 
+            the space of states. Remembering our rule of thumb, when we multiply the 
+            mean by \( \measurementMatrix^{-1} \),
+            we also have to multiply the variance by \( \measurementMatrix^{-1} \) on the left and right.
+            This will leave us with two normal distributions in the same space:
+            <ul>
+                <li>The state you Predicted: \( \gaussian \left( \state, \space \stateCovariance \right) \)</li>
+                <li>The state implied by the measurement: \( \gaussian \left( \measurementMatrix^{-1} \measurement, \space \space \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T \right) \)</li>
+            </ul>
 
-    <p>
-        Great! It seems like this weighted sum does exactly what we need.  
-    </p>
-    <p> 
-        There's only one problem: \(\measurementMatrix\) is not necessarily square, so it cannot be inverted. 
-    </p>
-    <p>
-        TODO: Make this popout box
-        <img src="./assets/Grus-plan-Measurement-Matrix-Not-Invertible.png" alt="Gru's Plan meme: Measurement Matrix is not invertible" style="max-width: 100%; height: auto;">
-    </p>
+            (If you see something wrong here, suspend your disbelief and read on ... )
+        </p>
+        <p>Now that we have two distributions in the same space, we can stop to think: what would we like to 
+            be true when we combine these estimates? Here are some things that would be nice:
+        </p>
+        <ol>
+            <li>The mean of the combined estimate should always lie between the means of the two original estimates</li>
+            <li>The uncertainty (ie. variance) should be smaller than the uncertainty of either of the original estimates</li>
+            <li>The resulting estimate should more closely resemble the distribution in which we have higher confidence (ie. less variance).</li>
+        </ol>
+        
+        <p>For example, if we know that the ultrasonic sensor is much more accurate than our dynamics model (which is propagated blindly), then 
+            we'd want our combined estimate to consist mostly of the sensor measurement, with a hint of the dynamics model 
+            to account for small measurement noise. Since we're making use of all of our information, we should 
+            be more certain of our combined estimate than either of the original estimates independently.
+        </p>
+        <p>But how much, exactly, of each estimate do we want to use? One reasonable approach is to weight each distribution 
+            by the inverse of its variance, so the distribution with less uncertainty (ie. smaller variance) will play more of a role.
+            To write this mathematically, we first define the variance ratio (in the space of states):
+            $$ \varianceRatioState = \frac{\stateCovariance}{\stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T} $$
+        </p>
 
-    <p> 
-        That kind of throws a wrench in everything, even from the beginning. Fortunately, there is a workaround! 
-        If we suspend our disbelief and do a bit of matrix algebra as if \( \measurementMatrix^{-1} \) exists,
-        we can avoid ever having to invert the measurement matrix. We'll use the following identities:
-        For any invertible matrices \(\mathbf{A}\), \(\mathbf{B}\) we have:
-        \( (\mathbf{A} \mathbf{B})^{-1} = \mathbf{B}^{-1} \mathbf{A}^{-1} \), and
-        \( (\mathbf{A}^{-1})^{-T} = (\mathbf{A}^T)^{-1} \), 
-        and we can always multiply anywhere by the identity \( \identityMatrix = \measurementMatrix^{-1} \measurementMatrix = \measurementMatrix^T (\measurementMatrix^T)^{-1} \)
-    </p>
+        <p>Then we can use this to write a weighted sum of each distribution:</p>
+        <p>
+            $$ \state = (\identityMatrix - \varianceRatioState) \state + \varianceRatioState \measurementMatrix^{-1} \measurement $$
+        </p>
 
-    <p>
-        So let's knock out those inverses!
-        $$ \begin{align*}
-        \varianceRatioState &= \stateCovariance \left[ \stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right]^{-1} \\
-        &= \stateCovariance \left[ \stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right]^{-1} \left( \measurementMatrix^{-1} \measurementMatrix \right)\\
-        &= \stateCovariance \left[ \measurementMatrix \left( \stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right) \right]^{-1} \measurementMatrix \\
-        &= \stateCovariance \left[ \measurementMatrix \stateCovariance + \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right]^{-1} \measurementMatrix \\
-        &= \stateCovariance \left( \measurementMatrix^T \left( \measurementMatrix^T \right)^{-1} \right) \left[ \measurementMatrix \stateCovariance + \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right]^{-1} \measurementMatrix \\
-        &= \stateCovariance \measurementMatrix^T \left[ \left( \measurementMatrix \stateCovariance + \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right) \measurementMatrix^T \right]^{-1} \measurementMatrix \\
-        \varianceRatioState &= \stateCovariance \measurementMatrix^T \left[ \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right]^{-1} \measurementMatrix \\
-        \end{align*}
-        $$
-    </p>
-    <p> Now our Variance ratio is free of \( \measurementMatrix^{-1} \), but there is still one 
-        more remaining in the weighted sum formula. In preparation to eliminate this remaining 
-        \( \measurementMatrix^{-1} \), we'll separate out the trailing \( \measurementMatrix \) 
-        from the rest of the formula. The variance ratio without the trailing \( \measurementMatrix \) 
-        is actually so important that we'll give it a name:
-        $$ \text{The Kalman Gain } \kalmanGain = \stateCovariance \measurementMatrix^T \left[ \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right]^{-1} $$
-        Then we can write the variance ratio as:
-        $$ \varianceRatioState = \kalmanGain \measurementMatrix $$
-    </p>
+        <p>
+            Great! It seems like this weighted sum does exactly what we need.  
+        </p>
+        <p> 
+            There's only one problem: \(\measurementMatrix\) is not necessarily square, so it cannot be inverted. 
+        </p>
+        <p>
+            TODO: Make this popout box
+            <img src="./assets/Grus-plan-Measurement-Matrix-Not-Invertible.png" alt="Gru's Plan meme: Measurement Matrix is not invertible" style="max-width: 100%; height: auto;">
+        </p>
 
-    <p>
-        Now we can proceed in writing our state update equation without any remaining \( \measurementMatrix^{-1} \):
-        $$ \begin{align*}
-        \state &= (\identityMatrix - \varianceRatioState) \state + \varianceRatioState \measurementMatrix^{-1} \measurement \\
-        \state &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \state + \kalmanGain \measurement \\
-        \end{align*}
-        $$
-    </p>
+        <p> 
+            That kind of throws a wrench in everything, even from the beginning. Fortunately, there is a workaround! 
+            If we suspend our disbelief and do a bit of matrix algebra as if \( \measurementMatrix^{-1} \) exists,
+            we can avoid ever having to invert the measurement matrix. We'll use the following identities:
+            For any invertible matrices \(\mathbf{A}\), \(\mathbf{B}\) we have:
+            \( (\mathbf{A} \mathbf{B})^{-1} = \mathbf{B}^{-1} \mathbf{A}^{-1} \), and
+            \( (\mathbf{A}^{-1})^{-T} = (\mathbf{A}^T)^{-1} \), 
+            and we can always multiply anywhere by the identity \( \identityMatrix = \measurementMatrix^{-1} \measurementMatrix = \measurementMatrix^T (\measurementMatrix^T)^{-1} \)
+        </p>
 
-    <p> Great! Now we have a matrix formula to combine the means of two Gaussians. The only step left is to propagate the variances too. 
-        Remember our rule of thumb: For a gaussian \( \gaussian \left( \mathbf{\mu}, \mathbf{\Sigma} \right) \), 
-        any time we apply a linear operation on the mean (eg. \( \mathbf{A} \mu \) ), 
-        the variance will get that same operation applied twice (eg. \( \mathbf{A} \mathbf{\Sigma} \mathbf{A}^T \) ).
-    </p>
+        <p>
+            So let's knock out those inverses!
+            $$ \begin{align*}
+            \varianceRatioState &= \stateCovariance \left[ \stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right]^{-1} \\
+            &= \stateCovariance \left[ \stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right]^{-1} \left( \measurementMatrix^{-1} \measurementMatrix \right)\\
+            &= \stateCovariance \left[ \measurementMatrix \left( \stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right) \right]^{-1} \measurementMatrix \\
+            &= \stateCovariance \left[ \measurementMatrix \stateCovariance + \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right]^{-1} \measurementMatrix \\
+            &= \stateCovariance \left( \measurementMatrix^T \left( \measurementMatrix^T \right)^{-1} \right) \left[ \measurementMatrix \stateCovariance + \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right]^{-1} \measurementMatrix \\
+            &= \stateCovariance \measurementMatrix^T \left[ \left( \measurementMatrix \stateCovariance + \measurementNoiseCovariance \left( \measurementMatrix^{-1} \right)^T \right) \measurementMatrix^T \right]^{-1} \measurementMatrix \\
+            \varianceRatioState &= \stateCovariance \measurementMatrix^T \left[ \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right]^{-1} \measurementMatrix \\
+            \end{align*}
+            $$
+        </p>
+        <p> Now our Variance ratio is free of \( \measurementMatrix^{-1} \), but there is still one 
+            more remaining in the weighted sum formula. In preparation to eliminate this remaining 
+            \( \measurementMatrix^{-1} \), we'll separate out the trailing \( \measurementMatrix \) 
+            from the rest of the formula. The variance ratio without the trailing \( \measurementMatrix \) 
+            is actually so important that we'll give it a name:
+            $$ \text{The Kalman Gain } \kalmanGain = \stateCovariance \measurementMatrix^T \left[ \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right]^{-1} $$
+            Then we can write the variance ratio as:
+            $$ \varianceRatioState = \kalmanGain \measurementMatrix $$
+        </p>
 
-    <p>
-        Using this rule, we can easily write aout the variance:
-        $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
-        And with a bit more algebra (TODO: expand this out) we can reduce this to:
-        $$ \stateCovariance_{\discreteTime} = \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} $$
-    </p>
+        <p>
+            Now we can proceed in writing our state update equation without any remaining \( \measurementMatrix^{-1} \):
+            $$ \begin{align*}
+            \state &= (\identityMatrix - \varianceRatioState) \state + \varianceRatioState \measurementMatrix^{-1} \measurement \\
+            \state &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \state + \kalmanGain \measurement \\
+            \end{align*}
+            $$
+        </p>
+
+        <p> Great! Now we have a matrix formula to combine the means of two Gaussians. The only step left is to propagate the variances too. 
+            Remember our rule of thumb: For a gaussian \( \gaussian \left( \mathbf{\mu}, \mathbf{\Sigma} \right) \), 
+            any time we apply a linear operation on the mean (eg. \( \mathbf{A} \mu \) ), 
+            the variance will get that same operation applied twice (eg. \( \mathbf{A} \mathbf{\Sigma} \mathbf{A}^T \) ).
+        </p>
+
+        <p>
+            Using this rule, we can easily write aout the variance:
+            $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
+            And with a bit more algebra (TODO: expand this out) we can reduce this to:
+            $$ \stateCovariance_{\discreteTime} = \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} $$
+        </p>
+    </div>
 
     <h2>Bringing it all together</h2>
     <p>
@@ -859,4 +922,7 @@
     rigorously unite the algorithm with the model (and by that I mean stop distinguishing between estimate and true state), 
     but, not having done so, I cannot say that that distinction is useless in general.    
 </body>
+<script>
+    activateButtonsAndContent(['option1-button'], ['update-step-option1'], ['option2-button'], ['update-step-option2']);
+</script>
 </html>
