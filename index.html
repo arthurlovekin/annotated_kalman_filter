@@ -27,7 +27,8 @@
                 // Note: use two '\'s because this is first intepreted as a javascript strings, where '\' needs to be escaped
                 wikipedia: `
                 \\def\\state{\\class{state}{\\mathbf{\\bar{x}}}}
-                \\def\\stateEstimate{\\class{state-estimate}{\\mathbf{x}}}
+                \\def\\stateEstimate{\\class{state-estimate}{\\mathbf{\\hat{x}}}}
+                \\def\\trueState{\\class{true-state}{\\mathbf{x}}}
                 \\def\\stateTransition{\\class{state-transition}{\\mathbf{F}}}
                 \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
                 \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
@@ -46,6 +47,7 @@
                 kalmanfilterdotnet: `
                 \\def\\state{\\class{state}{\\mathbf{\\bar{s}}}}
                 \\def\\stateEstimate{\\class{state-estimate}{\\mathbf{s}}}
+                \\def\\trueState{\\class{true-state}{\\mathbf{s}}}
                 \\def\\stateTransition{\\class{state-transition}{\\mathbf{A}}}
                 \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
                 \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
@@ -295,9 +297,11 @@
     </p>
     <p>We begin with a large question: How to model the world? A common engineering approach is 
         to think of the minimum set of variables needed to make a complete description of the system, 
-        and then put them all together in a state vector. In our simple example, all we need is the position \(p\) 
+        and then put them all together in a state vector. We can never know the true state, 
+        so we'll add a little hat to indicate that this vector is just an estimate. 
+        In our simple example, the only variables we need to track are the position \(p\) 
         and velocity \(v\) of the robot. 
-        $$ \text{State vector }\stateEstimate = \begin{bmatrix} p \\ v \end{bmatrix} 
+        $$ \text{Estimated State vector }\stateEstimate = \begin{bmatrix} p \\ v \end{bmatrix} 
             = \begin{bmatrix} \text{position} \\ \text{velocity} \end{bmatrix} $$
     </p>
     <p> Once we've defined our state vector, we need to model how it evolves over time.
@@ -469,8 +473,8 @@
         $$ \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} + \controlMatrix \controlInput_{\discreteTime} $$
         $$ \stateCovariance_{\discreteTime} = \stateTransition \stateCovariance_{\discreteTime-1} \stateTransition^T + \processNoiseCovariance $$
     where
-    $$ \stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
-    and $$ \text{process noise} \sim \gaussian \left( 0, \processNoiseCovariance \right) $$
+    $$ \text{State Estimate Distribution }\stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
+    and $$ \text{Process Noise} \sim \gaussian \left( 0, \processNoiseCovariance \right) $$
     </p>
     <p> 
         Fundamentally, the predict step describes how to <it>predict</it> the a new gaussian state estimate from the previous estimate, 
@@ -482,42 +486,65 @@
     <h2>Sensing the environment</h2>
     <p>Ok so the state ... isn't terrible, but it's not great either, and the variance is exploding (which is reasonable considering the 
         dynamics equation has no feedback).
-        Fortunately, we have endowed this robot with an ultrasonic distance sensor that should help.         
+        Fortunately, we have endowed this robot with an ultrasonic distance sensor that should help.
+        This sensor will output a measurement vector containing one value corresponding to the distance to the nearest object.
+        $$ \text{Measurement Vector } \measurement = \begin{bmatrix} \text{distance} \end{bmatrix} $$
         The only question is, how do we incorporate these measurements into the filter? 
     </p>
     <p>
-        To start with, we need a linear model that relates the measurement vector \( \measurement \) to the state \( \trueState \).
+        To start with, we need a linear model that relates the measurement vector \( \measurement \) to the state.
         Our first instinct might be to write a matrix that converts from the measurement vector to the state vector 
         (we're trying to update the state after all). The problem is 
         that since the sensor doesn't measure the velocity, there is no way to fully recover the state from the measurement 
         using a linear transformation. We can however think about this from a more causal perspective: 
     </p>
     <p>
-        In reality we know that the robot is in some true state x, and when the sensor takes a measurement
+        In reality we know that the robot is in some true state \( \trueState \), and when the sensor takes a measurement
         of that state it will generally follow a linear process. If we define the measurement matrix \(\measurementMatrix\)
         to describe this linear measurement process, then in the ideal case we can write:
-        $$ \measurement_{ideal} = \measurementMatrix \trueState $$
+        $$ \measurement_{\text{ideal}} = \measurementMatrix \trueState $$
     </p>
-    <p>Let's get into some implementation details to see what \(\measurementMatrix\) looks like. 
+    <p>Let's get into some 
+        <span class="expandable-content-text" onclick="toggleExpandableContent('ultrasonic-implementation-details')">implementation details</span>
+        to see what \(\measurementMatrix\) looks like. 
+    </p>
+    <div class="expanded-content" id="ultrasonic-implementation-details">
+        <a href="https://youtu.be/KGwtit2bFyo?feature=shared&t=14" target="_blank" rel="noopener noreferrer">
+            This video does a great job of explaining how ultrasonic sensors work
+        </a>
+    </div>
+    <!-- <iframe  
+        class="expanded-content" 
+        id="ultrasonic-implementation-details"
+        width="560" 
+        height="315" 
+        src="https://www.youtube.com/embed/KGwtit2bFyo?si=cWVWC1Fgix_Gl9C_&amp;start=14" 
+        title="YouTube video player" 
+        frameborder="0" 
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+        referrerpolicy="strict-origin-when-cross-origin" 
+        allowfullscreen>
+    </iframe> -->
+    <p>
         Most ultrasonic sensors do not directly provide a distance. Instead, they measure 
-        the time (in microseconds, (\ \mu s \)) it takes for a pulse of sound to travel to the wall and back. In order to convert from (\ \mu s \)
+        the time (in microseconds, \( \mu s \)) it takes for a pulse of sound to travel to the wall and back. In order to convert from \( \mu s \)
         to meters, we need to multiply by a factor of \( \frac{2 \times 10^6 }{c} \), where \(c\) is the speed of sound in air (343 m/s), 
         there are \( 10^6 \mu s\) per second, and the factor of 2 accounts for the sound traveling double the distance (to the wall, and then back).
         Thus to convert from the measurement vector to the state vector, the measurement matrix would be:
-        $$ \text{Measurement Matrix} \measurementMatrix = \begin{bmatrix} \frac{2 \times 10^6 }{c} & 0 \end{bmatrix} $$
+        $$ \text{Measurement Matrix } \measurementMatrix = \begin{bmatrix} \frac{2 \times 10^6 }{c} & 0 \end{bmatrix} $$
     </p>
     <p>Of course, no sensor is ever perfect, so we will also say that when the sensor takes a measurement 
         it will also introduce some sensor noise. We assume that the noise is normally distributed with 
         zero mean and covariance \(\measurementNoiseCovariance\) (which hopefully is listed in the sensor datasheet).
         $$ \text{Measurement Noise} \sim \gaussian \left( 0, \measurementNoiseCovariance \right) $$
         
-        Now we can say that when the robot is in state x, the measurements you can expect to get will
+        Now we can say that when the robot is in state \( \trueState \), the measurements you can expect to get will
         follow a normal distribution with covariance \(\measurementNoiseCovariance\) and mean \(\measurementMatrix \trueState\).
         Of course, we never actually see the entirety of this distribution; the robot will only ever take 
         individual measurements. Since \( \measurement \) is the only sample we have, 
         we will say that every time we read some measurement, we infer that the distribution of possible 
         measurements is a gaussian centered at \( \measurement \) with covariance \(\measurementNoiseCovariance\):
-        $$ \measurement \sim \gaussian \left( \measurementMatrix \trueState, \measurementNoiseCovariance \right) $$
+        $$ \text{Possible Measurements}\sim \gaussian \left( \measurement, \measurementNoiseCovariance \right) $$
     </p>
 
     <p> To summarize, we've defined the measurement matrix \( \measurementMatrix \), whose role is to 
@@ -532,6 +559,8 @@
         At this point, we have one normal distribution that represents our belief of the true state of the robot,
         and another normal distribution that represents the measurements you'd expect to get from the true state. 
         How can we combine these two distributions into one new state estimate? 
+        $$ \text{Estimate of the true state from Prediction Step: }\gaussian \left( \state, \stateCovariance \right) $$
+        $$ \text{Measurement distribution inferred from the actual measurement: } \gaussian \left( \measurement, \measurementNoiseCovariance \right) $$
     </p>
     <p>The first challenge we face is that we're trying to combine different "types" of things.
         The state estimate distribution has a mean and variance with a particular dimension and units,
@@ -576,10 +605,9 @@
             to the space of measurements. Remembering our rule of thumb, when we multiply the mean by \( \measurementMatrix \),
             we have to multiply the variance by \( \measurementMatrix \) on the left and right.
             This will leave us with two normal distributions in the same space:
-    
             <ul>
-                <li>The measurement you'd expect at the state you Predicted: \( \gaussian \left( \measurementMatrix \state, \space \measurementMatrix \stateCovariance \measurementMatrix^T \right) \)</li>
-                <li>The measurement you actually got: \( \gaussian \left( \measurement, \space \measurementNoiseCovariance \right) \)</li>
+                <li>The measurement distribution you'd expect given your Predicted State: \( \gaussian \left( \measurementMatrix \state, \space \measurementMatrix \stateCovariance \measurementMatrix^T \right) \)</li>
+                <li>The measurement distribution inferred from the actual measurement: \( \gaussian \left( \measurement, \space \measurementNoiseCovariance \right) \)</li>
             </ul>
         </p>
     
@@ -700,8 +728,8 @@
             we also have to multiply the variance by \( \measurementMatrix^{-1} \) on the left and right.
             This will leave us with two normal distributions in the same space:
             <ul>
-                <li>The state you Predicted: \( \gaussian \left( \state, \space \stateCovariance \right) \)</li>
-                <li>The state implied by the measurement: \( \gaussian \left( \measurementMatrix^{-1} \measurement, \space \space \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T \right) \)</li>
+                <li>The state distribution from the prediction step:\( \gaussian \left( \state, \space \stateCovariance \right) \)</li>
+                <li>The state distribution inferred from the actual measurement: \( \gaussian \left( \measurementMatrix^{-1} \measurement, \space \space \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T \right) \)</li>
             </ul>
 
             (If you see something wrong here, suspend your disbelief and read on ... )
