@@ -32,7 +32,7 @@ const variables = {
         'rgba(255, 191, 191, 0.8)'
     ),
     true_state: new FormulaElement("true-state", 
-        "True State Vector",
+        "True State",
         "The actual state of the system", 
         "The true position and velocity of a robot", 
         '(state_dim,)',

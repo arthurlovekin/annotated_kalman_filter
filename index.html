@@ -20,7 +20,6 @@
         MathJax = {
             //Enable macros \class, \cssId, \href, \style
             loader: {load: ['[tex]/html']}, 
-            tex: {packages: {'[+]': ['html']}},
             // save custom TexMacros in the MathJax configuration object 
             // (becomes MathJax.config.TexMacros after MathJax is loaded)
             TexMacros: {
@@ -46,7 +45,7 @@
                 `,
                 kalmanfilterdotnet: `
                 \\def\\state{\\class{state}{\\mathbf{\\bar{s}}}}
-                \\def\\stateEstimate{\\class{state-estimate}{\\mathbf{s}}}
+                \\def\\stateEstimate{\\class{state-estimate}{\\mathbf{\\hat{s}}}}
                 \\def\\trueState{\\class{true-state}{\\mathbf{s}}}
                 \\def\\stateTransition{\\class{state-transition}{\\mathbf{A}}}
                 \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
@@ -439,33 +438,40 @@
         so we can directly apply the state transition matrix as we did before. The variance on the other hand is the 
         average "squared-distance" from the mean, so how should it be treated?
     </p>
-    <p> We'll introduce a very useful rule:
-        In order to multiply a gaussian distribution \(\gaussian \left( \mathbf{\bar{\mu}}, \mathbf{\Sigma} \right) \) by a matrix \( \mathbf{A} \), 
-        the mean is simply multiplied normally, while the covariance is multiplied by \( \mathbf{A} \) squared.
+    <p> We'll introduce a very useful rule for multiplying a gaussian distribution 
+        \(\gaussian \left( \mathbf{\bar{\mu}}, \mathbf{\Sigma} \right) \) by a matrix \( \mathbf{A} \):
     </p>
     <p>
-        Linear Transformation of a Normal Distribution:
         $$
-        \mathbf{\bar{\mu}}_{\discreteTime} = \mathbf{A} \mathbf{\bar{\mu}}_{\discreteTime-1} 
-        $$
-        $$
-        \mathbf{\Sigma}_{\discreteTime} = \mathbf{A} \mathbf{\Sigma}_{\discreteTime-1} \mathbf{A}^T
+        \begin{align}
+            \text{If you linearly transform the mean: } &
+            \mathbf{\bar{\mu}}_{\discreteTime} = \mathbf{A} \mathbf{\bar{\mu}}_{\discreteTime-1} 
+            \\
+            \text{ then the covariance is: } &
+            \mathbf{\Sigma}_{\discreteTime} = \mathbf{A} \mathbf{\Sigma}_{\discreteTime-1} \mathbf{A}^T
+        \end{align}
         $$
     </p>
-    <p>
+    <p class="expandable-content-text" onclick="toggleExpandableContent('why-multiply-covariance')">
+        Why multiply the covariance by \( \mathbf{A} \) on the left and right?
+    </p>
+    <div class="expanded-content" id="why-multiply-covariance">
         One way you can remember this is to think back to what happens when you multiply a 1D normal distribution by a scalar.
         The standard deviation \( \sigma \) will scale linearly, and the variance is the standard deviation squared
         (which we can write in a way that is suggestive of what the operation looks like in higher dimensions).
         <div style="max-width: 100%; text-align: center;">
             <img src="./assets/variance-diagram-1d.png" alt="Diagram showing the effect of multiplying a 1D Gaussian by a scalar" style="max-width: 100%; height: auto;">
         </div>
-    </p>
+    </div>
+
     <p> The other thing we need to know is that if we add or subtract two independent, normally distributed 
-        random variables, then their variances add. (see <a href="https://apcentral.collegeboard.org/courses/ap-statistics/classroom-resources/why-variances-add-and-why-it-matters">here</a>
+        random variables, then their variances add. (see 
+        <a href="https://apcentral.collegeboard.org/courses/ap-statistics/classroom-resources/why-variances-add-and-why-it-matters" target="_blank" rel="noopener noreferrer"
+        >AP Central's explanation</a>
         for a refresher.)
     </p>
 
-    <p>With this probabilistic knowledge, we have actually arrived to the point where we can write out the first component of the Kalman Filter:
+    <p>With this knowledge of probability, we have actually arrived to the point where we can write out the first component of the Kalman Filter:
         the <strong>Predict Step</strong>! We'll define the covariance of the state estimate to be \(\stateCovariance\), and the mean to be \(\state\). 
         To handle environmental noise, we'll also add a noise term with mean 0 and covariance \(\processNoiseCovariance\). Writing this out, we have:
     </p>
