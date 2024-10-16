@@ -441,7 +441,7 @@
     <p> We'll introduce a very useful rule for multiplying a gaussian distribution 
         \(\gaussian \left( \mathbf{\bar{\mu}}, \mathbf{\Sigma} \right) \) by a matrix \( \mathbf{A} \):
     </p>
-    <p>
+    <p id="gaussian-multiplication-rule">
         $$
         \begin{align}
             \text{If you linearly transform the mean: } &
@@ -608,29 +608,34 @@
     <div id="update-step-option1" class="expanded-content-long">
         <p>In order to put our two distributions on the same footing, we'll multiply the
             state estimate distribution by \( \measurementMatrix \) to bring it into 
-            to the space of measurements. Remembering our rule of thumb, when we multiply the mean by \( \measurementMatrix \),
-            we have to multiply the variance by \( \measurementMatrix \) on the left and right.
-            This will leave us with two normal distributions in the same space:
+            to the space of measurements. 
+            Remembering our 
+            <span class="expandable-content-text" onclick="toggleExpandableContent('duplicate-gaussian-multiplication-rule')">
+                rule for multiplying gaussians</span>, we'll get two normal distributions in the same space:
+            <div class="expanded-content" id="duplicate-gaussian-multiplication-rule"></div>
+        
             <ul>
                 <li>The measurement distribution you'd expect given your Predicted State: \( \gaussian \left( \measurementMatrix \state, \space \measurementMatrix \stateCovariance \measurementMatrix^T \right) \)</li>
                 <li>The measurement distribution inferred from the actual measurement: \( \gaussian \left( \measurement, \space \measurementNoiseCovariance \right) \)</li>
             </ul>
         </p>
     
-        <p>Now that we have two distributions in the same space, we can stop to think: what would we like to 
-            be true when we combine these estimates? Here are some things that would be nice:
-        </p>
-        <ol>
-            <li>The mean of the combined estimate should always lie between the means of the two original estimates</li>
-            <li>The uncertainty (ie. variance) should be smaller than the uncertainty of either of the original estimates</li>
-            <li>The resulting estimate should more closely resemble the distribution in which we have higher confidence (ie. less variance).</li>
-        </ol>
-        
-        <p>For example, if we know that the ultrasonic sensor is much more accurate than our dynamics model (which is propagated blindly), then 
-            we'd want our combined estimate to consist mostly of the sensor measurement, with a hint of the dynamics model 
-            to account for small measurement noise. Since we're making use of all of our information, we should 
-            be more certain of our combined estimate than either of the original estimates independently.
-        </p>
+        <div id="what-we-want-of-gaussians">
+            <p>Now that we have two distributions in the same space, we can stop to think: what would we like to 
+                be true when we combine these estimates? Here are some things that would be nice:
+            </p>
+            <ol>
+                <li>The mean of the combined estimate should always lie between the means of the two original estimates</li>
+                <li>The uncertainty (ie. variance) should be smaller than the uncertainty of either of the original estimates</li>
+                <li>The resulting estimate should more closely resemble the distribution in which we have higher confidence (ie. less variance).</li>
+            </ol>
+            
+            <p>For example, if we know that the ultrasonic sensor is much more accurate than our dynamics model (which is propagated blindly), then 
+                we'd want our combined estimate to consist mostly of the sensor measurement, with a hint of the dynamics model 
+                to account for small measurement noise. Since we're making use of all of our information, we should 
+                be more certain of our combined estimate than either of the original estimates independently.
+            </p>
+        </div>
         <p>But how much, exactly, of each estimate do we want to use? One reasonable approach is to weight each distribution 
             by the inverse of its variance, so the distribution with less uncertainty (ie. smaller variance) will play more of a role.
             To write this mathematically, we first define the variance ratio (in the space of measurements):
@@ -638,7 +643,6 @@
             \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}{\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance} =
             \frac{\text{Uncertainty from state estimate}}{\text{Total uncertainty from the state estimate and sensor noise}} $$
         </p>
-        TODO: Make these buttons?
         <p class="expandable-content-text" onclick="toggleExpandableContent('matrix-fractions-explanation')">
             Wait, you can write a matrix inverse like a fraction?!
         </p>
@@ -649,7 +653,7 @@
             this is a simple ratio is hieghtened by the fractional notation, so I ask that you simply 
             remember that the inverse goes on the right. 
         </p>
-    
+        
         <p class="expandable-content-text" onclick="toggleExpandableContent('bayes-rule-explanation')">
             Is there a deeper mathematical reason why we use the variance ratio?
         </p>
@@ -729,37 +733,34 @@
     <div id="update-step-option2" class="expanded-content-long">
         <p> In order to put our two distributions on the same footing, we'll multiply the
             measurement distribution by \( \measurementMatrix^{-1} \) to bring it into 
-            the space of states. Remembering our rule of thumb, when we multiply the 
-            mean by \( \measurementMatrix^{-1} \),
-            we also have to multiply the variance by \( \measurementMatrix^{-1} \) on the left and right.
-            This will leave us with two normal distributions in the same space:
+            the space of states. Remembering our 
+            <span class="expandable-content-text" onclick="toggleExpandableContent('duplicate-gaussian-multiplication-rule-2')">
+                rule for multiplying gaussians</span>, we'll get two normal distributions in the same space:
+        <div class="expanded-content" id="duplicate-gaussian-multiplication-rule-2"></div>
+        </p>
             <ul>
                 <li>The state distribution from the prediction step:\( \gaussian \left( \state, \space \stateCovariance \right) \)</li>
                 <li>The state distribution inferred from the actual measurement: \( \gaussian \left( \measurementMatrix^{-1} \measurement, \space \space \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T \right) \)</li>
             </ul>
-
+        <p>
             (If you see something wrong here, suspend your disbelief and read on ... )
         </p>
-        <p>Now that we have two distributions in the same space, we can stop to think: what would we like to 
-            be true when we combine these estimates? Here are some things that would be nice:
-        </p>
-        <ol>
-            <li>The mean of the combined estimate should always lie between the means of the two original estimates</li>
-            <li>The uncertainty (ie. variance) should be smaller than the uncertainty of either of the original estimates</li>
-            <li>The resulting estimate should more closely resemble the distribution in which we have higher confidence (ie. less variance).</li>
-        </ol>
-        
-        <p>For example, if we know that the ultrasonic sensor is much more accurate than our dynamics model (which is propagated blindly), then 
-            we'd want our combined estimate to consist mostly of the sensor measurement, with a hint of the dynamics model 
-            to account for small measurement noise. Since we're making use of all of our information, we should 
-            be more certain of our combined estimate than either of the original estimates independently.
-        </p>
+        <div id="duplicate-what-we-want-of-gaussians"></div>
         <p>But how much, exactly, of each estimate do we want to use? One reasonable approach is to weight each distribution 
             by the inverse of its variance, so the distribution with less uncertainty (ie. smaller variance) will play more of a role.
             To write this mathematically, we first define the variance ratio (in the space of states):
             $$ \varianceRatioState = \frac{\stateCovariance}{\stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T} =
             \frac{\text{Uncertainty from state estimate}}{\text{Total uncertainty from the state estimate and sensor noise}} $$
         </p>
+        <p class="expandable-content-text" onclick="toggleExpandableContent('matrix-fractions-explanation-2')">
+            Wait, you can write a matrix inverse like a fraction?!
+        </p>
+        <p class="expanded-content" id="matrix-fractions-explanation-2"></p>
+        
+        <p class="expandable-content-text" onclick="toggleExpandableContent('bayes-rule-explanation-2')">
+            Is there a deeper mathematical reason why we use the variance ratio?
+        </p>
+        <p class="expanded-content" id="bayes-rule-explanation-2"></p>
 
         <p>Then we can use this to write a weighted sum of each distribution:</p>
         <p>
@@ -959,5 +960,20 @@
 </body>
 <script>
     activateButtonsAndContent(['option1-button'], ['update-step-option1'], ['option2-button'], ['update-step-option2']);
+    document.addEventListener('DOMContentLoaded', function() {
+        const duplicateGaussianMultiplicationRule = document.getElementById('duplicate-gaussian-multiplication-rule');
+        duplicateGaussianMultiplicationRule.innerHTML = document.getElementById('gaussian-multiplication-rule').innerHTML;
+        const duplicateGaussianMultiplicationRule2 = document.getElementById('duplicate-gaussian-multiplication-rule-2');
+        duplicateGaussianMultiplicationRule2.innerHTML = document.getElementById('gaussian-multiplication-rule').innerHTML;
+        const duplicateWhatWeWantOfGaussians = document.getElementById('duplicate-what-we-want-of-gaussians');
+        duplicateWhatWeWantOfGaussians.innerHTML = document.getElementById('what-we-want-of-gaussians').innerHTML;
+
+        // Coudn't copy the entire interactive question, but could copy the content
+        const bayesRuleExplanation2 = document.getElementById('bayes-rule-explanation-2');
+        bayesRuleExplanation2.innerHTML = document.getElementById('bayes-rule-explanation').innerHTML;
+        const matrixFractionsExplanation2 = document.getElementById('matrix-fractions-explanation-2');
+        matrixFractionsExplanation2.innerHTML = document.getElementById('matrix-fractions-explanation').innerHTML;
+    });
+
 </script>
 </html>
