@@ -18,9 +18,23 @@ class FormulaElement {
 
 const variables = {
     state: new FormulaElement("state", 
-        "State Vector",
-        "Represents the estimated state of the system", 
+        "Mean State Vector",
+        "Represents the mean of the estimated state of the system", 
         "The position and velocity of a robot", 
+        '(state_dim,)',
+        'rgba(255, 191, 191, 0.8)'
+    ),
+    state_estimate: new FormulaElement("state-estimate", 
+        "State Estimate",
+        "Represents our belief of the state of the system", 
+        "The position and velocity of a robot", 
+        '(state_dim,)',
+        'rgba(255, 191, 191, 0.8)'
+    ),
+    true_state: new FormulaElement("true-state", 
+        "True State Vector",
+        "The actual state of the system", 
+        "The true position and velocity of a robot", 
         '(state_dim,)',
         'rgba(255, 191, 191, 0.8)'
     ),
