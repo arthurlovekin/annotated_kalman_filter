@@ -297,13 +297,7 @@
         to think of the minimum set of variables needed to make a complete description of the system, 
         and then put them all together in a state vector. In our simple example, all we need is the position \(p\) 
         and velocity \(v\) of the robot. 
-    </p>
-    <p>TODO: put in popout box:     In general, the state vector could include many different quantities: in
-        Fluid dynamics it would be things like temperature, pressure, flow rate,
-        volume, and in a population dynamics model it might include the number of
-        individuals and their age distribution.
-    </p>
-    <p>$$ \text{State vector }\stateEstimate = \begin{bmatrix} p \\ v \end{bmatrix} 
+        $$ \text{State vector }\stateEstimate = \begin{bmatrix} p \\ v \end{bmatrix} 
             = \begin{bmatrix} \text{position} \\ \text{velocity} \end{bmatrix} $$
     </p>
     <p> Once we've defined our state vector, we need to model how it evolves over time.
@@ -410,8 +404,11 @@
         probability distribution. For simplicity, we assume that both of these distributions are gaussian.
     </p>
 
-    <p> TODO: Put this in a popout box
-        Why a gaussian? There are a few really compelling reasons: 
+    <p class="expandable-content-text" onclick="toggleExpandableContent('why-a-gaussian')">
+        Why a gaussian?
+    </p>
+    <div class="expanded-content" id="why-a-gaussian"> 
+        There are a few really compelling reasons to choose a gaussian: 
         <ol>
             <li>We can parametrize the distribution with just the mean and variance, so it is numerically easy to update</li>
             <li>When we combine two independent gaussians into one estimate, the result is also a gaussian</li>
@@ -421,7 +418,7 @@
 
         Take heed: we choose a gaussian mostly because it is numerically convenient, but in practice many things (even something as simple
         as a \( sin \theta \) term in the dynamics model introduced by turning around), will make the distribution non-gaussian.
-    </p>
+    </div>
     <p> So now, instead of representing our state estimate with a single vector, we'll say that our state estimate 
         is a normal distribution parametrized by a mean \(\state\) and a covariance \(\stateCovariance\).
         $$ \stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
@@ -483,7 +480,8 @@
     <p> TODO: Diagram: Predict Step State Space diagram</p>
     
     <h2>Sensing the environment</h2>
-    <p>Ok so the state ... isn't terrible, but it's not great either, and the variance is exploding (TODO: Popout box explaining why this makes sense)..
+    <p>Ok so the state ... isn't terrible, but it's not great either, and the variance is exploding (which is reasonable considering the 
+        dynamics equation has no feedback).
         Fortunately, we have endowed this robot with an ultrasonic distance sensor that should help.         
         The only question is, how do we incorporate these measurements into the filter? 
     </p>
@@ -725,7 +723,8 @@
         <p>But how much, exactly, of each estimate do we want to use? One reasonable approach is to weight each distribution 
             by the inverse of its variance, so the distribution with less uncertainty (ie. smaller variance) will play more of a role.
             To write this mathematically, we first define the variance ratio (in the space of states):
-            $$ \varianceRatioState = \frac{\stateCovariance}{\stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T} $$
+            $$ \varianceRatioState = \frac{\stateCovariance}{\stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T} =
+            \frac{\text{Uncertainty from state estimate}}{\text{Total uncertainty from the state estimate and sensor noise}} $$
         </p>
 
         <p>Then we can use this to write a weighted sum of each distribution:</p>
@@ -737,15 +736,17 @@
             Great! It seems like this weighted sum does exactly what we need.  
         </p>
         <p> 
-            There's only one problem: \(\measurementMatrix\) is not necessarily square, so it cannot be inverted. 
+            There's only one problem: \(\measurementMatrix\) is not necessarily square, so it 
+            <span class="expandable-content-text" onclick="toggleExpandableContent('measurement-matrix-not-invertible')">cannot be inverted</span>. 
         </p>
-        <p>
-            TODO: Make this popout box
-            <img src="./assets/Grus-plan-Measurement-Matrix-Not-Invertible.png" alt="Gru's Plan meme: Measurement Matrix is not invertible" style="max-width: 100%; height: auto;">
-        </p>
+        <img class="expanded-content" 
+            id="measurement-matrix-not-invertible"
+            src="./assets/Grus-plan-Measurement-Matrix-Not-Invertible.png" 
+            alt="Gru's Plan meme: Measurement Matrix is not invertible" 
+            style="max-width: 100%; height: auto;">
 
         <p> 
-            That kind of throws a wrench in everything, even from the beginning. Fortunately, there is a workaround! 
+            Well, that kind of throws a wrench in everything. Fortunately, there is a workaround! 
             If we suspend our disbelief and do a bit of matrix algebra as if \( \measurementMatrix^{-1} \) exists,
             we can avoid ever having to invert the measurement matrix. We'll use the following identities:
             For any invertible matrices \(\mathbf{A}\), \(\mathbf{B}\) we have:
