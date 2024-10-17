@@ -388,7 +388,7 @@
                             <table class="math-diagram-structure-table" id="kalman-gain-combined-gaussian">
                                 <tr>
                                     <td>
-                                        \(\mathcal{N} \left( (I-\varianceRatio)\measurementMatrix + \varianceRatio \measurement \text{, } \space \space \space (I-\varianceRatio) \measurementMatrix \stateCovariance \measurementMatrix^T (I-\varianceRatio)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \right) \)
+                                        \(\mathcal{N} \left( (I-\varianceRatio)\measurementMatrix + \varianceRatio \measurement \text{, } \space \space \space (I-\varianceRatio) \measurementMatrix \stateCovariance \measurementMatrix^T (I-\varianceRatio)^T + \varianceRatio \measurementNoiseCovariance \varianceRatio^T \right) \)
                                     </td>
                                 </tr>
                             </table>
