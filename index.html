@@ -259,12 +259,14 @@
 </head>
 
 <body>
-    <select id="naming-convention-dropdown">
-        <option value="wikipedia">Wikipedia</option>
-        <option value="kalmanfilterdotnet">KalmanFilter.net</option>
-    </select>
-
     <h1>The Interactive Kalman Filter</h1>
+    <div>
+        Choose your naming convention: 
+        <select id="naming-convention-dropdown">
+            <option value="wikipedia">Wikipedia</option>
+            <option value="kalmanfilterdotnet">KalmanFilter.net</option>
+        </select>
+    </div>
 
     <h2>Introduction</h2>
     <p>The Kalman Filter is a powerful tool for combining information in the face of uncertainty,
@@ -725,11 +727,19 @@
         <div class="expanded-content" id="duplicate-gaussian-multiplication-rule-4"></div>
     
         <p>
-            $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
-            And with <span class="expandable-content-text" onclick="toggleExpandableContent('covariance-matrix-simplification')">
-                a bit more algebra</span> we can reduce this to:
-            $$ \stateCovariance_{\discreteTime} = \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} $$
+            $$ \stateCovariance_{\discreteTime} = 
+                \left( \identityMatrix - \kalmanGain \measurementMatrix \right) 
+                \stateCovariance_{\discreteTime-1} 
+                \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T 
+                + \kalmanGain \measurementNoiseCovariance \kalmanGain^T 
+            $$
         </p>
+        <p>The equation above is known as the Joseph Form of the Covariance Update Equation.
+            <span class="expandable-content-text" onclick="toggleExpandableContent('covariance-matrix-simplification')">
+                There is also a simpler (though less numerically stable) form of this equation.
+            </span>
+        </p>
+
         <div class="expanded-content" id="covariance-matrix-simplification">
         $$ 
         \begin{align}
@@ -743,6 +753,9 @@
         \stateCovariance_{\discreteTime} &= \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} 
         \end{align}
         $$
+        This is a much simpler version of the covariance update equation! It clearly gives the insight that with new information, 
+        your uncertainty will always decrease. The only limitation is that, without quadratic terms keeping things symmetric,
+        small numerical errors can build up over time and lead to an invalid covariance matrix.
         </div>
     </div>
 
@@ -861,9 +874,10 @@
                 \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + 
                 \kalmanGain \measurementNoiseCovariance \kalmanGain^T 
             $$
-            And with <span class="expandable-content-text" onclick="toggleExpandableContent('covariance-matrix-simplification-2')">
-                a bit more algebra</span> we can reduce this to:
-            $$ \stateCovariance_{\discreteTime} = \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} $$
+        <p>The equation above is known as the Joseph Form of the Covariance Update Equation.
+            <span class="expandable-content-text" onclick="toggleExpandableContent('covariance-matrix-simplification-2')">
+                There is also a simpler (though less numerically stable) form of this equation.
+            </span>
         </p>
         <div class="expanded-content" id="covariance-matrix-simplification-2"></div>
     </div>
