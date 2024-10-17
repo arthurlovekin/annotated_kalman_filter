@@ -239,9 +239,9 @@
             background-color: #cccccc; 
             border: 2px solid #888888; 
             border-radius: 10px;
-            height: 8rem;
+            height: 3rem;
             width: 98%;
-            text-align: left;
+            text-align: center;
             padding: 10px;
         }
 
@@ -250,9 +250,9 @@
             border: 2px solid #ccc; 
             color: #777; 
             border-radius: 10px;
-            height: 8rem;
+            height: 3rem;
             width: 98%;
-            text-align: left;
+            text-align: center;
             padding: 10px;
         }
     </style>
@@ -580,39 +580,34 @@
         while the measurement distribution has entirely different dimensions and units. Before
         we can do any combining, we have to first get both distributions into the same space. 
     </p>
-    <p>There are two directions we could take in combining the measurement distribution with the state estimate distribution. 
-        Click on the one you want to follow!
+    <p>There are two ways to do approach this. Click on the one you want to follow!
     </p>
-    <table>
+    <table style="width: 100%;">
         <tr>
             <td>
                 <button id='option1-button' onclick="activateButtonsAndContent(['option1-button'], ['update-step-option1'], ['option2-button'], ['update-step-option2'])">
-                    <p>
-                        Option 1:
-                        <ol>
-                            <li>See what measurement we should expect given our current state estimate</li>
-                            <li>Combine this with the actual measurement we got</li>
-                            <li>Convert a "fused measurement" back to state space</li>
-                        </ol>
-                    </p> 
-
+                    Option 1
                 </button>
             </td>
             <td>
                 <button id='option2-button' onclick="activateButtonsAndContent(['option2-button'], ['update-step-option2'], ['option1-button'], ['update-step-option1'])">
-                    <p>
-                        Option 2:
-                        <ol>
-                            <li>See what states could have led to the measurement we got</li>
-                            <li>Combine this with our current state estimate</li>
-                        </ol>
-                    </p> 
-
+                    Option 2
                 </button>
             </td>
         </tr>
     </table>
     <div id="update-step-option1" class="expanded-content-long">
+        <p>
+            The first way we could approach combining the measurement distribution 
+            with the state estimate distribution can be outlined as follows:
+            <ol>
+                <li>See what measurement we should expect given our current state estimate</li>
+                <li>Combine this with the actual measurement we got</li>
+                <li>Convert a "fused measurement" back to state space</li>
+            </ol>
+            Let's break this down.
+        </p> 
+
         <p>In order to put our two distributions on the same footing, we'll multiply the
             state estimate distribution by \( \measurementMatrix \) to bring it into 
             to the space of measurements. 
@@ -752,6 +747,16 @@
     </div>
 
     <div id="update-step-option2" class="expanded-content-long">
+        <p>
+            The other way we could approach combining the measurement distribution 
+            with the state estimate distribution can be outlined as follows:
+            <ol>
+                <li>See what states could have led to the measurement we got</li>
+                <li>Combine this with our current state estimate</li>
+            </ol>
+        </p>
+        <p>Let's break this down. </p>
+
         <p> In order to put our two distributions on the same footing, we'll multiply the
             measurement distribution by \( \measurementMatrix^{-1} \) to bring it into 
             the space of states. Remembering our 
