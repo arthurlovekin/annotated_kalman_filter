@@ -204,6 +204,10 @@
             background-color: #f2f2f2;
         } */
 
+        .highlight-term {
+            background-color: rgb(253, 253, 131);
+        }
+
         /* Formatting for Expandable Content */
         .expanded-content {
             display: none;
@@ -732,13 +736,13 @@
         <div class="expanded-content" id="covariance-matrix-simplification">
         $$ 
         \begin{align}
-        \stateCovariance_{\discreteTime} &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} {\color{green} \left(\identityMatrix - \kalmanGain \measurementMatrix \right)^T} + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \\
-        \stateCovariance_{\discreteTime} &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} {\color{green} \left( \identityMatrix -  \left(\kalmanGain \measurementMatrix \right)^T \right) } + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \\
-        \stateCovariance_{\discreteTime} &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) {\color{green} \stateCovariance_{\discreteTime-1} \left(\identityMatrix - \measurementMatrix^T \kalmanGain^T \right) } + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \\
-        \stateCovariance_{\discreteTime} &= {\color{green} \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \left(\stateCovariance_{\discreteTime-1} - \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T \right) } + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \\
-        \stateCovariance_{\discreteTime} &= \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} - \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T + {\color{green} \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T } \\
-        \stateCovariance_{\discreteTime} &= \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} - \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T + {\color{green} \kalmanGain \left(\measurementMatrix \stateCovariance_{\discreteTime-1} \measurementMatrix^T + \measurementNoiseCovariance \right) } \kalmanGain^T \\
-        \stateCovariance_{\discreteTime} &= \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} {\color{green} - \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T + \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T }\\
+        \stateCovariance_{\discreteTime} &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} \class{highlight-term}{ \left(\identityMatrix - \kalmanGain \measurementMatrix \right)^T} + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \\
+         &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} \class{highlight-term}{ \left( \identityMatrix -  \left(\kalmanGain \measurementMatrix \right)^T \right) } + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \\
+         &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \class{highlight-term}{ \stateCovariance_{\discreteTime-1} \left(\identityMatrix - \measurementMatrix^T \kalmanGain^T \right) } + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \\
+         &= \class{highlight-term}{ \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \left(\stateCovariance_{\discreteTime-1} - \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T \right) } + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \\
+         &= \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} - \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T + \class{highlight-term}{ \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T } \\
+         &= \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} - \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T + \class{highlight-term}{ \kalmanGain \left(\measurementMatrix \stateCovariance_{\discreteTime-1} \measurementMatrix^T + \measurementNoiseCovariance \right) } \kalmanGain^T \\
+         &= \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} \class{highlight-term}{ - \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T + \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T }\\
         \stateCovariance_{\discreteTime} &= \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} 
         \end{align}
         $$
