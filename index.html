@@ -855,7 +855,12 @@
         <div class="expanded-content" id="duplicate-gaussian-multiplication-rule-3"></div>
 
         <p>
-            $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
+            $$ \stateCovariance_{\discreteTime} = 
+                \left( \identityMatrix - \kalmanGain \measurementMatrix \right) 
+                \stateCovariance_{\discreteTime-1} 
+                \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + 
+                \kalmanGain \measurementNoiseCovariance \kalmanGain^T 
+            $$
             And with <span class="expandable-content-text" onclick="toggleExpandableContent('covariance-matrix-simplification-2')">
                 a bit more algebra</span> we can reduce this to:
             $$ \stateCovariance_{\discreteTime} = \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} $$
@@ -866,7 +871,7 @@
     <h2>Bringing it all together</h2>
     <p>
         In each of our derivations, we've arrived at the same definition for the Kalman Gain: 
-        $$ \kalmanGain = \stateCovariance \measurementMatrix^T \left( \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right)^{-1} $$
+        $$ \text{The Kalman Gain } \kalmanGain = \stateCovariance \measurementMatrix^T \left( \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right)^{-1} $$
 
         However, we have also shown that there are two different ways to interpret this formula (so 
         long as you imagine that \( \measurementMatrix^{-1} \) exists). Rearranging \( \varianceRatioState = \kalmanGain \measurementMatrix \)
@@ -882,35 +887,73 @@
 
     <h2>The Full Algorithm</h2>
     <h3>Eg. What you actually need to implement</h3>
-    Now we have all the pieces to write out the full algorithm, but we'll make a few adjustments to make it more numberically stable
-    <ul>
-        <li>(I-KH) can be numerically unstable, so we distribute it out to get</li>
-        <li>All of the matrices (F,B,H,etc.) can vary with time, so we'll subscript them with the current timestep</li>
-        <li>You should be calling the Predict function as often as you can (the dynamics never stops so neither should your blind estimate),
-            but the update function can only be called when there is a new measurement. If your
-            sensor is fast, you might always call Predict immediately followed by Update, 
-            but if your sensor is slow, 5 predict steps might go by with no update. 
-            I've accounted 
-        </li>
-    </ul>
-
-    <table>
+    <p>Now that we have all the mathematical pieces of the Predict and Update steps, 
+        we can write out the full algorithm! In practice, we write each step as a function that 
+    takes the previous state estimate along with new information, and returns a new state estimate.  </p>
+    </p>
+    <table style="width: 100%; text-align: left;">
         <tr>
-            <th>Predict(\( \controlInput_{\discreteTime}, \space \state_{\discreteTime-1}, \space \stateCovariance_{\discreteTime-1} \))</th>
-            <th>Update(\( \measurement_{\discreteTime}, \space \state_{\discreteTime-1}, \space \stateCovariance_{\discreteTime-1} \))</th>
+            <th>
+                Predict(\( \controlInput_{\discreteTime}, \space \state_{\discreteTime-1}, \space \stateCovariance_{\discreteTime-1} \)):
+            </th>
+            <th>
+                Update(\( \measurement_{\discreteTime}, \space \state_{\discreteTime-1}, \space \stateCovariance_{\discreteTime-1} \)):
+            </th>
         </tr>
         <tr>
-            <th>    
-                $$ \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} + \controlMatrix \controlInput_{\discreteTime} $$
-                $$ \stateCovariance_{\discreteTime} = \stateTransition \stateCovariance_{\discreteTime-1} \stateTransition^T + \processNoiseCovariance $$
+            <th>
+                \(
+                \begin{align}
+                    \quad \quad \state_{\discreteTime} &= 
+                        \stateTransition \state_{\discreteTime-1} + \controlMatrix \controlInput_{\discreteTime} \\
+                    \quad \quad \stateCovariance_{\discreteTime} &= 
+                        \stateTransition \stateCovariance_{\discreteTime-1} \stateTransition^T + \processNoiseCovariance \\
+                \end{align}
+                \)
             </th>
-            <th>    
-                $$ \kalmanGain = \stateCovariance_{\discreteTime-1} \measurementMatrix^T \left( \measurementMatrix \stateCovariance_{\discreteTime-1} \measurementMatrix^T + \measurementNoiseCovariance \right)^{-1} $$
-                $$ \state_{\discreteTime} = \state_{\discreteTime-1} + \kalmanGain \left( \measurement_{\discreteTime} - \measurementMatrix \state_{\discreteTime-1} \right) $$
-                $$ \stateCovariance_{\discreteTime} = \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} $$
+            <th>
+                \(
+                \begin{align}
+                    \quad \quad \kalmanGain &= \stateCovariance_{\discreteTime-1} \measurementMatrix^T 
+                        \left( \measurementMatrix \stateCovariance_{\discreteTime-1} \measurementMatrix^T + \measurementNoiseCovariance \right)^{-1} \\
+                    \quad \quad \state_{\discreteTime} &= \state_{\discreteTime-1} + 
+                        \kalmanGain \left( \measurement_{\discreteTime} - \measurementMatrix \state_{\discreteTime-1} \right) \\
+                    \quad \quad \stateCovariance_{\discreteTime} &= 
+                        \left( \identityMatrix - \kalmanGain \measurementMatrix \right) 
+                \stateCovariance_{\discreteTime-1} 
+                \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + 
+                    \kalmanGain \measurementNoiseCovariance \kalmanGain^T 
+                \end{align}
+                \)
+            </th>
+        </tr>
+        <tr>
+            <th>\(\quad \quad \text{return } \left( \state_{\discreteTime}, \space \stateCovariance_{\discreteTime} \right)
+                \)
+            </th>
+            <th>\(\quad \quad \text{return } \left( \state_{\discreteTime}, \space \stateCovariance_{\discreteTime} \right)
+                \)
             </th>
         </tr>
     </table>
+    <p>
+        A few notes:
+        <ol>
+            <li>You should be calling the Predict function as often as you can 
+                (the dynamics never stops so neither should your blind estimate),
+                but the update function can only be called when there is a new measurement. 
+                If your sensor is fast, you might always call Predict immediately followed 
+                by Update, but if your sensor is slow, 5 predict steps might go by with no update. 
+            </li>
+            <li>In more advanced implementations, you can define all of the matrices 
+                (\(\stateTransition\), \(\controlMatrix\), \(\measurementMatrix\), etc.) to
+                vary with time (they even may change nonlinearly as time progresses).
+            </li>
+            <li>We use the longer form of the covariance update formula (also known 
+                as the Joseph Form) because it is numerically more stable.
+            </li>
+        </ol>
+    </p>
 
     <h2>Summary</h2>
     <p>
@@ -929,7 +972,7 @@
         <ul>
             <li>Convert from the space of measurements to the space of states</li>
             <li>Weight the contribution of the measurement to the state estimate in proportion
-                to the inverse of the measurement's variance</li>
+                to the inverse of its variance</li>
         </ul>
         Note that in this interpretation, the inverse measurement matrix <span id="measurement-matrix-inverse"></span>
         is imagined to convert back from the space of measurements to the space of states, even though
