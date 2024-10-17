@@ -490,9 +490,12 @@
     <p> TODO: Diagram: Predict Step State Space diagram</p>
     
     <h2>Sensing the environment</h2>
+    <img class="expanded-content" src="./assets/ultrasonic-sensor-HC-SR04-mouser.png" alt="Picture of an ultrasonic distance sensor" id="ultrasonic-sensor-picture">
     <p>Ok so the state ... isn't terrible, but it's not great either, and the variance is exploding (which is reasonable considering the 
         dynamics equation has no feedback).
-        Fortunately, we have endowed this robot with an ultrasonic distance sensor that should help.
+        Fortunately, we have endowed this robot with an 
+        <span class="expandable-content-text" onclick="toggleExpandableContent('ultrasonic-sensor-picture')">ultrasonic distance sensor</span>
+        that should help.
         This sensor will output a measurement vector containing one value corresponding to the distance to the nearest object.
         $$ \text{Measurement Vector } \measurement = \begin{bmatrix} \text{distance} \end{bmatrix} $$
         The only question is, how do we incorporate these measurements into the filter? 
