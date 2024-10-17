@@ -150,12 +150,12 @@
         }
 
         #kalman-gain-measurement-gaussian {
-            border: 2px solid rgb(255, 0, 0);
+            border: 2px solid rgb(0, 150, 0);
             border-radius: 10px;
         }
 
         #kalman-gain-combined-gaussian {
-            border: 2px solid rgb(0, 150, 0);
+            border: 2px solid rgb(240, 0, 0);
             border-radius: 10px;
         }
 
@@ -577,7 +577,7 @@
                 type: 'scatter',
                 mode: 'lines',
                 name: 'Measurement',
-                line: {color: 'red'},
+                line: {color: 'green'},
             };
             const trace_Hx_t = {
                 x: x_Hx_t, 
@@ -585,7 +585,7 @@
                 type: 'scatter',
                 mode: 'lines',
                 name: 'Combination',
-                line: {color: 'green'},
+                line: {color: 'red'},
             };
             
             const layout = {

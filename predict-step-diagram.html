@@ -138,7 +138,7 @@
         }
 
         .next-state-gaussian {
-            color: green;
+            color: rgb(240, 0, 0);
             /* border: 2px solid green; */
         }
 
@@ -430,7 +430,7 @@
             };
 
             let traces_old = generateGaussianEllipticalContours(means[0], sigmas[0], color='blue', name='Current State');
-            let traces_new = generateGaussianEllipticalContours(means[1], sigmas[1], color='green', name='Next State');
+            let traces_new = generateGaussianEllipticalContours(means[1], sigmas[1], color='red', name='Next State');
             let traces = traces_old.concat(traces_new);
             Plotly.react('predict-step-plot', traces, layout);
         }
