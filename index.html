@@ -970,63 +970,38 @@
         vector to the total state estimate. This operation can be interpreted as having two 
         steps (in either order):
         <ul>
-            <li>Convert from the space of measurements to the space of states</li>
+            <li>Convert from the space of measurements to the space of states using \( \measurementMatrix^{-1} \)</li>
             <li>Weight the contribution of the measurement to the state estimate in proportion
-                to the inverse of its variance</li>
+                to the inverse of its variance (either \( \varianceRatio \) or \( \varianceRatioState \))</li>
         </ul>
-        Note that in this interpretation, the inverse measurement matrix <span id="measurement-matrix-inverse"></span>
-        is imagined to convert back from the space of measurements to the space of states, even though
-        in practice it is <em>almost never invertible</em>. This is why the Kalman Filter is usually 
-        defined without it. 
+        In practice the measurement matrix is not invertible, but by bundling these two steps together
+        we can define the Kalman Gain without ever using \( \measurementMatrix^{-1} \).
     </p>
     <p>
-        The Kalman Gain has been proven to be the Best Linear Unbiased Estimator (BLUE) for 
-        gaussian random variables.
-    </p>
-    <p>Hopefully while playing you realized that 1) it's not magic, and 2) there are many obvious shortcomings. For example, 
+        My aim with this article was to give you an intuitive understanding of how the Kalman Filter 
+        works, but from here there is a lot of beatiful math that proves the Filter's optimality under certain 
+        conditions, and also provides insight on how to handle situations that don't quite match this precise setup. 
+        Hopefully while exploring this article you realized that there are many obvious 
+        shortcomings. For example, 
         What if your model isn't linear? What if you don't know the covariance matrix for your sensors? How do small changes 
-        in parameters like the timestep affect the filter's behavior? The key takeaway is the underlying principles: 
-        how to combine and propagate gaussian random variables.
+        in parameters like the timestep (or accumulation of numerical error) affect the filter's behavior? 
     </p>
-
-    <h2>Model Summary</h2>
-    I've just thrown you 15 variables -- that can be a lot to keep track of! I've tabulated all of them here,
-    but throughout the article you can also click on any variable to see its name, and keep clicking to get more information.
-    You can also choose the naming convention using the dropdown menu above, which should make it easier to learn across multiple sources.
-
-    Link to Visually Explained:https://www.youtube.com/watch?v=IFeCIbljreY
-    Link to Steve Brunton: https://www.youtube.com/watch?v=s_9InuQAx-g
+    <p>
+        As far as dealing with non-linearities, there are several different algorithms you should look into:
+        the Particle Filter, the Unscented Kalman Filter (UKF), and the Extended Kalman Filter (EKF). All three of these 
+        are similar in that they combine probabilistic state and measurement information, but they differ in 
+        how they incorporate non-linear process models and how they represent the state estimate distribution. 
+    </p>
+    <p>
+        In total I've thrown you 17 variables -- that can be a lot to keep track of! 
+        I've collected them all here so you have a single reference, though clicking 
+        on the variables throughout the article will give the same information.
+        You can also choose the naming convention using the dropdown menu above, 
+        which should make it easier to learn across multiple sources.
+    </p>
 
     TODO: Make the highilght colors match the diagram colors
 
-    What made me care?
-        Powerful way of combining information in the face of uncertainty
-        Elegant Combination of linear algebra and probability theory,
-        Lightweight tool used for pretty much any system that are continuously changing
-        Used everywhere there is time-series data: Target tracking, navigation, control, robotics, neuroscience, finance
-        
-    <h2>Appendix</h2>
-    Many texts make the distinction between the estimate of the state and the <em>true</em> state. Why don't I?
-    I did this because when I was learning, I found that with some effort I could distinguish between 
-    \( \state \) and \( \hat{\state} \) and \( \bar{\state} \), as well as terms like "a priori" 
-    ( \(x_{\discreteTime | \discreteTime-1} \)) and "a posteriori" ( \(x_{\discreteTime | \discreteTime} \)).
-    but ultimately those distinctions did not speed my learning process or aid my intuition.
-
-    If you distinguish between estimated state and true state, then you have to be able to think in 3 layers:
-    true reality, your model of reality, and then your algorithm, which tracks your model of reality. 
-
-    From the perspective of someone who wants to gain an intuition for how the filter works and possibly implement one 
-    (but not necessarily rigorously prove its optimality in some theoretical environment), the distinction
-    between model and algorithm is just extra fluff. In practice there are only two processes happening: reality, 
-    and the algorithm that tracks reality. When learning and implementing, it is easier to treat the algorithm as 
-    both theoretical model and algorithm, and simplify the notation. We admit that our theoretical model of 
-    reality is wrong (eg. the assumption of linearity and gaussian noise), but we can simply add these to the 
-    list of things that make our algorithm differ from reality (like choosing a timestep and noise parameters).
-
-    I will be the first to admit that I know relatively little about rigorously proving the optimality of the Kalman Filter
-    in a theoretical context (despite having sat through lectures that proved it). I think it may be possible to 
-    rigorously unite the algorithm with the model (and by that I mean stop distinguishing between estimate and true state), 
-    but, not having done so, I cannot say that that distinction is useless in general.    
 </body>
 <script>
     activateButtonsAndContent(['option1-button'], ['update-step-option1'], ['option2-button'], ['update-step-option2']);
