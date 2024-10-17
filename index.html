@@ -716,14 +716,13 @@
                 $$
         </p>
     
-        <p> Great! Now we have a matrix formula to combine the means of two Gaussians. The only step left is to propagate the variances too. 
-            Remember our rule of thumb: For a gaussian \( \gaussian \left( \mathbf{\mu}, \mathbf{\Sigma} \right) \), 
-            any time we apply a linear operation on the mean (eg. \( \mathbf{A} \mu \) ), 
-            the variance will get that same operation applied twice (eg. \( \mathbf{A} \mathbf{\Sigma} \mathbf{A}^T \) ).
+        <p> Great! Now we have a matrix formula to combine the means of two Gaussians. The only step left is to propagate the variances too,
+            which we can easily do using our <span class="expandable-content-text" onclick="toggleExpandableContent('duplicate-gaussian-multiplication-rule-4')">
+                rule for multiplying Gaussians</span>. 
         </p>
+        <div class="expanded-content" id="duplicate-gaussian-multiplication-rule-4"></div>
     
         <p>
-            Using this rule, we can easily write aout the variance:
             $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
             And with <span class="expandable-content-text" onclick="toggleExpandableContent('covariance-matrix-simplification')">
                 a bit more algebra</span> we can reduce this to:
@@ -837,14 +836,13 @@
             $$
         </p>
 
-        <p> Great! Now we have a matrix formula to combine the means of two Gaussians. The only step left is to propagate the variances too. 
-            Remember our rule of thumb: For a gaussian \( \gaussian \left( \mathbf{\mu}, \mathbf{\Sigma} \right) \), 
-            any time we apply a linear operation on the mean (eg. \( \mathbf{A} \mu \) ), 
-            the variance will get that same operation applied twice (eg. \( \mathbf{A} \mathbf{\Sigma} \mathbf{A}^T \) ).
+        <p> Great! Now we have a matrix formula to combine the means of two Gaussians. The only step left is to propagate the variances too,
+            which we can easily do using our <span class="expandable-content-text" onclick="toggleExpandableContent('duplicate-gaussian-multiplication-rule-3')">
+                rule for multiplying Gaussians</span>. 
         </p>
+        <div class="expanded-content" id="duplicate-gaussian-multiplication-rule-3"></div>
 
         <p>
-            Using this rule, we can easily write aout the variance:
             $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
             And with <span class="expandable-content-text" onclick="toggleExpandableContent('covariance-matrix-simplification-2')">
                 a bit more algebra</span> we can reduce this to:
@@ -978,10 +976,15 @@
 <script>
     activateButtonsAndContent(['option1-button'], ['update-step-option1'], ['option2-button'], ['update-step-option2']);
     document.addEventListener('DOMContentLoaded', function() {
+        const gaussianMultiplicationRule = document.getElementById('gaussian-multiplication-rule');
         const duplicateGaussianMultiplicationRule = document.getElementById('duplicate-gaussian-multiplication-rule');
-        duplicateGaussianMultiplicationRule.innerHTML = document.getElementById('gaussian-multiplication-rule').innerHTML;
+        duplicateGaussianMultiplicationRule.innerHTML = gaussianMultiplicationRule.innerHTML;
         const duplicateGaussianMultiplicationRule2 = document.getElementById('duplicate-gaussian-multiplication-rule-2');
-        duplicateGaussianMultiplicationRule2.innerHTML = document.getElementById('gaussian-multiplication-rule').innerHTML;
+        duplicateGaussianMultiplicationRule2.innerHTML = gaussianMultiplicationRule.innerHTML;
+        const duplicateGaussianMultiplicationRule4 = document.getElementById('duplicate-gaussian-multiplication-rule-4');
+        duplicateGaussianMultiplicationRule4.innerHTML = gaussianMultiplicationRule.innerHTML;
+        const duplicateGaussianMultiplicationRule3 = document.getElementById('duplicate-gaussian-multiplication-rule-3');
+        duplicateGaussianMultiplicationRule3.innerHTML = gaussianMultiplicationRule.innerHTML;
         const duplicateWhatWeWantOfGaussians = document.getElementById('duplicate-what-we-want-of-gaussians');
         duplicateWhatWeWantOfGaussians.innerHTML = document.getElementById('what-we-want-of-gaussians').innerHTML;
 
