@@ -725,9 +725,24 @@
         <p>
             Using this rule, we can easily write aout the variance:
             $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
-            And with a bit more algebra (TODO: expand this out) we can reduce this to:
+            And with <span class="expandable-content-text" onclick="toggleExpandableContent('covariance-matrix-simplification')">
+                a bit more algebra</span> we can reduce this to:
             $$ \stateCovariance_{\discreteTime} = \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} $$
         </p>
+        <div class="expanded-content" id="covariance-matrix-simplification">
+        $$ 
+        \begin{align}
+        \stateCovariance_{\discreteTime} &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} {\color{green} \left(\identityMatrix - \kalmanGain \measurementMatrix \right)^T} + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \\
+        \stateCovariance_{\discreteTime} &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} {\color{green} \left( \identityMatrix -  \left(\kalmanGain \measurementMatrix \right)^T \right) } + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \\
+        \stateCovariance_{\discreteTime} &= \left( \identityMatrix - \kalmanGain \measurementMatrix \right) {\color{green} \stateCovariance_{\discreteTime-1} \left(\identityMatrix - \measurementMatrix^T \kalmanGain^T \right) } + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \\
+        \stateCovariance_{\discreteTime} &= {\color{green} \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \left(\stateCovariance_{\discreteTime-1} - \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T \right) } + \kalmanGain \measurementNoiseCovariance \kalmanGain^T \\
+        \stateCovariance_{\discreteTime} &= \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} - \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T + {\color{green} \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T } \\
+        \stateCovariance_{\discreteTime} &= \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} - \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T + {\color{green} \kalmanGain \left(\measurementMatrix \stateCovariance_{\discreteTime-1} \measurementMatrix^T + \measurementNoiseCovariance \right) } \kalmanGain^T \\
+        \stateCovariance_{\discreteTime} &= \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} {\color{green} - \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T + \stateCovariance_{\discreteTime-1} \measurementMatrix^T \kalmanGain^T }\\
+        \stateCovariance_{\discreteTime} &= \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} 
+        \end{align}
+        $$
+        </div>
     </div>
 
     <div id="update-step-option2" class="expanded-content-long">
@@ -831,9 +846,11 @@
         <p>
             Using this rule, we can easily write aout the variance:
             $$ \stateCovariance_{\discreteTime} = \left( \identityMatrix - \kalmanGain \measurementMatrix \right) \stateCovariance_{\discreteTime-1} \left( \identityMatrix - \kalmanGain \measurementMatrix \right)^T + \kalmanGain \measurementNoiseCovariance \kalmanGain^T $$
-            And with a bit more algebra (TODO: expand this out) we can reduce this to:
+            And with <span class="expandable-content-text" onclick="toggleExpandableContent('covariance-matrix-simplification-2')">
+                a bit more algebra</span> we can reduce this to:
             $$ \stateCovariance_{\discreteTime} = \stateCovariance_{\discreteTime-1} - \kalmanGain \measurementMatrix \stateCovariance_{\discreteTime-1} $$
         </p>
+        <div class="expanded-content" id="covariance-matrix-simplification-2"></div>
     </div>
 
     <h2>Bringing it all together</h2>
@@ -842,8 +859,8 @@
         $$ \kalmanGain = \stateCovariance \measurementMatrix^T \left( \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right)^{-1} $$
 
         However, we have also shown that there are two different ways to interpret this formula (so 
-        long as you imagine that \( \measurementMatrix^{-1} \) exists). Rearranging formulas X and Y (TODO)
-        we have:
+        long as you imagine that \( \measurementMatrix^{-1} \) exists). Rearranging \( \varianceRatioState = \kalmanGain \measurementMatrix \)
+        and \( \varianceRatio = \measurementMatrix \kalmanGain \) we have:
         $$ \kalmanGain = \measurementMatrix^{-1} \varianceRatio = \varianceRatioState \measurementMatrix^{-1} $$
 
         Therefore, we can choose to interpret the Kalman Gain as a two-step process that always takes measurements as inputs, then either:
@@ -973,6 +990,8 @@
         bayesRuleExplanation2.innerHTML = document.getElementById('bayes-rule-explanation').innerHTML;
         const matrixFractionsExplanation2 = document.getElementById('matrix-fractions-explanation-2');
         matrixFractionsExplanation2.innerHTML = document.getElementById('matrix-fractions-explanation').innerHTML;
+        const covarianceMatrixSimplification2 = document.getElementById('covariance-matrix-simplification-2');
+        covarianceMatrixSimplification2.innerHTML = document.getElementById('covariance-matrix-simplification').innerHTML;
     });
 
 </script>
