@@ -288,6 +288,7 @@
     </table>
 
     <script>
+    (function() { // IIFE to prevent global scope pollution
         function updatePredictStepPlot(means, sigmas) {
             const layout = {
                 title: 'Predict Step Gaussian Contours',
@@ -437,5 +438,6 @@
 
         // Initial plot
         updatePredictStepDiagram();
+    })();
     </script>
 </body>
