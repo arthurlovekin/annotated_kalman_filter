@@ -98,3 +98,62 @@ function bivariateGaussianEllipseXYpts(mu, sigma, scale=1, numPts = 100) {
 
     return [ellipseX, ellipseY];
 }
+
+function generateGaussianEllipticalContours(mu, sigma, color='blue', name='') {
+    const scales = [1,1.514987,2,2.48509,3];
+    let shades = [];
+    if (color == 'blue') {
+        shades = [
+            'rgb(0, 0, 255)',      // Darkest blue
+            'rgb(51, 102, 255)',
+            'rgb(102, 153, 255)',
+            'rgb(153, 204, 255)',
+            'rgb(204, 229, 255)'   // Lightest blue
+        ];
+    }
+    else if (color == 'red') {
+        shades = [
+            'rgb(255, 0, 0)',
+            'rgb(255, 51, 51)',
+            'rgb(255, 102, 102)',
+            'rgb(255, 153, 153)',
+            'rgb(255, 204, 204)'
+        ];
+    }
+    else if (color == 'green') {
+        shades = [
+            'rgb(0, 255, 0)',
+            'rgb(51, 255, 51)',
+            'rgb(102, 255, 102)',
+            'rgb(153, 255, 153)',
+            'rgb(204, 255, 204)'
+        ];
+    }
+    // Convert mu from 2D to 1D array if necessary
+    if (Array.isArray(mu[0])) {
+        mu = mu.map(item => item[0]);
+    }
+
+    traces = [];
+    for (let i = scales.length - 1; i >= 0; i--) { // go backward so dark will be on top when the distribution is a line
+        const scale = scales[i];
+        const [ellipseX, ellipseY] = bivariateGaussianEllipseXYpts(mu, sigma, scale, numPts=80);
+        const confidence_interval = 1-Math.exp(-1/2*scale**2);
+        const description = `${scale.toFixed(2)}σ: ${(confidence_interval*100).toFixed(2)}%`;
+        let trace = {
+            x: ellipseX,
+            y: ellipseY,
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: shades[i] },
+            hovertemplate: description,
+            showlegend: false
+        }
+        if (i == 0) { // darkes color
+            trace.name = name;
+            trace.showlegend = true;
+        }
+        traces.push(trace);
+    }
+    return traces;
+}
