@@ -475,7 +475,7 @@
                 </table>
             </td>
         </tr>
-        <tr class="kalman-gain-measurement-space"
+        <tr class="kalman-gain-state-space"
             style="border-right: 2px dashed black; border-left: 2px dashed black;">
             <td colspan="2">
                 <table class="math-diagram-structure-table">
@@ -529,10 +529,10 @@
                 </table>
             </td>
         </tr>
-        <tr class="kalman-gain-measurement-space"
+        <tr class="kalman-gain-state-space"
             style="border-bottom: 2px dashed black; border-right: 2px dashed black; border-left: 2px dashed black;">
             <td colspan="2">
-                <div id="kalman-gain-plot"></div>
+                <div id="state-kalman-gain-plot"></div>
             </td>
         </tr>
 
@@ -685,7 +685,6 @@
             }
             // TODO: Handle the case where both covariances are 0
 
-            updateKalmanGainPlotX(_Hx_0, _HPH_00, z_0.value, R_00.value, _xt_0, _P_00);
 
             VR_00.textContent = _VR_00.toFixed(2);
             VR_10.textContent = _VR_10.toFixed(2);
@@ -701,9 +700,13 @@
             P_11.textContent = _P_11.toFixed(2);
             Ptm1_10.textContent = Ptm1_01.value.toFixed(2);
             
+            let _Hz_0 = 0;
+            let _HRH_00 = 0;
             if (H_00 !== 0) {
-                Hz_0.textContent = (z_0.value / H_00).toFixed(2);
-                HRH_00.textContent = (R_00.value / H_00 / H_00).toFixed(2);
+                _Hz_0 = z_0.value / H_00;
+                Hz_0.textContent = _Hz_0.toFixed(2);
+                _HRH_00 = R_00.value / H_00 / H_00;
+                HRH_00.textContent = _HRH_00.toFixed(2);
             }
             else {
                 Hz_0.textContent = "-";
@@ -715,74 +718,48 @@
             Ptm1_01_d.textContent = Ptm1_01.value.toFixed(2);
             Ptm1_10_d.textContent = Ptm1_01.value.toFixed(2);
             Ptm1_11_d.textContent = Ptm1_11.value.toFixed(2);
+
+            const x_tm1_mean = [xtm1_0.value, xtm1_1.value];
+            const x_tm1_var = [[Ptm1_00.value, Ptm1_01.value], [Ptm1_01.value, Ptm1_11.value]];
+            const x_t_mean = [_xt_0, _xt_1];
+            const x_t_var = [[_P_00, _P_01], [_P_10, _P_11]];
+            updateKalmanGainPlotX(x_tm1_mean, x_tm1_var, _Hz_0, _HRH_00, x_t_mean, x_t_var);
         }
 
         //// Generate a plot of the three univariate gausians: Hx_{t-1}, z, and Hx_{t}
 
-        const xmin = -4;
-        const xmax = 4; 
-        function updateKalmanGainPlotX(Hx_tm1_mean, 
-                                    Hx_tm1_var,
-                                    z_mean,
-                                    z_var,
-                                    Hx_t_mean,
-                                    Hx_t_var) {
+        function updateKalmanGainPlotX(x_tm1_mean, 
+                                    x_tm1_var,
+                                    Hz_mean,
+                                    Hz_var,
+                                    x_t_mean,
+                                    x_t_var) {
+            let trace_xtm1 = generateGaussianEllipticalContours(x_tm1_mean, x_tm1_var, color='blue', name='Previous State');
+            let trace_Hz = generateGaussianLinearContours(Hz_mean, Hz_var, color='green', name='Measurement');
+            let trace_x_t = generateGaussianEllipticalContours(x_t_mean, x_t_var, color='red', name='Combination');
 
-            [x_Hx_tm1, y_Hx_tm1] = univariateGaussianXYpts(Hx_tm1_mean, Hx_tm1_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
-            [x_z, y_z] = univariateGaussianXYpts(z_mean, z_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
-            [x_Hx_t, y_Hx_t] = univariateGaussianXYpts(Hx_t_mean, Hx_t_var, xAbsMin=xmin, xAbsMax=xmax, yAbsMax=1.5);
-
-            const trace_Hx_tm1 = {
-                x: x_Hx_tm1, 
-                y: y_Hx_tm1,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Previous State in Measurement Space',
-                line: {color: 'blue'},
-            };
-            const trace_z = {
-                x: x_z, 
-                y: y_z,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Measurement',
-                line: {color: 'green'},
-            };
-            const trace_Hx_t = {
-                x: x_Hx_t, 
-                y: y_Hx_t,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Combination',
-                line: {color: 'red'},
-            };
+            let traces = trace_xtm1.concat(trace_Hz).concat(trace_x_t);
             
             const layout = {
+                yaxis: {
+                    title: 'Velocity',
+                    range: [-3, 3]
+                },
+                xaxis: {
+                    title: 'Position',
+                    range: [-3, 3]
+                },
                 legend: {
                     orientation: 'h',
                     yanchor: 'top',
                     xanchor: 'center',
-                    y: 1.05,
+                    y: 1.1,
                     x: 0.5,
-                },
-                yaxis: {
-                    range: [0, 1.3]
-                },
-                xaxis: {
-                    range: [xmin, xmax]
-                },
-                width: '100%',
-                // aspectratio: {x: 1, y: 1},  // Ensure the aspect ratio is 1:1
-                margin: {
-                    l: 25,
-                    r: 25,
-                    t: 30,
-                    b: 30,
                 },
                 hovermode: 'closest',
             };
             
-            Plotly.react('kalman-gain-plot', [trace_Hx_tm1, trace_z, trace_Hx_t], layout);
+            Plotly.react('state-kalman-gain-plot', traces, layout);
         }
         updateKalmanGainDiagramX();
 
