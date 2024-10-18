@@ -85,68 +85,7 @@
     <script id="MathJax-script" async
         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
     </script>
-    <style>
-        .matrix-table {
-            position: relative;
-        }
-        /* Rectangular pseudo-element before and after the table */
-        .matrix-table::before,
-        .matrix-table::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 4px; 
-        }
-        /* Make the left pseudo-element look like a bracket */
-        .matrix-table::before {
-            left: 0px;
-            border-left: 2px solid black;
-            border-top: 2px solid black;
-            border-bottom: 2px solid black;
-        }
-        /* Make the right pseudo-element look like a bracket */
-        .matrix-table::after {
-            right: 0px;
-            border-right: 2px solid black;
-            border-top: 2px solid black;
-            border-bottom: 2px solid black;
-        }
-        .matrix-table td {
-            text-align: center;
-            vertical-align: middle;
-            width: 6ch; /* matches the DraggableNumber width */
-        }
-        .matrix-table tr {
-            line-height: 1.5;
-        }
-
-        .math-diagram-structure-table {
-            border-collapse: collapse;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .math-diagram-structure-table td {
-            text-align: center;
-            vertical-align: middle;
-        }
-
-        #predict-step-plot {
-            width: max-content;
-            max-width: 100%;
-        }
-
-        .next-state-gaussian {
-            color: rgb(240, 0, 0);
-            /* border: 2px solid green; */
-        }
-
-        .previous-state-gaussian {
-            color: blue;
-            /* border: 2px solid blue; */
-        }
-    </style>
+    <link rel="stylesheet" href="css/figure-style.css">
 </head>
      <!-- TODO: Add a reset button -->
 <body>
@@ -160,17 +99,17 @@
     <table class="math-diagram-structure-table">
         <tr>
             <td>
-                <div id="predict-step-plot"></div>
+                <div class="figure-plot" id="predict-step-plot"></div>
             </td>
         </tr>
         <tr>
             <td>
                 <table class="math-diagram-structure-table">
                     <tr>
-                        <td class="next-state-gaussian">$$\state_{\discreteTime}$$</td>
+                        <td class="next-state-gaussian-expr">$$\state_{\discreteTime}$$</td>
                         <td>=</td>
                         <td>$$\stateTransition$$</td>
-                        <td class="previous-state-gaussian">$$\state_{\discreteTime -1}$$</td>
+                        <td class="previous-state-gaussian-expr">$$\state_{\discreteTime -1}$$</td>
                         <td>+</td>
                         <td>$$\controlMatrix$$</td>
                         <td>$$\controlInput_{\discreteTime}$$</td>
@@ -259,10 +198,10 @@
 
                 <table class="math-diagram-structure-table">
                     <tr>
-                        <td class="next-state-gaussian">$$\stateCovariance_{\discreteTime}$$</td>
+                        <td class="next-state-gaussian-expr">$$\stateCovariance_{\discreteTime}$$</td>
                         <td>=</td>
                         <td>$$\stateTransition$$</td>
-                        <td class="previous-state-gaussian">$$\stateCovariance_{\discreteTime - 1}$$</td>
+                        <td class="previous-state-gaussian-expr">$$\stateCovariance_{\discreteTime - 1}$$</td>
                         <td>$$\stateTransition^T$$</td>
                         <td>+</td>
                         <td>$$\processNoiseCovariance$$</td>

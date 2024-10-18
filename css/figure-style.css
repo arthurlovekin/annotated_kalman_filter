@@ -71,15 +71,17 @@
     border-radius: 10px;
 }
 
-#state-kalman-gain-plot {
-    width: max-content;
-    max-width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    display: block;
+.next-state-gaussian-expr {
+    color: rgb(240, 0, 0);
+    /* border: 2px solid green; */
 }
 
-#measurement-kalman-gain-plot {
+.previous-state-gaussian-expr {
+    color: blue;
+    /* border: 2px solid blue; */
+}
+
+.figure-plot {
     width: max-content;
     max-width: 100%;
     margin-left: auto;
