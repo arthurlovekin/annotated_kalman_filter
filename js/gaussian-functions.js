@@ -99,11 +99,9 @@ function bivariateGaussianEllipseXYpts(mu, sigma, scale=1, numPts = 100) {
     return [ellipseX, ellipseY];
 }
 
-function generateGaussianEllipticalContours(mu, sigma, color='blue', name='') {
-    const scales = [1,1.514987,2,2.48509,3];
-    let shades = [];
-    if (color == 'blue') {
-        shades = [
+function getContourColors(color_str) {
+    if (color_str === 'blue') {
+        return [
             'rgb(0, 0, 255)',      // Darkest blue
             'rgb(51, 102, 255)',
             'rgb(102, 153, 255)',
@@ -111,8 +109,8 @@ function generateGaussianEllipticalContours(mu, sigma, color='blue', name='') {
             'rgb(204, 229, 255)'   // Lightest blue
         ];
     }
-    else if (color == 'red') {
-        shades = [
+    else if (color_str === 'red') {
+        return [
             'rgb(255, 0, 0)',
             'rgb(255, 51, 51)',
             'rgb(255, 102, 102)',
@@ -120,8 +118,8 @@ function generateGaussianEllipticalContours(mu, sigma, color='blue', name='') {
             'rgb(255, 204, 204)'
         ];
     }
-    else if (color == 'green') {
-        shades = [
+    else {
+        return [
             'rgb(0, 255, 0)',
             'rgb(51, 255, 51)',
             'rgb(102, 255, 102)',
@@ -129,12 +127,18 @@ function generateGaussianEllipticalContours(mu, sigma, color='blue', name='') {
             'rgb(204, 255, 204)'
         ];
     }
+}
+
+function generateGaussianEllipticalContours(mu, sigma, color='blue', name='') {
+    const scales = [1,1.514987,2,2.48509,3];
+    const shades = getContourColors(color);
+
     // Convert mu from 2D to 1D array if necessary
     if (Array.isArray(mu[0])) {
         mu = mu.map(item => item[0]);
     }
 
-    traces = [];
+    let traces = [];
     for (let i = scales.length - 1; i >= 0; i--) { // go backward so dark will be on top when the distribution is a line
         const scale = scales[i];
         const [ellipseX, ellipseY] = bivariateGaussianEllipseXYpts(mu, sigma, scale, numPts=80);
@@ -149,11 +153,54 @@ function generateGaussianEllipticalContours(mu, sigma, color='blue', name='') {
             hovertemplate: description,
             showlegend: false
         }
-        if (i == 0) { // darkes color
+        if (i == 0) { // darkest color
             trace.name = name;
             trace.showlegend = true;
         }
         traces.push(trace);
+    }
+    return traces;
+}
+
+function generateGaussianLinearContours(mu_0, sigma_00, color='blue', name='') {
+    // For the scenario of H^(-1)z, the matrix is not fully defined since H is not invertible
+    // However we can draw straight lines representing the dimension that we can speak to
+    const scales = [0,0.5,1,1.5,2];
+    const shades = getContourColors(color);
+
+    // Assume the lines are vertical (measurement gives you position, not velocity)
+    // Generate one dashed vertical line at mu_0 and each of mu_0 +/- scale*sigma_00
+    let traces = [
+        {
+            x: [mu_0, mu_0],
+            y: [-10, 10],
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: shades[0] },
+            showlegend: true,
+            name: name
+        }
+    ];
+
+    for (let i = 1; i < scales.length; i++) {
+        const scale = scales[i];
+        const confidence_interval = 1-Math.exp(-1/2*scale**2);
+        const description = `${scale.toFixed(2)}σ: ${(confidence_interval*100).toFixed(2)}%`;
+        const stddev = Math.sqrt(sigma_00);
+        const Xpts = [mu_0 - scale * stddev, 
+                       mu_0 + scale * stddev];
+        const lineY = [-10, 10];
+        for( const pt of Xpts ) {
+            traces.push({
+                x: [pt, pt],
+                y: lineY,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: shades[i] },
+                hovertemplate: description,
+                showlegend: false,
+            });
+        }
     }
     return traces;
 }
