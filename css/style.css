@@ -1,0 +1,21 @@
+/* Formatting for the entire page */
+@import url("./figure-style.css");
+@import url("./expandable-content-style.css");
+
+body {
+    font-family: serif;
+    margin: 40px auto;
+    /* padding: 40px; This made the text adjust too late */
+    background-color: hsl(40, 100%, 98%);
+    color: hsl(208, 30%, 18%);
+    max-width: 45rem; /* Adjust this value as needed for desired width */
+    width: 100%;
+}
+
+h1, h2 {
+    font-family: sans-serif;
+}
+
+.highlight-term {
+    background-color: rgb(253, 253, 131);
+}

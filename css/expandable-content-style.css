@@ -1,0 +1,47 @@
+/* Formatting for Expandable Content */
+.expanded-content {
+    display: none;
+    margin-top: 10px;
+    border: 1px solid #472e1d;
+    border-radius: 10px;
+    padding: 15px;
+    margin-left: 10px;
+    margin-right: 10px;
+    background-color: #fdf0de;
+    transition: max-height 0.3s ease-in-out;
+}
+
+.expanded-content-long {
+    background-color: #cccccc;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.expandable-content-text {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #4a4a4f;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.active-button {
+    background-color: #cccccc; 
+    border: 2px solid #888888; 
+    border-radius: 10px;
+    height: 3rem;
+    width: 98%;
+    text-align: center;
+    padding: 10px;
+}
+
+.inactive-button {
+    background-color: #eee; 
+    border: 2px solid #ccc; 
+    color: #777; 
+    border-radius: 10px;
+    height: 3rem;
+    width: 98%;
+    text-align: center;
+    padding: 10px;
+}
