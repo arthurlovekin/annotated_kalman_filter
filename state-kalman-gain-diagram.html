@@ -144,17 +144,17 @@
             background-color: rgb(255, 252, 238);
         }
 
-        #kalman-gain-Hstate-gaussian {
+        .kalman-gain-Hstate-gaussian {
             border: 2px solid rgb(0, 0, 255);
             border-radius: 10px;
         }
 
-        #kalman-gain-measurement-gaussian {
+        .kalman-gain-measurement-gaussian {
             border: 2px solid rgb(0, 150, 0);
             border-radius: 10px;
         }
 
-        #kalman-gain-combined-gaussian {
+        .kalman-gain-combined-gaussian {
             border: 2px solid rgb(240, 0, 0);
             border-radius: 10px;
         }
@@ -215,7 +215,7 @@
                                         <draggable-number id="xkalman-gain-old-state-covariance-00" min="0" max="5" step="0.01" value="1">1.0</draggable-number>
                                     </td>
                                     <td>
-                                        <draggable-number id="xkalman-gain-old-state-covariance-01" min="0" max="5" step="0.01" value="0.0">0.0</draggable-number>
+                                        <draggable-number id="xkalman-gain-old-state-covariance-01" min="-5" max="5" step="0.01" value="0.0">0.0</draggable-number>
                                     </td>
                                 </tr>
                                 <tr>
@@ -373,7 +373,7 @@
         <tr class="kalman-gain-state-space"
             style="border-right: 2px dashed black; border-left: 2px dashed black;">
             <td>
-                <table id="kalman-gain-Hstate-gaussian" class="math-diagram-structure-table">
+                <table class="math-diagram-structure-table kalman-gain-Hstate-gaussian">
                     <tr>
                         <td>\( \mathcal{N} \left( 
                             \begin{eqnarray}
@@ -429,7 +429,7 @@
                 </table>
             </td>
             <td>
-                <table id="kalman-gain-measurement-gaussian" class="math-diagram-structure-table">
+                <table class="kalman-gain-measurement-gaussian math-diagram-structure-table">
                     <tr>
                         <td>\( \mathcal{N} \left( \measurementMatrix^{-1} \measurement = 
                             \begin{eqnarray}
@@ -504,12 +504,12 @@
                     </tr>
                     <tr>
                         <td>
-                            <table class="math-diagram-structure-table" id="kalman-gain-combined-gaussian">
+                            <table class="math-diagram-structure-table kalman-gain-combined-gaussian">
                                 <tr>
                                     <td>
                                         \( \mathcal{N} \left( (I - \varianceRatioState) \state + \varianceRatioState \measurementMatrix^{-1} \measurement
                                         \text{, } \space \space \space 
-                                        (I-\varianceRatioState) \stateCovariance (I-\varianceRatio)^T + \kalmanGain \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T \kalmanGain^T \right) \)
+                                        (I-\varianceRatioState) \stateCovariance (I-\varianceRatioState)^T + (\varianceRatioState \measurementMatrix^{-1}) \measurementNoiseCovariance (\varianceRatioState \measurementMatrix^{-1})^T \right) \)
                                     </td>
                                 </tr>
                             </table>
@@ -527,9 +527,9 @@
 
         <tr class="kalman-gain-state-space">
             <td colspan="2">
-                <table class="math-diagram-structure-table">
+                <table class="math-diagram-structure-table kalman-gain-combined-gaussian">
                     <tr>
-                        <td>\(\text{New State Estimate (not plotted): } \mathcal{N} \left( 
+                        <td>\(\text{New State Estimate: } \mathcal{N} \left( 
                             \begin{eqnarray}
                             \\
                             \state_{\discreteTime} \\
@@ -606,7 +606,15 @@
         const P_01 = document.getElementById("xkalman-gain-new-state-covariance-01");
         const P_10 = document.getElementById("xkalman-gain-new-state-covariance-10");
         const P_11 = document.getElementById("xkalman-gain-new-state-covariance-11");
-        
+        const xtm1_0_d = document.getElementById("xkalman-gain-old-state-d-0");
+        const xtm1_1_d = document.getElementById("xkalman-gain-old-state-d-1");
+        const Ptm1_00_d = document.getElementById("xkalman-gain-old-state-covariance-d-00");
+        const Ptm1_01_d = document.getElementById("xkalman-gain-old-state-covariance-d-01");
+        const Ptm1_10_d = document.getElementById("xkalman-gain-old-state-covariance-d-10");
+        const Ptm1_11_d = document.getElementById("xkalman-gain-old-state-covariance-d-11");
+        const Hz_0 = document.getElementById("xkalman-gain-Hz-0");
+        const HRH_00 = document.getElementById("xkalman-gain-HRH-00");
+
         // constants
         const H_00 = parseFloat(document.getElementById("xkalman-gain-measurement-matrix-00").textContent);
         const H_01 = parseFloat(document.getElementById("xkalman-gain-measurement-matrix-01").textContent);
@@ -624,7 +632,7 @@
 
 
         //// Update the matrices whenever one is changed
-        function updateKalmanGainDiagram() {
+        function updateKalmanGainDiagramX() {
             // Note: Ptm1_01 is always used instead of Ptm1_10 because the matrix is symmetric
             const _Hx_0 = H_00 * xtm1_0.value + H_01 * xtm1_1.value;
             const _HPH_00 = H_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) + H_01 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
@@ -647,7 +655,7 @@
             const _P_10 = Ptm1_01.value - K_10 * (Ptm1_00.value * H_00 + Ptm1_11.value * H_01);
             const _P_11 = Ptm1_11.value - K_10 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
 
-            updateKalmanGainPlot(_Hx_0, _HPH_00, z_0.value, R_00.value, _xt_0, _P_00);
+            updateKalmanGainPlotX(_Hx_0, _HPH_00, z_0.value, R_00.value, _xt_0, _P_00);
 
             Hx_0.textContent = _Hx_0.toFixed(2);
             HPH_00.textContent = _HPH_00.toFixed(2);
@@ -659,13 +667,28 @@
             P_10.textContent = _P_10.toFixed(2);
             P_11.textContent = _P_11.toFixed(2);
             Ptm1_10.textContent = Ptm1_01.value.toFixed(2);
+            
+            if (H_00 !== 0) {
+                Hz_0.textContent = (z_0.value / H_00).toFixed(2);
+                HRH_00.textContent = (R_00.value / H_00 / H_00).toFixed(2);
+            }
+            else {
+                Hz_0.textContent = "-";
+                HRH_00.textContent = "-";
+            }
+            xtm1_0_d.textContent = xtm1_0.value.toFixed(2);
+            xtm1_1_d.textContent = xtm1_1.value.toFixed(2);
+            Ptm1_00_d.textContent = Ptm1_00.value.toFixed(2);
+            Ptm1_01_d.textContent = Ptm1_01.value.toFixed(2);
+            Ptm1_10_d.textContent = Ptm1_01.value.toFixed(2);
+            Ptm1_11_d.textContent = Ptm1_11.value.toFixed(2);
         }
 
         //// Generate a plot of the three univariate gausians: Hx_{t-1}, z, and Hx_{t}
 
         const xmin = -4;
         const xmax = 4; 
-        function updateKalmanGainPlot(Hx_tm1_mean, 
+        function updateKalmanGainPlotX(Hx_tm1_mean, 
                                     Hx_tm1_var,
                                     z_mean,
                                     z_var,
@@ -728,11 +751,11 @@
             
             Plotly.react('kalman-gain-plot', [trace_Hx_tm1, trace_z, trace_Hx_t], layout);
         }
-        updateKalmanGainDiagram();
+        updateKalmanGainDiagramX();
 
         // Add event listeners to all the draggable elements
         [xtm1_0, xtm1_1, Ptm1_00, Ptm1_01, Ptm1_11, z_0, R_00].forEach(el => el.addEventListener("input", () => {
-            updateKalmanGainDiagram();
+            updateKalmanGainDiagramX();
         }));
     </script>
 </body>
