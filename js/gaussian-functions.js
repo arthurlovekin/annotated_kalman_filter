@@ -176,7 +176,7 @@ function generateGaussianLinearContours(mu_0, sigma_00, color='blue', name='') {
             y: [-10, 10],
             type: 'scatter',
             mode: 'lines',
-            line: { color: shades[0] },
+            line: { color: shades[0], dash: 'dash' },
             showlegend: true,
             name: name
         }
@@ -196,7 +196,7 @@ function generateGaussianLinearContours(mu_0, sigma_00, color='blue', name='') {
                 y: lineY,
                 type: 'scatter',
                 mode: 'lines',
-                line: { color: shades[i] },
+                line: { color: shades[i], dash: 'dash' },
                 hovertemplate: description,
                 showlegend: false,
             });
