@@ -495,6 +495,17 @@
                                                 <td>
                                                     <div class="dynamic-number-container" id="kalman-gain-variance-ratio-00">1.0</div>
                                                 </td>
+                                                <td>
+                                                    <div class="dynamic-number-container" id="kalman-gain-variance-ratio-01">1.0</div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <div class="dynamic-number-container" id="kalman-gain-variance-ratio-10">1.0</div>
+                                                </td>
+                                                <td>
+                                                    <div class="dynamic-number-container" id="kalman-gain-variance-ratio-11">1.0</div>
+                                                </td>
                                             </tr>
                                         </table>
                                     </td>
@@ -600,6 +611,9 @@
         const Hx_0 = document.getElementById("xkalman-gain-state-measurement-space-0");
         const HPH_00 = document.getElementById("xkalman-gain-state-measurement-space-covariance-00");
         const VR_00 = document.getElementById("kalman-gain-variance-ratio-00");
+        const VR_01 = document.getElementById("kalman-gain-variance-ratio-01");
+        const VR_10 = document.getElementById("kalman-gain-variance-ratio-10");
+        const VR_11 = document.getElementById("kalman-gain-variance-ratio-11");
         const xt_0 = document.getElementById("xkalman-gain-new-state-0");
         const xt_1 = document.getElementById("xkalman-gain-new-state-1");
         const P_00 = document.getElementById("xkalman-gain-new-state-covariance-00");
@@ -636,8 +650,8 @@
             // Note: Ptm1_01 is always used instead of Ptm1_10 because the matrix is symmetric
             const _Hx_0 = H_00 * xtm1_0.value + H_01 * xtm1_1.value;
             const _HPH_00 = H_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) + H_01 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
-            const _VR_00 = _HPH_00 / (_HPH_00 + R_00.value);
-            // Use the kalman gain formula to update x since can't do H^{-1}
+            
+            // Use the kalman gain formula (same as in measurement space) to update x since can't do H^{-1}
             // K = P_{t|t-1} H^T (H P_{t|t-1} H^T + R)^{-1}
             // x_{t|t} = x_{t|t-1} + K (z - H x_{t|t-1})
             // P_{t|t} = (I - K H) P_{t|t-1}
@@ -655,11 +669,30 @@
             const _P_10 = Ptm1_01.value - K_10 * (Ptm1_00.value * H_00 + Ptm1_11.value * H_01);
             const _P_11 = Ptm1_11.value - K_10 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
 
+            // Find the Variance Ratio
+            // Assuming H[1] is 0, then H^T H = [[H[0]*H[0],0],[0,0]]
+            // Also, R and HPH^T are scalars, so can just divide
+            let _VR_00 = Ptm1_00.value;
+            let _VR_10 = Ptm1_01.value;
+            let _VR_01 = Ptm1_01.value;
+            let _VR_11 = Ptm1_11.value;
+            if (K_denominator !== 0) {
+                const HT_HPHT_R_H_00 = H_00*H_00/ K_denominator;
+                _VR_00 *= HT_HPHT_R_H_00;
+                _VR_10 *= HT_HPHT_R_H_00;
+                _VR_01 *= HT_HPHT_R_H_00;
+                _VR_11 *= HT_HPHT_R_H_00;
+            }
+            // TODO: Handle the case where both covariances are 0
+
             updateKalmanGainPlotX(_Hx_0, _HPH_00, z_0.value, R_00.value, _xt_0, _P_00);
 
+            VR_00.textContent = _VR_00.toFixed(2);
+            VR_10.textContent = _VR_10.toFixed(2);
+            VR_01.textContent = _VR_01.toFixed(2);
+            VR_11.textContent = _VR_11.toFixed(2);
             Hx_0.textContent = _Hx_0.toFixed(2);
             HPH_00.textContent = _HPH_00.toFixed(2);
-            VR_00.textContent = _VR_00.toFixed(2);
             xt_0.textContent = _xt_0.toFixed(2);
             xt_1.textContent = _xt_1.toFixed(2);
             P_00.textContent = _P_00.toFixed(2);
