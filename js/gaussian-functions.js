@@ -120,17 +120,17 @@ function getContourColors(color_str) {
     }
     else {
         return [
-            'rgb(0, 255, 0)',
-            'rgb(51, 255, 51)',
-            'rgb(102, 255, 102)',
-            'rgb(153, 255, 153)',
-            'rgb(204, 255, 204)'
+            'rgb(0, 100, 0)',      // Darkest green
+            'rgb(0, 150, 0)',      // Dark green
+            'rgb(0, 200, 0)',      // Medium green
+            'rgb(102, 204, 102)',  // Light green
+            'rgb(204, 255, 204)'   // Lightest green
         ];
     }
 }
 
 function generateGaussianEllipticalContours(mu, sigma, color='blue', name='') {
-    const scales = [1,1.514987,2,2.48509,3];
+    const scales = [0.5,1,1.514987,2,2.48509];
     const shades = getContourColors(color);
 
     // Convert mu from 2D to 1D array if necessary
@@ -177,6 +177,7 @@ function generateGaussianLinearContours(mu_0, sigma_00, color='blue', name='') {
             type: 'scatter',
             mode: 'lines',
             line: { color: shades[0], dash: 'dash' },
+            hovertemplate: 'Mean',
             showlegend: true,
             name: name
         }
@@ -198,6 +199,7 @@ function generateGaussianLinearContours(mu_0, sigma_00, color='blue', name='') {
                 mode: 'lines',
                 line: { color: shades[i], dash: 'dash' },
                 hovertemplate: description,
+                name: name,
                 showlegend: false,
             });
         }

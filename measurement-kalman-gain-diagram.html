@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalman Gain Diagram</title>
+    <title>Measurement-Space Kalman Gain Diagram</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script src="https://unpkg.com/tippy.js@6"></script>
@@ -157,6 +157,14 @@
         #kalman-gain-combined-gaussian {
             border: 2px solid rgb(240, 0, 0);
             border-radius: 10px;
+        }
+
+        #measurement-kalman-gain-plot {
+            width: max-content;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
         }
 
         /* Outline the table temporarily so I can see what I'm doing */
@@ -400,7 +408,7 @@
         <tr class="kalman-gain-measurement-space"
             style="border-right: 2px dashed black; border-left: 2px dashed black;">
             <td colspan="2">
-                <div id="kalman-gain-plot"></div>
+                <div id="measurement-kalman-gain-plot"></div>
             </td>
         </tr>
         <tr class="kalman-gain-intermediate-space"
@@ -593,6 +601,7 @@
             };
             
             const layout = {
+                title: 'Kalman Gain Probability Densities (Measurement Space)',
                 legend: {
                     orientation: 'h',
                     yanchor: 'top',
@@ -601,23 +610,25 @@
                     x: 0.5,
                 },
                 yaxis: {
+                    title: 'Probability',
                     range: [0, 1.3]
                 },
                 xaxis: {
+                    title: 'Position',
                     range: [xmin, xmax]
                 },
-                width: '100%',
+                // width: '100%',
                 // aspectratio: {x: 1, y: 1},  // Ensure the aspect ratio is 1:1
                 margin: {
-                    l: 25,
-                    r: 25,
-                    t: 30,
-                    b: 30,
+                    l: 40,
+                    r: 40,
+                    t: 50,
+                    b: 40,
                 },
                 hovermode: 'closest',
             };
             
-            Plotly.react('kalman-gain-plot', [trace_Hx_tm1, trace_z, trace_Hx_t], layout);
+            Plotly.react('measurement-kalman-gain-plot', [trace_Hx_tm1, trace_z, trace_Hx_t], layout);
         }
         updateKalmanGainDiagram();
 
