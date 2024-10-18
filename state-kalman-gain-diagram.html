@@ -543,6 +543,9 @@
                 <div id="state-kalman-gain-plot"></div>
             </td>
         </tr>
+        <tr class="kalman-gain-state-space">
+            <td colspan="2" style="font-size: 24px;">&#x2193;</td> <!-- Down arrow -->
+        </tr>
 
         <tr class="kalman-gain-state-space">
             <td colspan="2">
@@ -749,7 +752,7 @@
             let traces = trace_xtm1.concat(trace_Hz).concat(trace_x_t);
             
             const layout = {
-                title: 'Kalman Gain Probability Density Contours(State Space)',
+                title: 'Kalman Gain Probability Density Contours (State Space)',
                 legend: {
                     orientation: 'h',
                     yanchor: 'top',
@@ -772,6 +775,8 @@
                     b: 40,
                 },
                 hovermode: 'closest',
+                // plot_bgcolor: 'rgb(187, 187, 187)', // Match .kalman-gain-state-space background color
+                // paper_bgcolor: 'rgb(187, 187, 187)' // Match .kalman-gain-state-space background color
             };
             
             Plotly.react('state-kalman-gain-plot', traces, layout);
