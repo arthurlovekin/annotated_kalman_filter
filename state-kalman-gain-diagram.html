@@ -144,17 +144,17 @@
             background-color: rgb(255, 252, 238);
         }
 
-        .kalman-gain-Hstate-gaussian {
+        .kalman-gain-state-gaussian-expr {
             border: 2px solid rgb(0, 0, 255);
             border-radius: 10px;
         }
 
-        .kalman-gain-measurement-gaussian {
+        .kalman-gain-measurement-gaussian-expr {
             border: 2px solid rgb(0, 150, 0);
             border-radius: 10px;
         }
 
-        .kalman-gain-combined-gaussian {
+        .kalman-gain-combined-gaussian-expr {
             border: 2px solid rgb(240, 0, 0);
             border-radius: 10px;
         }
@@ -189,7 +189,7 @@
         <option value="kalmanfilterdotnet">kalmanfilter.net</option>
     </select>
 
-    <table id='kalman-gain-diagram-table' class="math-diagram-structure-table">
+    <table class="math-diagram-structure-table">
         <tr class="kalman-gain-state-space">
             <td>
                 <table class="math-diagram-structure-table">
@@ -381,7 +381,7 @@
         <tr class="kalman-gain-state-space"
             style="border-right: 2px dashed black; border-left: 2px dashed black;">
             <td>
-                <table class="math-diagram-structure-table kalman-gain-Hstate-gaussian">
+                <table class="math-diagram-structure-table kalman-gain-state-gaussian-expr">
                     <tr>
                         <td>\( \mathcal{N} \left( 
                             \begin{eqnarray}
@@ -437,7 +437,7 @@
                 </table>
             </td>
             <td>
-                <table class="kalman-gain-measurement-gaussian math-diagram-structure-table">
+                <table class="kalman-gain-measurement-gaussian-expr math-diagram-structure-table">
                     <tr>
                         <td>\( \mathcal{N} \left( \measurementMatrix^{-1} \measurement = 
                             \begin{eqnarray}
@@ -523,7 +523,7 @@
                     </tr>
                     <tr>
                         <td>
-                            <table class="math-diagram-structure-table kalman-gain-combined-gaussian">
+                            <table class="math-diagram-structure-table kalman-gain-combined-gaussian-expr">
                                 <tr>
                                     <td>
                                         \( \mathcal{N} \left( (I - \varianceRatioState) \state + \varianceRatioState \measurementMatrix^{-1} \measurement
@@ -607,6 +607,7 @@
         </tr>
     </table>
     <script>
+    (function() { // Immediately Invoked Function Expression (IIFE)
         //// Make variables for the elements on the page
         // Draggable Elements
         const xtm1_0 = document.getElementById("xkalman-gain-old-state-0");
@@ -787,6 +788,8 @@
         [xtm1_0, xtm1_1, Ptm1_00, Ptm1_01, Ptm1_11, z_0, R_00].forEach(el => el.addEventListener("input", () => {
             updateKalmanGainDiagramX();
         }));
+
+    })(); // IIFE
     </script>
 </body>
 

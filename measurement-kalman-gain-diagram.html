@@ -144,17 +144,17 @@
             background-color: rgb(255, 252, 238);
         }
 
-        #kalman-gain-Hstate-gaussian {
+        .kalman-gain-state-gaussian-expr {
             border: 2px solid rgb(0, 0, 255);
             border-radius: 10px;
         }
 
-        #kalman-gain-measurement-gaussian {
+        .kalman-gain-measurement-gaussian-expr {
             border: 2px solid rgb(0, 150, 0);
             border-radius: 10px;
         }
 
-        #kalman-gain-combined-gaussian {
+        .kalman-gain-combined-gaussian-expr {
             border: 2px solid rgb(240, 0, 0);
             border-radius: 10px;
         }
@@ -189,7 +189,7 @@
         <option value="kalmanfilterdotnet">kalmanfilter.net</option>
     </select>
 
-    <table id='kalman-gain-diagram-table' class="math-diagram-structure-table">
+    <table class="math-diagram-structure-table">
         <tr class="kalman-gain-state-space">
             <td>
                 <table class="math-diagram-structure-table">
@@ -202,7 +202,7 @@
                         \end{eqnarray}
                         \right. =\)
                         <td>
-                            <table class="matrix-table" id="kalman-gain-old-state">
+                            <table class="matrix-table">
                                 <tr>
                                     <td>
                                         <draggable-number id="kalman-gain-old-state-0" min="-4" max="4" step="0.01" value="1">1.0</draggable-number>
@@ -217,7 +217,7 @@
                         </td>
                         <td>, \( \stateCovariance_{\discreteTime-1} = \)</td>
                         <td>
-                            <table class="matrix-table" id="kalman-gain-old-state-covariance">
+                            <table class="matrix-table">
                                 <tr>
                                     <td>
                                         <draggable-number id="kalman-gain-old-state-covariance-00" min="0" max="5" step="0.01" value="1">1.0</draggable-number>
@@ -286,7 +286,7 @@
         </tr>
         <tr class="kalman-gain-measurement-space">
             <td>
-                <table id="kalman-gain-Hstate-gaussian" class="math-diagram-structure-table">
+                <table class="kalman-gain-state-gaussian-expr math-diagram-structure-table">
                     <td>
                         \(\mathcal{N} \left( \measurementMatrix \state_{\discreteTime-1} = 
                         \begin{eqnarray}
@@ -327,7 +327,7 @@
                 </table>
             </td>
             <td>
-                <table id="kalman-gain-measurement-gaussian" class="math-diagram-structure-table">
+                <table class="kalman-gain-measurement-gaussian-expr math-diagram-structure-table">
                     <tr>
                         <td>\( \mathcal{N} \left( \measurement = 
                             \begin{eqnarray}
@@ -393,7 +393,7 @@
                     </tr>
                     <tr>
                         <td>
-                            <table class="math-diagram-structure-table" id="kalman-gain-combined-gaussian">
+                            <table class="math-diagram-structure-table kalman-gain-combined-gaussian-expr">
                                 <tr>
                                     <td>
                                         \(\mathcal{N} \left( (I-\varianceRatio)\measurementMatrix + \varianceRatio \measurement \text{, } \space \space \space (I-\varianceRatio) \measurementMatrix \stateCovariance \measurementMatrix^T (I-\varianceRatio)^T + \varianceRatio \measurementNoiseCovariance \varianceRatio^T \right) \)
@@ -484,6 +484,7 @@
         </tr>
     </table>
     <script>
+        (function() { // Immediately Invoked Function Expression (IIFE)
         //// Make variables for the elements on the page
         // Draggable Elements
         const xtm1_0 = document.getElementById("kalman-gain-old-state-0");
@@ -636,6 +637,8 @@
         [xtm1_0, xtm1_1, Ptm1_00, Ptm1_01, Ptm1_11, z_0, R_00].forEach(el => el.addEventListener("input", () => {
             updateKalmanGainDiagram();
         }));
+
+    })(); // IIFE
     </script>
 </body>
 
