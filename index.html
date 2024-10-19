@@ -2268,6 +2268,47 @@
         You can also choose the naming convention using the dropdown menu above, 
         which should make it easier to learn across multiple sources.
     </p>
+    <table id="variable-description-table">
+        <thead>
+            <tr>
+                <th>Symbol </th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Dimension</th>
+            </tr>
+        </thead>
+        <tbody id="variable-description-table-body">
+
+        </tbody>
+    </table>
+    <style>
+        #variable-description-table {
+            border-collapse: collapse;
+            border: 1px solid black;
+        }
+        #variable-description-table th, #variable-description-table td {
+            border: 1px solid black;
+            padding: 4px;
+        }
+        #variable-description-table td:first-child {
+            text-align: center;
+        }
+    </style>
+
+    <script>
+        // For every FormulaElement in variables (from formula-element-definitions.js)
+        // add a row to the table
+        for (const variable of Object.values(variables)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="variable-symbol ${variable.div_name}">\\(${variable.symbol}\\)</td>
+                <td class="variable-name ${variable.div_name}">${variable.display_name}</td>
+                <td class="variable-description ${variable.div_name}">${variable.description}</td>
+                <td class="variable-dimension ${variable.div_name}">${variable.dimension}</td>
+            `;
+            document.getElementById('variable-description-table-body').appendChild(row);
+        }
+    </script>
 
     TODO: Make the highilght colors match the diagram colors
 
