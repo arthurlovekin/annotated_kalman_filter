@@ -772,10 +772,11 @@
     </p>
 
     <p> To summarize, we've defined the measurement matrix \( \measurementMatrix \), whose role is to 
-        convert from the space of states to the space of measurements. \( \measurementMatrix \) can be 
-        applied to the true state to get the noiseless measurement, but it can also be applied to 
-        the entire distribution of our current state estimate, which yields the measurement we expect given 
-        the current state estimate. 
+        convert from the space of states to the space of measurements. 
+        We've used it here to convert from the ideal state to an ideal measurement, but in the 
+        next section we will see that \( \measurementMatrix \) can also be applied 
+        to the entire distribution of our current state estimate. This operation yields the measurement 
+        we expect given the current state estimate. 
     </p>
     
     <h2>Update Step: Combining two gaussians</h2>
@@ -2332,9 +2333,6 @@
             document.getElementById('variable-description-table-body').appendChild(row);
         }
     </script>
-
-    TODO: Make the highilght colors match the diagram colors
-
 </body>
 <script>
     activateButtonsAndContent(['option1-button'], ['update-step-option1'], ['option2-button'], ['update-step-option2']);
