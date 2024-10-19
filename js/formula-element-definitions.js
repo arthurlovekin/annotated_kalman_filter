@@ -1,3 +1,9 @@
+const red_highlight = 'rgba(255, 191, 191, 0.8)';
+const blue_highlight = 'rgba(163, 195, 255, 0.8)';
+const green_highlight = 'rgba(47, 250, 71, 0.8)';
+const yellow_highlight = 'rgba(247, 247, 57, 0.8)';
+const gray_highlight = 'rgba(237, 237, 237, 0.8)';
+
 const variables = {
     state: new FormulaElement("state", 
         "\\state",
@@ -5,7 +11,7 @@ const variables = {
         "Represents the mean of the estimated state of the system", 
         "The position and velocity of a robot", 
         '(state_dim,)',
-        'rgba(255, 191, 191, 0.8)'
+        red_highlight
     ),
     state_estimate: new FormulaElement("state-estimate", 
         "\\stateEstimate",
@@ -13,7 +19,7 @@ const variables = {
         "Represents our belief of the state of the system", 
         "The position and velocity of a robot", 
         '(state_dim,)',
-        'rgba(255, 191, 191, 0.8)'
+        red_highlight
     ),
     true_state: new FormulaElement("true-state", 
         "\\trueState",
@@ -21,7 +27,7 @@ const variables = {
         "The actual state of the system", 
         "The true position and velocity of a robot", 
         '(state_dim,)',
-        'rgba(255, 191, 191, 0.8)'
+        red_highlight
     ),
     state_covariance: new FormulaElement("state-covariance", 
         "\\stateCovariance",
@@ -29,7 +35,7 @@ const variables = {
         "Describes the amount of uncertainty in the state estimate", 
         "The uncertainty in the state estimate",
         '(state_dim, state_dim)',
-        'rgba(255, 191, 191, 0.8)'
+        red_highlight
     ),
     state_transition: new FormulaElement("state-transition", 
         "\\stateTransition",
@@ -37,7 +43,7 @@ const variables = {
         "Transforms the current state estimate to the next state estimate", 
         "The dynamics of the robot system, expressed in matrix form. Each state depends on the pwhere each ",
         '(state_dim, state_dim)',
-        'rgba(228, 191, 255, 0.8)'
+        blue_highlight
     ),
     control_input: new FormulaElement("control-input", 
         "\\controlInput",
@@ -45,7 +51,7 @@ const variables = {
         "Contains the user-supplied input to the system", 
         "A throttle input from [0,1] for the robot",
         '(control_dim,)',
-        'rgba(191, 204, 255, 0.8)'
+        blue_highlight
     ),
     control_matrix: new FormulaElement("control-matrix", 
         "\\controlMatrix",
@@ -53,7 +59,7 @@ const variables = {
         "Transforms the control input to the space of the state", 
         "Describes how the robot's velocity changes in response to a throttle command",
         '(state_dim, control_dim)',
-        'rgba(194, 191, 255, 0.8)'
+        blue_highlight
     ),
     process_noise_covariance: new FormulaElement("process-noise-covariance", 
         "\\processNoiseCovariance",
@@ -61,7 +67,7 @@ const variables = {
         "Describes the amount of uncertainty in the dynamical model of the system", 
         "Uncertainty in the robot's dynamics as a result of things like friction, uneven terrain, etc.",
         '(state_dim, state_dim)',
-        'rgba(204, 243, 255, 0.8)'
+        blue_highlight
     ),
     measurement: new FormulaElement("measurement",
         "\\measurement",
@@ -69,7 +75,7 @@ const variables = {
         "The observed sensor measurement",
         "The position of a robot as measured by an ultrasonic sensor",
         '(measurement_dim,)',
-        'rgba(165, 250, 175, 0.8)'
+        green_highlight
     ),
     measurement_matrix: new FormulaElement("measurement-matrix", 
         "\\measurementMatrix",
@@ -77,7 +83,7 @@ const variables = {
         "Converts vectors from the space of states to the space of measurements", 
         "The matrix that converts the state to the measurement",
         '(measurement_dim, state_dim)',
-        'rgba(212, 250, 165, 0.8)'
+        green_highlight
     ),
     measurement_noise_covariance: new FormulaElement("measurement-noise-covariance",
         "\\measurementNoiseCovariance",
@@ -85,7 +91,7 @@ const variables = {
         "Describes the amount of uncertainty in the measurement", // TODO: make this more precise
         "The uncertainty in the measurement",
         '(measurement_dim, measurement_dim)',
-        'rgba(204, 255, 225, 0.8)'
+        green_highlight
     ),
     kalman_gain: new FormulaElement("kalman-gain",
         "\\kalmanGain",
@@ -93,7 +99,7 @@ const variables = {
         "The gain that transforms the measurement space to the state space",
         "The gain that transforms the measurement space to the state space",
         '(state_dim, measurement_dim)',
-        'rgba(250, 248, 147, 0.8)'
+        yellow_highlight
     ),
     variance_ratio: new FormulaElement("variance-ratio",
         "\\varianceRatio",
@@ -101,7 +107,7 @@ const variables = {
         "The ratio of the variance of the state to the total variance in the measurement space",
         "The ratio of the variance of the measurement to the variance of the state",
         '(measurement_dim, measurement_dim)',
-        'rgba(226, 250, 147, 0.8)'
+        yellow_highlight
     ),
     variance_ratio_state: new FormulaElement("variance-ratio-state",
         "\\varianceRatioState",
@@ -109,7 +115,7 @@ const variables = {
         "The ratio of the variance of the state to the total variance in the measurement space",
         "The ratio of the variance of the measurement to the variance of the state",
         '(state_dim, state_dim)',
-        'rgba(250, 212, 147, 0.8)'
+        yellow_highlight
     ),
     discrete_time: new FormulaElement("discrete-time", 
         "\\discreteTime",
@@ -117,7 +123,7 @@ const variables = {
         "Indicates a discrete moment in time", 
         "The time step of the system",
         '(1,)',
-        'rgba(237, 237, 237, 0.8)'
+        gray_highlight
     ),
     identity_matrix: new FormulaElement("identity-matrix",
         "\\identityMatrix",
@@ -125,7 +131,7 @@ const variables = {
         "A square matrix with ones on the diagonal and zeros elsewhere",
         "The identity matrix",
         '(state_dim, state_dim)',
-        'rgba(237, 237, 237, 0.8)'
+        gray_highlight
     ),
     gaussian_distribution: new FormulaElement("gaussian-distribution",
         "\\gaussian",
@@ -133,6 +139,6 @@ const variables = {
         "A distribution of values around a mean with a standard deviation",
         "The distribution of the measurement noise",
         '(measurement_dim, measurement_dim)',
-        'rgba(237, 237, 237, 0.8)'
+        gray_highlight
     ),
 }
