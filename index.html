@@ -112,38 +112,43 @@
         </select>
     </div>
 
+    <p> TODO: Interactive Robot Diagram</p>
     <h2>Introduction</h2>
     <p>The Kalman Filter is a powerful tool for combining information in the face of uncertainty,
         and is used widely throughout science and engineering for tracking dynamic systems. 
-        Unfortunately, most of the explanations you'll find are either mathematically dense to 
-        the point of being impenetrable, and/or leave a lot of questions remaining as to why we 
-        intuitively should expect the equations to look as they do. In this article, I hope to 
+        In this article, I hope to 
         teach you how deep principles in probability and linear algebra (which you probably 
-        already know!) naturally lead to the equations of the Kalman Filter. I've also made 
-        a series of interactive diagrams that will hopefully give you a better 
-        feel for the different parameters in all of their intricacy, and understand both the power and limitations
-        of this method.
+        already know!) naturally lead to the equations of the Kalman Filter. I've made 
+        a series of interactive diagrams that will give you a better 
+        feel for the different parameters, and help you understand both the power and limitations
+        of this method. This is meant as an introduction that can kickstart your progress 
+        without having to digest an entire math textbook, but this topic is rich with theoretical 
+        optimality proofs and extensions to nonlinear systems which I encourage you to explore 
+        on your own!
     </p>
 
     <h3>What is the Kalman Filter?</h3>
     <p>
     The primary goal of the Kalman Filter is to estimate the state of a dynamical system.
-    The need for state estimation shows up throughout engineering: if you're trying to drive a car, you first need to know where you
+    The need for state estimation shows up throughout engineering: if you're trying to drive 
+    a car, you first need to know where you
     are and how fast you're going before you can intelligently turn the steering wheel.
     If you're controlling the central heating in a building, it's very helpful to know
     the temperature in the rooms. The challenge is that although we often have many sensors,
     they are usually noisy and cannot individually perceive the full state. These sensors need 
     to be combined with each other and with the engineer's knowledge of the system in order 
     to get a complete picture.
-
-    The Kalman Filter is a theoretically optimal way to combine different sources of information into one unified state estimate. 
-
+    </p>
+    <p>
+        The Kalman Filter is a theoretically optimal way to 
+        combine different sources of information into one unified state estimate. 
     </p>
 
     <h2>Building a model</h2>
     <p>The easiest way to wrap your head around the Kalman Filter is with an example.
         Throughout this artile, we'll use this simple robot.
     </p>
+    <p> TODO: 1D Robot Diagram</p>
     <p>We begin with a large question: How to model the world? A common engineering approach is 
         to think of the minimum set of variables needed to make a complete description of the system, 
         and then put them all together in a state vector. We can never know the true state, 
@@ -167,37 +172,41 @@
 
         $$ \text{State Transition Matrix } \stateTransition = \begin{bmatrix} 1 & \Delta t \\ 0 & 1 \end{bmatrix} $$
         $$
-        \begin{alignat}{3}
-            \begin{bmatrix}
-                p_{\discreteTime} \\
-                v_{\discreteTime}
-            \end{bmatrix}
-            &=
-            \begin{bmatrix}
-                1 & \Delta t \\
-                0 & 1
-            \end{bmatrix}
-            &
-            \begin{bmatrix} 
-                p_{\discreteTime-1} \\ 
-                v_{\discreteTime-1} 
-            \end{bmatrix} \\
-
-            \stateEstimate_{\discreteTime} &= \stateTransition & \stateEstimate_{\discreteTime-1} \\
-        \end{alignat}
+        \stateEstimate_{\discreteTime} = \stateTransition \stateEstimate_{\discreteTime-1} \\
         $$
     </p>
+    <!-- $$
+    \begin{alignat}{3}
+        \begin{bmatrix}
+            p_{\discreteTime} \\
+            v_{\discreteTime}
+        \end{bmatrix}
+        &=
+        \begin{bmatrix}
+            1 & \Delta t \\
+            0 & 1
+        \end{bmatrix}
+        &
+        \begin{bmatrix} 
+            p_{\discreteTime-1} \\ 
+            v_{\discreteTime-1} 
+        \end{bmatrix} \\
+
+        \stateEstimate_{\discreteTime} &= \stateTransition & \stateEstimate_{\discreteTime-1} \\
+    \end{alignat}
+    $$ -->
 
     <p>
         Now we have a simple dynamical model of our robot, but it fails to include one
-        thing that is common to most robots: a way to control it. In the demo above, you
+        common thing: a way to control the speed. In the demo above, you
         (as the operator) are able to control the robot with a throttle command \(u\),
-        which can range between [0,1]. Inherently this [0,1] value has no meaning, but
+        which can range between [0,1]. Inherently this throttle value has no meaning, but
         the robot is programmed so that the throttle controls the angular speed of
         the wheels, which in turn determines the robot's linear velocity.
         If we assume that the has radius \(r\), the maximum angular speed
         is \(\omega_{max} \) (and that the wheel speed perfectly matches the control 
-        command), then we have the following relationship between the throttle command \(u\) and the velocity \(v\) of the robot:
+        command), then we have the following relationship between the throttle command 
+        \(u\) and the velocity \(v\) of the robot:
 
         $$ v = r \omega = r \omega_{max} u $$
 
@@ -213,37 +222,139 @@
         Combining this with our dynamics model, our complete dynamical model looks like this:
 
         $$
-        \begin{alignat}{5}
-            \begin{bmatrix}
-                p_{\discreteTime} \\
-                v_{\discreteTime}
-            \end{bmatrix}
-            &=
-            \begin{bmatrix}
-                1 & \Delta t \\
-                0 & 1
-            \end{bmatrix}
-            &
-            \begin{bmatrix} 
-                p_{\discreteTime-1} \\ 
-                v_{\discreteTime-1} 
-            \end{bmatrix}
-            &+
-            \begin{bmatrix}
-                0 \\
-                r \omega_{max} \\
-            \end{bmatrix}
-            &
-            \begin{bmatrix}
-                u_{\discreteTime} \\
-            \end{bmatrix} \\
-            \stateEstimate_{\discreteTime} &= \stateTransition & \stateEstimate_{\discreteTime-1} &+ \controlMatrix & \controlInput_{\discreteTime} \\
-        \end{alignat}
+        \stateEstimate_{\discreteTime} = \stateTransition \stateEstimate_{\discreteTime-1} + \controlMatrix \controlInput_{\discreteTime} \\
         $$
 
         In summary, we <it>predict</it> the new state by applying the dynamics model to the previous state estimate, and adding 
         a correction term for known influences like the control input. 
     </p>
+    <!-- $$
+    \begin{alignat}{5}
+        \begin{bmatrix}
+            p_{\discreteTime} \\
+            v_{\discreteTime}
+        \end{bmatrix}
+        &=
+        \begin{bmatrix}
+            1 & \Delta t \\
+            0 & 1
+        \end{bmatrix}
+        &
+        \begin{bmatrix} 
+            p_{\discreteTime-1} \\ 
+            v_{\discreteTime-1} 
+        \end{bmatrix}
+        &+
+        \begin{bmatrix}
+            0 \\
+            r \omega_{max} \\
+        \end{bmatrix}
+        &
+        \begin{bmatrix}
+            u_{\discreteTime} \\
+        \end{bmatrix} \\
+        \stateEstimate_{\discreteTime} &= \stateTransition & \stateEstimate_{\discreteTime-1} &+ \controlMatrix & \controlInput_{\discreteTime} \\
+    \end{alignat}
+    $$ -->
+ 
+    <h2>Bringing Uncertainty into the Model</h2>
+    <p>
+        The linear model we derived above is great, but it's not very realistic.
+        In the real world, the robot might slip and bounce over the terrain, the motors might not
+        exactly reach the commanded speed. In other words, there is random noise introduced by the 
+        messiness of the environment, which in turn makes our state estimate less certain.
+    </p>
+    <p>
+        One method that can represent both the uncertainty in our state estimate 
+        and the random noise introduced by the environment is to assign each of them a 
+        probability distribution. For simplicity, we assume that both of these distributions are gaussian.
+    </p>
+
+    <p class="expandable-content-text" onclick="toggleExpandableContent('why-a-gaussian')">
+        Why a gaussian?
+    </p>
+    <div class="expanded-content" id="why-a-gaussian"> 
+        There are a few really compelling reasons to choose a gaussian: 
+        <ol>
+            <li>We can parametrize the distribution with just the mean and variance, so it is numerically easy to update</li>
+            <li>When we combine two independent gaussians into one estimate, the result is also a gaussian</li>
+            <li>Mathematicians have proven (the Central Limit Theorem)that the combined effect of many random processes (even if individually they are non-gaussian)
+                will result in a gaussian distribution</li>
+        </ol>
+
+        Take heed: we choose a gaussian mostly because it is numerically convenient, but in practice many things (even something as simple
+        as a \( \sin \theta \) term in the dynamics model introduced by turning around), will make the distribution non-gaussian.
+    </div>
+    <p> So now, instead of representing our state estimate with a single vector, we'll say that our state estimate 
+        is a normal distribution parametrized by a mean \(\state\) and a covariance \(\stateCovariance\).
+        $$ \stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
+    </p>
+    <p>
+        Hopefully you're already familiar with a 1D normal distribution, which is usually parametrized by 
+        its mean \(\mu\) and variance \(\sigma^2\). The multivariate version is similar, except now the 
+        mean is an n-dimensional vector (in our case, 2-dimensional), and the covariance is an n x n matrix whose (\(i,j\))th element
+        represents the covariance between the \(i\)th and \(j\)th state variables.
+        $$ \text{Mean State Vector } \state = \begin{bmatrix} \bar{p} \\ \bar{v} \end{bmatrix} $$
+        $$ \text{State Covariance Matrix } \stateCovariance = \begin{bmatrix} \text{Var}(p) & \text{Cov}(p,v) \\ \text{Cov}(v,p) & \text{Var}(v) \end{bmatrix} $$
+    </p>
+    
+    <p> TODO: Diagram: Play around with a single gaussian: Covariance, mean</p>
+
+    <p>Now comes an important point: In our dynamics equation above we know how to apply the matrix \(\stateTransition\) 
+        to the state estimate \( \stateEstimate \) when it was a single vector. But now our estimate is a gaussian,
+        so we need to apply \(\stateTransition\) to the whole distribution. Fortunately, the mean is a single point,
+        so we can directly apply the state transition matrix as we did before. The variance on the other hand is the 
+        average "squared-distance" from the mean, so how should it be treated?
+    </p>
+    <p> We'll introduce a very useful rule for multiplying a gaussian distribution 
+        \(\gaussian \left( \mathbf{\bar{\mu}}, \mathbf{\Sigma} \right) \) by a matrix \( \mathbf{A} \):
+    </p>
+    <p id="gaussian-multiplication-rule">
+        $$
+        \begin{align}
+            \text{If you linearly transform the mean: } &
+            \mathbf{\bar{\mu}}_{\discreteTime} = \mathbf{A} \mathbf{\bar{\mu}}_{\discreteTime-1} 
+            \\
+            \text{ then the covariance is: } &
+            \mathbf{\Sigma}_{\discreteTime} = \mathbf{A} \mathbf{\Sigma}_{\discreteTime-1} \mathbf{A}^T
+        \end{align}
+        $$
+    </p>
+    <p class="expandable-content-text" onclick="toggleExpandableContent('why-multiply-covariance')">
+        Why multiply the covariance by \( \mathbf{A} \) on the left and right?
+    </p>
+    <div class="expanded-content" id="why-multiply-covariance">
+        One way you can remember this is to think back to what happens when you multiply a 1D normal distribution by a scalar.
+        The standard deviation \( \sigma \) will scale linearly, and the variance is the standard deviation squared
+        (which we can write in a way that is suggestive of what the operation looks like in higher dimensions).
+        <div style="max-width: 100%; text-align: center;">
+            <img src="./assets/variance-diagram-1d.png" alt="Diagram showing the effect of multiplying a 1D Gaussian by a scalar" style="max-width: 100%; height: auto;">
+        </div>
+    </div>
+
+    <p> The other thing we need to know is that if we add or subtract two independent, normally distributed 
+        random variables, then their variances add. (see 
+        <a href="https://apcentral.collegeboard.org/courses/ap-statistics/classroom-resources/why-variances-add-and-why-it-matters" target="_blank" rel="noopener noreferrer"
+        >AP Central's explanation</a>
+        for a refresher.)
+    </p>
+
+    <p>With this knowledge of probability, we have actually arrived to the point where we can write out the first component of the Kalman Filter:
+        the <strong>Predict Step</strong>! We'll define the covariance of the state estimate to be \(\stateCovariance\), and the mean to be \(\state\). 
+        To handle environmental noise, we'll also add a noise term with mean 0 and covariance \(\processNoiseCovariance\). Writing this out, we have:
+    </p>
+    <p>The Predict Step:
+        $$ \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} + \controlMatrix \controlInput_{\discreteTime} $$
+        $$ \stateCovariance_{\discreteTime} = \stateTransition \stateCovariance_{\discreteTime-1} \stateTransition^T + \processNoiseCovariance $$
+    where
+    $$ \text{State Estimate Distribution }\stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
+    and $$ \text{Process Noise} \sim \gaussian \left( 0, \processNoiseCovariance \right) $$
+    </p>
+    <p> 
+        Fundamentally, the predict step describes how to <it>predict</it> the a new gaussian state estimate from the previous estimate, 
+        based on our dynamical model of the system. 
+    </p>
+    <p>Drag the underlined values to see how they would affect one iteration of the dynamics model!</p>
     <div id="predict-step-diagram">
         <table class="math-diagram-structure-table">
             <tr>
@@ -590,100 +701,8 @@
         })();
         </script>
     </div>
-    <h2>Bringing Uncertainty into the Model</h2>
-    <p>
-        The linear model we derived above is great and all, but let's be honest, it's not very realistic.
-        In the real world, the robot might slip and bounce over the terrain, the motors might not
-        exactly reach the commanded speed. In other words, there is random noise introduced by the 
-        messiness of the environment, which in turn makes our state estimate less certain.
-    </p>
-    <p>
-        One method that can represent both the uncertainty in our state estimate 
-        and the random noise introduced by the environment is to assign each of them a 
-        probability distribution. For simplicity, we assume that both of these distributions are gaussian.
-    </p>
-
-    <p class="expandable-content-text" onclick="toggleExpandableContent('why-a-gaussian')">
-        Why a gaussian?
-    </p>
-    <div class="expanded-content" id="why-a-gaussian"> 
-        There are a few really compelling reasons to choose a gaussian: 
-        <ol>
-            <li>We can parametrize the distribution with just the mean and variance, so it is numerically easy to update</li>
-            <li>When we combine two independent gaussians into one estimate, the result is also a gaussian</li>
-            <li>Mathematicians have proven (the Central Limit Theorem)that the combined effect of many random processes (even if individually they are non-gaussian)
-                will result in a gaussian distribution</li>
-        </ol>
-
-        Take heed: we choose a gaussian mostly because it is numerically convenient, but in practice many things (even something as simple
-        as a \( sin \theta \) term in the dynamics model introduced by turning around), will make the distribution non-gaussian.
-    </div>
-    <p> So now, instead of representing our state estimate with a single vector, we'll say that our state estimate 
-        is a normal distribution parametrized by a mean \(\state\) and a covariance \(\stateCovariance\).
-        $$ \stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
-    </p>
-    <p>
-        Hopefully you've already seen a 1D normal distribution
-    </p>
     
-    <p> TODO: Diagram: Play around with a single gaussian: Covariance, mean</p>
-
-    <p>Now comes an important point: In our dynamics equation above we know how to apply the matrix \(\stateTransition\) 
-        to the state estimate \( \stateEstimate \) when it was a single vector. But now our estimate is a gaussian,
-        so we need to apply \(\stateTransition\) to the whole distribution. Fortunately, the mean is a single point,
-        so we can directly apply the state transition matrix as we did before. The variance on the other hand is the 
-        average "squared-distance" from the mean, so how should it be treated?
-    </p>
-    <p> We'll introduce a very useful rule for multiplying a gaussian distribution 
-        \(\gaussian \left( \mathbf{\bar{\mu}}, \mathbf{\Sigma} \right) \) by a matrix \( \mathbf{A} \):
-    </p>
-    <p id="gaussian-multiplication-rule">
-        $$
-        \begin{align}
-            \text{If you linearly transform the mean: } &
-            \mathbf{\bar{\mu}}_{\discreteTime} = \mathbf{A} \mathbf{\bar{\mu}}_{\discreteTime-1} 
-            \\
-            \text{ then the covariance is: } &
-            \mathbf{\Sigma}_{\discreteTime} = \mathbf{A} \mathbf{\Sigma}_{\discreteTime-1} \mathbf{A}^T
-        \end{align}
-        $$
-    </p>
-    <p class="expandable-content-text" onclick="toggleExpandableContent('why-multiply-covariance')">
-        Why multiply the covariance by \( \mathbf{A} \) on the left and right?
-    </p>
-    <div class="expanded-content" id="why-multiply-covariance">
-        One way you can remember this is to think back to what happens when you multiply a 1D normal distribution by a scalar.
-        The standard deviation \( \sigma \) will scale linearly, and the variance is the standard deviation squared
-        (which we can write in a way that is suggestive of what the operation looks like in higher dimensions).
-        <div style="max-width: 100%; text-align: center;">
-            <img src="./assets/variance-diagram-1d.png" alt="Diagram showing the effect of multiplying a 1D Gaussian by a scalar" style="max-width: 100%; height: auto;">
-        </div>
-    </div>
-
-    <p> The other thing we need to know is that if we add or subtract two independent, normally distributed 
-        random variables, then their variances add. (see 
-        <a href="https://apcentral.collegeboard.org/courses/ap-statistics/classroom-resources/why-variances-add-and-why-it-matters" target="_blank" rel="noopener noreferrer"
-        >AP Central's explanation</a>
-        for a refresher.)
-    </p>
-
-    <p>With this knowledge of probability, we have actually arrived to the point where we can write out the first component of the Kalman Filter:
-        the <strong>Predict Step</strong>! We'll define the covariance of the state estimate to be \(\stateCovariance\), and the mean to be \(\state\). 
-        To handle environmental noise, we'll also add a noise term with mean 0 and covariance \(\processNoiseCovariance\). Writing this out, we have:
-    </p>
-    <p>The Predict Step:
-        $$ \state_{\discreteTime} = \stateTransition \state_{\discreteTime-1} + \controlMatrix \controlInput_{\discreteTime} $$
-        $$ \stateCovariance_{\discreteTime} = \stateTransition \stateCovariance_{\discreteTime-1} \stateTransition^T + \processNoiseCovariance $$
-    where
-    $$ \text{State Estimate Distribution }\stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
-    and $$ \text{Process Noise} \sim \gaussian \left( 0, \processNoiseCovariance \right) $$
-    </p>
-    <p> 
-        Fundamentally, the predict step describes how to <it>predict</it> the a new gaussian state estimate from the previous estimate, 
-        based on our dynamical model of the system. Let's try running this algorithm in state space: 
-    </p>
-
-    <p> TODO: Diagram: Predict Step State Space diagram</p>
+    <p> Let's try running this algorithm in state space: TODO: Diagram: Predict Step State Space diagram</p>
     
     <h2>Sensing the environment</h2>
     <img class="expanded-content" src="./assets/ultrasonic-sensor-HC-SR04-mouser.png" alt="Picture of an ultrasonic distance sensor" id="ultrasonic-sensor-picture">
@@ -949,7 +968,9 @@
         </div>
 
         <p>
-            Here's an interactive diagram to visualize the whole process. The work done by the Kalman Gain is surrounded by a dashed box.
+            Here's an interactive diagram to visualize the whole process. 
+            The work done by the Kalman Gain is surrounded by a dashed box.
+            Try sliding the underlined variables around to see how they affect the outcome!
         </p>
         <div id="measurement-kalman-gain-diagram">
             <table class="math-diagram-structure-table">
@@ -1529,7 +1550,9 @@
         <div class="expanded-content" id="covariance-matrix-simplification-2"></div>
 
         <p>
-            Here's an interactive diagram to visualize the whole process. The work done by the Kalman Gain is surrounded by a dashed box.
+            Here's an interactive diagram to visualize the whole process. 
+            The work done by the Kalman Gain is surrounded by a dashed box.
+            Try sliding the underlined variables around to see how they affect the outcome!
         </p>
         <div id="state-kalman-gain-diagram">
             <table class="math-diagram-structure-table">
