@@ -27,7 +27,7 @@
      inkscape:deskcolor="#505050"
      inkscape:document-units="mm"
      inkscape:zoom="1.5928451"
-     inkscape:cx="252.37859"
+     inkscape:cx="252.06468"
      inkscape:cy="561.88765"
      inkscape:window-width="1850"
      inkscape:window-height="1136"
@@ -40,7 +40,7 @@
      id="body-layer"
      inkscape:label="Body"><path
        style="opacity:0.99;fill:#a9c2ff;stroke:#858585;stroke-width:0.315"
-       d="m 60,90 c 9.621514,-0.06872 27.937315,4.966259 35,20 4.885644,8.69531 7.13726,41.14576 3.852748,47.30871 -3.130752,5.87445 -32.595817,6.76909 -39.141815,6.62609 -5.654366,-0.0512 -28.523962,0.63944 -31.397083,-7.34956 -3.240816,-11.23592 -0.380597,-32.00037 7.412535,-48.4641 C 41.952979,94.966866 50.619764,89.890434 60,90 Z"
+       d="m 60,90 c 9.621514,-0.06872 27.937315,4.966259 35,20 4.885644,8.69531 7.13726,41.14576 3.852748,47.30871 -3.130752,5.87445 -32.595817,6.76909 -39.141815,6.62609 -5.654366,-0.0512 -28.523962,0.63944 -31.397083,-7.34956 -3.240816,-11.23592 6.026113,-21.40713 7.734165,-41.25892 C 36.681208,107.96705 32.12253,92.455092 60,90 Z"
        id="body-blob"
        sodipodi:nodetypes="cssccsc"
        inkscape:label="body-blob"
@@ -55,13 +55,13 @@
        inkscape:label="eye-white" /><circle
        style="opacity:1;fill:#0f113f;fill-opacity:1;stroke:#020202;stroke-width:0.495001;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
        id="eye-pupil"
-       cx="82.398193"
-       cy="112.7264"
+       cx="77.621758"
+       cy="111.97367"
        r="2.6847837"
        inkscape:label="eye-pupil" /><g
        id="ultrasonic-group"
        inkscape:label="ultrasonic-group"
-       transform="matrix(0.46871921,0,0,0.46871921,-25.41395,72.880219)"><path
+       transform="matrix(0.46871921,0,0,0.46871921,-27.37283,72.641369)"><path
          id="rect6"
          style="opacity:1;fill:#0f113f;fill-opacity:1;stroke:#858585;stroke-width:0.495001;stroke-linecap:square"
          d="m 127.17951,61.399733 12.57342,10.103943 -0.0408,63.504364 -12.50358,-10.33231 z"
