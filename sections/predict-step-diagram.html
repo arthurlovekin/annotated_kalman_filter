@@ -10,78 +10,13 @@
 
     <script src="../js/draggable-number.js"></script>
     <script src="../js/gaussian-functions.js"></script>
-    <script src="../js/formula-elements.js"></script>
+    <script src="../js/formula-element.js"></script>
+    <script src="../js/formula-element-definitions.js"></script>
     <script src="../js/mouse-effects-manager.js"></script>
     <script>
         const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables)]);
     </script>
-    <script>
-        MathJax = {
-            //Enable macros \class, \cssId, \href, \style
-            loader: {load: ['[tex]/html']}, 
-            tex: {packages: {'[+]': ['html']}},
-            // save custom TexMacros in the MathJax configuration object 
-            // (becomes MathJax.config.TexMacros after MathJax is loaded)
-            TexMacros: {
-                wikipedia: `
-                \\def\\state{\\class{state}{\\mathbf{x}}}
-                \\def\\stateTransition{\\class{state-transition}{\\mathbf{F}}}
-                \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
-                \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
-                \\def\\measurementNoiseCovariance{\\class{measurement-noise-covariance}{\\mathbf{R}}}
-                \\def\\measurementMatrix{\\class{measurement-matrix}{\\mathbf{H}}}
-                \\def\\stateCovariance{\\class{state-covariance}{\\mathbf{P}}}
-                \\def\\processNoiseCovariance{\\class{process-noise-covariance}{\\mathbf{Q}}}
-                \\def\\controlMatrix{\\class{control-matrix}{\\mathbf{B}}}
-                \\def\\kalmanGain{\\class{kalman-gain}{\\mathbf{K}}}
-                \\def\\varianceRatio{\\class{variance-ratio}{\\widetilde{\\mathbf{K}}_{z}}}
-                \\def\\varianceRatioState{\\class{variance-ratio-state}{\\widetilde{\\mathbf{K}}_{x}}}
-                \\def\\discreteTime{n}
-                `,
-                kalmanfilterdotnet: `
-                \\def\\state{\\class{state}{\\mathbf{s}}}
-                \\def\\stateTransition{\\class{state-transition}{\\mathbf{A}}}
-                \\def\\controlInput{\\class{control-input}{\\mathbf{u}}}
-                \\def\\measurement{\\class{measurement}{\\mathbf{z}}}
-                \\def\\measurementNoiseCovariance{\\class{measurement-noise-covariance}{\\mathbf{R}}}
-                \\def\\measurementMatrix{\\class{measurement-matrix}{\\mathbf{C}}}
-                \\def\\stateCovariance{\\class{state-covariance}{\\mathbf{P}}}
-                \\def\\processNoiseCovariance{\\class{process-noise-covariance}{\\mathbf{Q}}}
-                \\def\\controlMatrix{\\class{control-matrix}{\\mathbf{B}}}
-                \\def\\kalmanGain{\\class{kalman-gain}{\\mathbf{K}}}
-                \\def\\varianceRatio{\\class{variance-ratio}{\\widetilde{\\mathbf{K}}_{z}}}
-                \\def\\varianceRatioState{\\class{variance-ratio-state}{\\widetilde{\\mathbf{K}}_{x}}}
-                \\def\\discreteTime{t}
-                `
-            },
-          // Custom function to get the desired set of macros,
-          // then have the renderer to go back to the compile step so the new macros get used.
-          setMacros(name) {
-            if (!MathJax.config.TexMacros.hasOwnProperty(name)) {
-              console.warn(`TexMacros for "${name}" not found.`);
-              return Promise.resolve();
-            }
-            
-            return MathJax.startup.promise = MathJax.startup.promise.then(() => {
-              const {mathjax} = MathJax._.mathjax;
-              const {STATE} = MathJax._.core.MathItem;
-              MathJax.tex2mml(MathJax.config.TexMacros[name]);
-              mathjax.handleRetriesFor(() => MathJax.startup.document.rerender(STATE.COMPILED));
-              
-              mouseEffectsManager.initialize();
-            });
-          },
-          startup: {
-            typeset: false, //disable the initial typesetting pass since setMacros() will do typesetting
-            ready() {
-              MathJax.startup.defaultReady();
-              MathJax.config.setMacros('wikipedia');
-              const dropdown = document.getElementById('naming-convention-dropdown');
-              dropdown.addEventListener('input', (event) => MathJax.config.setMacros(event.target.value));
-            }
-          }
-        }
-    </script>
+    <script src="../js/mathjax-dynamic-initialization.js"></script>
     <script id="MathJax-script" async
         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
     </script>
