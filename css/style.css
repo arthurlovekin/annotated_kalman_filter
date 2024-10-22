@@ -1,6 +1,7 @@
 /* Formatting for the entire page */
 @import url("./figure-style.css");
 @import url("./expandable-content-style.css");
+@import url("./svg-animation-style.css");
 
 body {
     font-family: serif;

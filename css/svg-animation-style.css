@@ -1,0 +1,19 @@
+@import url("./figure-style.css");
+/*SVG Animation Styling */
+#animation-container {
+    width: 100%;
+    height: 8rem;
+    border: 2px solid black;
+    overflow: hidden;
+    position: relative;
+    background-color: #f0f0f0;
+    margin: 20px 0;
+}
+
+svg {
+    width: 6rem;
+    height: 6rem;
+    position: absolute;
+    bottom: 0; /* robot rolls on bottom of container */
+    left: 0;
+}
