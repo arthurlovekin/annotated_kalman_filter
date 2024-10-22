@@ -4,7 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Robot Animation</title>
+  <script src="https://unpkg.com/@popperjs/core@2"></script>
+  <script src="https://unpkg.com/tippy.js@6"></script>
   <script src="../js/draggable-number.js"></script>
+  <script src="../js/formula-element.js"></script>
+  <script src="../js/formula-element-definitions.js"></script>
+  <script src="../js/mouse-effects-manager.js"></script>
+  <script>
+      const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables)]);
+  </script>
   <script>
     MathJax = {
         //Enable macros \class, \cssId, \href, \style
@@ -96,7 +104,7 @@
                 <table class="matrix-table">
                     <tr>
                         <td>
-                            <draggable-number id="animation-control-input" min="-8" max="8" value="3" step="0.5"></draggable-number>
+                            <draggable-number id="intro-animation-control-input" min="-8" max="8" value="3" step="0.5"></draggable-number>
                         </td>
                     </tr>
                 </table>
@@ -104,14 +112,14 @@
         </tr>
     </table>
 
-    <div id="animation-container">
+    <div id="intro-animation-container">
         <!-- SVG Robot -->
     <svg
         width="78.827438mm"
         height="90.709648mm"
         viewBox="0 0 78.827438 90.709648"
         version="1.1"
-        id="robot"
+        id="intro-robot"
         xml:space="preserve"
         xmlns="http://www.w3.org/2000/svg"
         xmlns:svg="http://www.w3.org/2000/svg"><defs
@@ -262,9 +270,9 @@
 
     <script>
         // JavaScript to control animation
-        const robot = document.getElementById('robot');
-        const slider = document.getElementById('animation-control-input');
-        const container = document.getElementById('animation-container');
+        const robot = document.getElementById('intro-robot');
+        const slider = document.getElementById('intro-animation-control-input');
+        const container = document.getElementById('intro-animation-container');
 
         const wheelRadius = 20; //px
         const dt = 0.05;
