@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Robot Animation</title>
+  <script src="https://unpkg.com/@popperjs/core@2"></script>
+  <script src="https://unpkg.com/tippy.js@6"></script>
   <script src="../js/draggable-number.js"></script>
   <script src="../js/formula-element.js"></script>
   <script src="../js/formula-element-definitions.js"></script>
@@ -18,10 +20,9 @@
 <link rel="stylesheet" href="../css/svg-animation-style.css">
 </head>
 <body>
-    <p>Control the robot's speed by dragging the number:</p>
     <table class="math-diagram-structure-table">
         <tr>
-            <td>\( \controlInput = \)</td>
+            <td>Control the robot's speed by dragging the number: \( \controlInput = \)</td>
             <td>
                 <table class="matrix-table">
                     <tr>
@@ -191,6 +192,7 @@
         </svg>
 
     <script>
+        (function() {
         // JavaScript to control animation
         const robot = document.getElementById('robot');
         const slider = document.getElementById('animation-control-input');
@@ -244,7 +246,7 @@
 
 
         // Function to animate the robot
-        function animate() {
+        function animateIntro() {
             position += speed * dt;  // Increment position based on speed
             // Reset position when the robot reaches the right edge
             let resetPupil = false;
@@ -284,13 +286,12 @@
             }
 
             // Use requestAnimationFrame for smooth animation
-            requestAnimationFrame(animate);
+            requestAnimationFrame(animateIntro);
         }
 
         // Start the animation
-        animate();
+        animateIntro();
+        })();
     </script>
-
-
 </body>
 </html>
