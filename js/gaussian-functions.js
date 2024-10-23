@@ -25,11 +25,43 @@ function univariateGaussianXYpts(mean, variance, xAbsMin=-4, xAbsMax=4, yAbsMax=
 
 function matMul(A, B) {
     // Multiply two vectors/matrices, where A is m x n and B is n x p
+    // Check if dimensions match for matrix multiplication, and make sure they're 2D
+    if (!Array.isArray(A[0]) || !Array.isArray(B[0])) {
+        throw new Error("Input must be a 2D array");
+    }
+    if (A[0].length !== B.length) {
+        throw new Error("Matrix dimensions do not match for multiplication. A has " + A[0].length + " columns and B has " + B.length + " rows.");
+    }
     const result = Array.from({length: A.length}, () => Array(B[0].length).fill(0));
     for (let i = 0; i < A.length; i++) {
         for (let j = 0; j < B[0].length; j++) {
             for (let k = 0; k < B.length; k++) {
                 result[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+    return result;
+}
+
+function matSum(...vectors) {
+    // Perform element-wise addition of multiple 2D arrays
+    // Check if the input is a 2D array
+    if (!Array.isArray(vectors[0]) || !Array.isArray(vectors[0][0])) {
+        throw new Error("Input must be a 2D array");
+    }
+    let result = vectors[0];
+    for (let i = 1; i < vectors.length; i++) {
+        try {
+            for (let j = 0; j < result.length; j++) {
+                for (let k = 0; k < result[j].length; k++) {
+                    result[j][k] += vectors[i][j][k];
+                }
+            }
+        } catch (error) {
+            if (error instanceof TypeError) {
+                throw new Error("Mismatched dimensions in matSum: " + error.message);
+            } else {
+                throw error;
             }
         }
     }
@@ -118,7 +150,7 @@ function getContourColors(color_str) {
             'rgb(255, 204, 204)'
         ];
     }
-    else {
+    else if (color_str === 'green') {
         return [
             'rgb(0, 100, 0)',      // Darkest green
             'rgb(0, 150, 0)',      // Dark green
@@ -126,6 +158,15 @@ function getContourColors(color_str) {
             'rgb(102, 204, 102)',  // Light green
             'rgb(204, 255, 204)'   // Lightest green
         ];
+    }
+    else {
+        return [
+            'rgb(50, 50, 50)',    // Darkest gray
+            'rgb(100, 100, 100)', // Dark gray
+            'rgb(150, 150, 150)', // Medium gray
+            'rgb(200, 200, 200)', // Light gray
+            'rgb(225, 225, 225)'  // Lightest gray
+        ]
     }
 }
 
