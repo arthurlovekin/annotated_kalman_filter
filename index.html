@@ -314,9 +314,9 @@
     <p>This is meant as an introduction that can kickstart your progress without
     having to digest an entire math textbook. That being said, the theory behind
     the Kalman Filter goes a lot deeper than what I show here, including
-    theoretical proofs of optimality and extensions to nonlinear systems. I've
-    listed the resources I used to write this article in the appendix, which I
-    highly recommend if you want to dive deeper.</p>
+    theoretical proofs of optimality and extensions to nonlinear systems. At the 
+    end of the article, I've listed the resources I used to write this article,
+    which I highly recommend if you want to dive deeper.</p>
 
     <p>There are over 17 variables that are commonly used to derive the Kalman
     Filter, and to make matters more confusing many resources use different
@@ -346,39 +346,52 @@
     neural signals.
     </p>
     <p>
-    The challenge in all of these cases is that although we often have many
-    sensors, they are usually noisy, contradictory, and cannot individually
-    perceive the full state. These sensors need to be combined with each other
-    and with the engineer's knowledge of the system in order to get a complete
-    picture.
+    In all of these cases, there are multiple sources of information that we
+    can use to estimate the state of the system. On one hand, we have some 
+    background knowledge of how the system should generally behave (eg. the 
+    dynamical model of the car, building, or brain). On the other hand we 
+    have sensors (eg. cameras, thermometer, or brain electrodes), that can 
+    measure some aspect of the state. The challenge is that neither of 
+    these information sources is perfect: our dynamical model doesn't account 
+    for common disturbances, and although we often have many sensors, they 
+    are usually noisy, contradictory, and cannot individually
+    perceive the full state. To get the most reliable state estimate, we 
+    need to continuously combine the information from the sensors and the 
+    dynamical model as time progresses. 
     </p>
     <p>
-        The Kalman Filter is an algorithmic blueprint for combining different
-        sources of information into one unified state estimate. In particular,
-        it describes how two common types of information sources can be combined:
-        <ol>
-            <li>The engineer's background knowledge of the system dynamics is
-            incorporated in the Predict step</li>
-            <li>The sensor measurements are incorporated in the Update step</li>
-        </ol>
-        The Kalman Filter assumes that both of the above steps can be described
-        with linear models, and that there is some gaussian random noise
-        associated with each of them. Under these assumptions, the Kalman Filter
-        has been proven to be the theoretically optimal way to estimate the
-        state of the system.
+    The Kalman Filter is an algorithm that incorporates new pieces of 
+    information as they come in over time into one unified state estimate. 
+    It does this in two steps:
+    <ol>
+        <li><strong>Predict</strong> the next state using the dynamical model</li>
+        <li><strong>Update</strong> the state estimate using sensor measurements</li>
+    </ol>
+    The Kalman Filter assumes that both of the above steps can be described
+    with linear models, and that there is some gaussian random noise
+    associated with each of them. Under these assumptions, the Kalman Filter
+    has been proven to be the theoretically optimal way to estimate the
+    state of the system. Even when these assumptions don't hold, the Kalman Filter
+    is still highly accurate and is also very memory-efficient and fast, so it is 
+    a popular choice for many applications.
     </p>
 
     <h2>Building a model</h2>
-    <p>The easiest way to wrap your head around the Kalman Filter is with an example.
-        Throughout this artile, we'll use this simple robot.
+    <p>To understand the details of the Kalman Filter, we'll use the example
+        of a simple robot. The goal will be to estimate the position and velocity
+        of the robot so that it can navigate without crashing.
     </p>
-    <p> TODO: 1D Robot Diagram</p>
-    <p>We begin with a large question: How to model the world? A common engineering approach is 
-        to think of the minimum set of variables needed to make a complete description of the system, 
-        and then put them all together in a state vector. We can never know the true state, 
-        so we'll add a little hat to indicate that this vector is just an estimate. 
-        In our simple example, the only variables we need to track are the position \(p\) 
-        and velocity \(v\) of the robot. 
+    <div style="text-align: center;">
+        <img src="./assets/Robot.svg" alt="A simple robot" style="width: 15%;">
+    </div>
+    <p>The first step in building an engineering model is to define a state vector.
+        For our robot, this will be a two-dimensional vector containing the \(p\) 
+        and velocity \(v\). In general, the state vector simply contains the minimum set
+        of variables needed to make a complete description of the system (so in other 
+        examples it might contain things like temperatures, voltages, etc.). One caviat
+        is that practically speaking, the Kalman Filter algorithm will only ever be able to 
+        estimate the state, not work with the true state values. For this reason, 
+        we'll add a little hat to indicate that this vector is just an estimate.
         $$ \text{Estimated State vector }\stateEstimate = \begin{bmatrix} p \\ v \end{bmatrix} 
             = \begin{bmatrix} \text{position} \\ \text{velocity} \end{bmatrix} $$
     </p>
@@ -399,45 +412,24 @@
         \stateEstimate_{\discreteTime} = \stateTransition \stateEstimate_{\discreteTime-1} \\
         $$
     </p>
-    <!-- $$
-    \begin{alignat}{3}
-        \begin{bmatrix}
-            p_{\discreteTime} \\
-            v_{\discreteTime}
-        \end{bmatrix}
-        &=
-        \begin{bmatrix}
-            1 & \Delta t \\
-            0 & 1
-        \end{bmatrix}
-        &
-        \begin{bmatrix} 
-            p_{\discreteTime-1} \\ 
-            v_{\discreteTime-1} 
-        \end{bmatrix} \\
-
-        \stateEstimate_{\discreteTime} &= \stateTransition & \stateEstimate_{\discreteTime-1} \\
-    \end{alignat}
-    $$ -->
-
     <p>
         Now we have a simple dynamical model of our robot, but it fails to include one
-        common thing: a way to control the speed. In the demo above, you
-        (as the operator) are able to control the robot with a throttle command \(u\),
-        which can range between [0,1]. Inherently this throttle value has no meaning, but
-        the robot is programmed so that the throttle controls the angular speed of
-        the wheels, which in turn determines the robot's linear velocity.
-        If we assume that the has radius \(r\), the maximum angular speed
+        common thing: a way to control the speed. In the interactive demo above, you
+        (as the operator) are able to control the throttle command \(u\), which is 
+        programmed to control the angular speed of the wheels, which in turn dictates
+        the robot's linear velocity. If we assume that the wheel 
+        has radius \(r\), the maximum angular speed
         is \(\omega_{max} \) (and that the wheel speed perfectly matches the control 
         command), then we have the following relationship between the throttle command 
         \(u\) and the velocity \(v\) of the robot:
 
-        $$ v = r \omega = r \omega_{max} u $$
+        $$ v = r \omega_{max} u $$
 
         As with the state equation, we'll package this up in matrix form by defining
         the control matrix \(\controlMatrix\), which determines how the input 
-        vector \(\controlInput \) impacts the state. Note that the throttle
-        has no effect on the position, so the first row of \(\controlMatrix\) is zero.
+        vector \(\controlInput \) impacts the state. Note that although the throttle
+        has no direct effect on the position, we need our control matrix to output a 
+        2-dimensional state vector, so we'll set the first row of \(\controlMatrix\) to zero.
 
         $$ \text{Control Input Vector } \controlInput = \begin{bmatrix} u \end{bmatrix} $$
 
@@ -452,34 +444,8 @@
         In summary, we <it>predict</it> the new state by applying the dynamics model to the previous state estimate, and adding 
         a correction term for known influences like the control input. 
     </p>
-    <!-- $$
-    \begin{alignat}{5}
-        \begin{bmatrix}
-            p_{\discreteTime} \\
-            v_{\discreteTime}
-        \end{bmatrix}
-        &=
-        \begin{bmatrix}
-            1 & \Delta t \\
-            0 & 1
-        \end{bmatrix}
-        &
-        \begin{bmatrix} 
-            p_{\discreteTime-1} \\ 
-            v_{\discreteTime-1} 
-        \end{bmatrix}
-        &+
-        \begin{bmatrix}
-            0 \\
-            r \omega_{max} \\
-        \end{bmatrix}
-        &
-        \begin{bmatrix}
-            u_{\discreteTime} \\
-        \end{bmatrix} \\
-        \stateEstimate_{\discreteTime} &= \stateTransition & \stateEstimate_{\discreteTime-1} &+ \controlMatrix & \controlInput_{\discreteTime} \\
-    \end{alignat}
-    $$ -->
+
+    <p> TODO: Play around with our state-space representation of the robot!</p>
  
     <h2>Bringing Uncertainty into the Model</h2>
     <p>
@@ -1008,7 +974,7 @@
         At this point, we have one normal distribution that represents our belief of the true state of the robot,
         and another normal distribution that represents the measurements you'd expect to get from the true state. 
         How can we combine these two distributions into one new state estimate? 
-        $$ \text{Estimate of the true state from Prediction Step: }\gaussian \left( \state, \stateCovariance \right) $$
+        $$ \text{State Estimate distribution from the Prediction Step: }\gaussian \left( \state, \stateCovariance \right) $$
         $$ \text{Measurement distribution inferred from the actual measurement: } \gaussian \left( \measurement, \measurementNoiseCovariance \right) $$
     </p>
     <p>The first challenge we face is that we're trying to combine different "types" of things.
@@ -1016,7 +982,7 @@
         while the measurement distribution has entirely different dimensions and units. Before
         we can do any combining, we have to first get both distributions into the same space. 
     </p>
-    <p>There are two ways to do approach this. Click on the one you want to follow!
+    <p>There are two ways to do approach this. Choose your own adventure!
     </p>
     <table style="width: 100%;">
         <tr>
@@ -2557,6 +2523,13 @@
             document.getElementById('variable-description-table-body').appendChild(row);
         }
     </script>
+
+    <h2>References</h2>
+    <p>
+        Gilja V, et.al. A high-performance neural prosthesis enabled by control algorithm design. 
+        Nat Neurosci. 2012 Dec;15(12):1752-7. doi: 10.1038/nn.3265. Epub 2012 Nov 18. PMID: 23160043; PMCID: PMC3638087.
+        https://pmc.ncbi.nlm.nih.gov/articles/PMC3638087/#S8 
+    </p>
 </body>
 <script>
     activateButtonsAndContent(['option1-button'], ['update-step-option1'], ['option2-button'], ['update-step-option2']);
