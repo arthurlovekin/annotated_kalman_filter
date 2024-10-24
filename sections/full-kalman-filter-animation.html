@@ -198,110 +198,15 @@
         </table>
         <script>
             (function() {
-            // JavaScript to control animation
             const robot = document.getElementById('full-kalman-filter-robot');
             const slider = document.getElementById('full-kalman-filter-animation-control-input');
             const container = document.getElementById('full-kalman-filter-animation-container');
 
-            // Pupil animation
-            const frontWheel = robot.querySelector('.front-wheel');
-            const rearWheel = robot.querySelector('.rear-wheel');
-            const pupil = robot.querySelector('.eye-pupil');
-            const eyeWhite = robot.querySelector('.eye-white');
-
-            function updatePupilPosition(mouseX, mouseY) {
-                const eyeWhiteRect = eyeWhite.getBoundingClientRect();
-                const pupilRect = pupil.getBoundingClientRect();
-                // Calculate the center of the eye
-                const eyeCenterX = eyeWhiteRect.left + eyeWhiteRect.width / 2;
-                const eyeCenterY = eyeWhiteRect.top + eyeWhiteRect.height / 2;
-    
-                // Calculate the angle between the eye center and the mouse position
-                const angle = Math.atan2(mouseY - eyeCenterY, mouseX - eyeCenterX);
-                const distance = Math.sqrt((mouseX - eyeCenterX) * (mouseX - eyeCenterX) + (mouseY - eyeCenterY) * (mouseY - eyeCenterY));
-    
-                // Calculate the maximum distance the pupil can move from the center
-                const maxDistance = (eyeWhiteRect.width - pupilRect.width) / 2;
-    
-                // Calculate the new position of the pupil
-                let pupilX = Math.cos(angle) * Math.min(distance, maxDistance);
-                let pupilY = Math.sin(angle) * Math.min(distance, maxDistance);
-                
-                // Apply the new position to the pupil
-                pupil.style.transform = `translate(${pupilX}px, ${pupilY}px)`;
-            }
-    
-            // Add event listener for mouse movement
-            container.addEventListener('mousemove', (e) => {
-                updatePupilPosition(e.clientX, e.clientY);
-            });
-
-            // State-space plot
-            function updateStatePlot(x, x_est, P_est) {
-                // Inputs:
-                // x: true state (2x1 array)
-                // x_est: estimated state (2x1 array)
-                // P_est: estimated covariance (2x2 array)
-                // Check input shapes
-                if (!Array.isArray(x) || x.length !== 2 || !Array.isArray(x[0]) || x[0].length !== 1 ||
-                    !Array.isArray(x_est) || x_est.length !== 2 || !Array.isArray(x_est[0]) || x_est[0].length !== 1 ||
-                    !Array.isArray(P_est) || P_est.length !== 2 || !Array.isArray(P_est[0]) || P_est[0].length !== 2) {
-                    console.error('Invalid input shapes for updateStatePlot');
-                    return;
-                }
-
-                const layout = {
-                    title: 'Kalman Filter State Space',
-                    legend: {
-                        orientation: 'h',
-                        yanchor: 'top',
-                        xanchor: 'center',
-                        y: 1.05,
-                        x: 0.5,
-                    },
-                    yaxis: {
-                        title: 'Velocity',
-                        range: [-8,8],
-                    },
-                    xaxis: {
-                        title: 'Position',
-                    },
-                    margin: {
-                    l: 40,
-                    r: 40,
-                    t: 50,
-                    b: 40,
-                    },
-                    hovermode: 'closest',
-                }
-                const center_true = {
-                    x: [x[0][0]],
-                    y: [x[1][0]],
-                    type: 'scatter',
-                    mode: 'markers',
-                    marker: { color: 'gray' },
-                    showlegend: true,
-                    name: 'True State'
-                }
-                const center_est = {
-                    x: [x_est[0][0]],
-                    y: [x_est[1][0]],
-                    type: 'scatter',
-                    mode: 'markers',
-                    marker: { color: 'red' },
-                    showlegend: true,
-                    name: 'Estimated State'
-                }
-                const contours_est = generateGaussianEllipticalContours(x_est, P_est, color='red', name='Estimated State');
-                const traces = [center_true, center_est].concat(contours_est);
-                Plotly.react('full-kalman-filter-state-diagram', traces, layout);
-            }
-
-
+            /////////////////////////////////////////////////////////////
             // Kalman Filter parameters + models
             const wheelRadius = 50; //px (didn't actually measure this)
             const KF_dt_min = 0.5; //seconds
-            const maxVelocity = 600; //px/sec
+            const maxVelocity = 400; //px/sec
             const maxAngularAcceleration = 10; //rad/sec^2
             const Q = [[0.01, 0], [0, 0.01]];
             const R = [[0.1, 0], [0, 0.1]];
@@ -366,13 +271,113 @@
             let x_est = x;
             let P_est = [[1,0],[0,1]];
 
+            /////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////
+
+
+
+            // Pupil animation
+            const frontWheel = robot.querySelector('.front-wheel');
+            const rearWheel = robot.querySelector('.rear-wheel');
+            const pupil = robot.querySelector('.eye-pupil');
+            const eyeWhite = robot.querySelector('.eye-white');
+
+            function updatePupilPosition(mouseX, mouseY) {
+                const eyeWhiteRect = eyeWhite.getBoundingClientRect();
+                const pupilRect = pupil.getBoundingClientRect();
+                // Calculate the center of the eye
+                const eyeCenterX = eyeWhiteRect.left + eyeWhiteRect.width / 2;
+                const eyeCenterY = eyeWhiteRect.top + eyeWhiteRect.height / 2;
+    
+                // Calculate the angle between the eye center and the mouse position
+                const angle = Math.atan2(mouseY - eyeCenterY, mouseX - eyeCenterX);
+                const distance = Math.sqrt((mouseX - eyeCenterX) * (mouseX - eyeCenterX) + (mouseY - eyeCenterY) * (mouseY - eyeCenterY));
+    
+                // Calculate the maximum distance the pupil can move from the center
+                const maxDistance = (eyeWhiteRect.width - pupilRect.width) / 2;
+    
+                // Calculate the new position of the pupil
+                let pupilX = Math.cos(angle) * Math.min(distance, maxDistance);
+                let pupilY = Math.sin(angle) * Math.min(distance, maxDistance);
+                
+                // Apply the new position to the pupil
+                pupil.style.transform = `translate(${pupilX}px, ${pupilY}px)`;
+            }
+    
+            // Add event listener for mouse movement
+            container.addEventListener('mousemove', (e) => {
+                updatePupilPosition(e.clientX, e.clientY);
+            });
+
             // Update velocity when the slider value changes
             slider.addEventListener('input', () => {
                 throttle = parseFloat(slider.value);
             });
-            
-            updateStatePlot(x, x_est, P_est);
-            updatePupilPosition(450,170);
+
+            // State-space plot
+            function updateStatePlot(x, x_est, P_est) {
+                // Inputs:
+                // x: true state (2x1 array)
+                // x_est: estimated state (2x1 array)
+                // P_est: estimated covariance (2x2 array)
+                // Check input shapes
+                if (!Array.isArray(x) || x.length !== 2 || !Array.isArray(x[0]) || x[0].length !== 1 ||
+                    !Array.isArray(x_est) || x_est.length !== 2 || !Array.isArray(x_est[0]) || x_est[0].length !== 1 ||
+                    !Array.isArray(P_est) || P_est.length !== 2 || !Array.isArray(P_est[0]) || P_est[0].length !== 2) {
+                    console.error('Invalid input shapes for updateStatePlot');
+                    return;
+                }
+                //get the max width of the container for the state-diagram plot
+                const containerLeftX = container.getBoundingClientRect().left;
+                const containerRightX = container.getBoundingClientRect().right;
+
+                const layout = {
+                    title: 'Kalman Filter State Space',
+                    legend: {
+                        orientation: 'h',
+                        yanchor: 'top',
+                        xanchor: 'center',
+                        y: 1.05,
+                        x: 0.5,
+                    },
+                    yaxis: {
+                        title: 'Velocity (Pixels/Second)',
+                        range: [-maxVelocity-100,maxVelocity+100],
+                    },
+                    xaxis: {
+                        title: 'Position (Pixels)',
+                        range: [containerLeftX+50, containerRightX-50] // axis labels take some space
+                    },
+                    margin: {
+                    l: 40,
+                    r: 40,
+                    t: 50,
+                    b: 40,
+                    },
+                    hovermode: 'closest',
+                }
+                const center_true = {
+                    x: [x[0][0]],
+                    y: [x[1][0]],
+                    type: 'scatter',
+                    mode: 'markers',
+                    marker: { color: 'gray' },
+                    showlegend: true,
+                    name: 'True State'
+                }
+                const center_est = {
+                    x: [x_est[0][0]],
+                    y: [x_est[1][0]],
+                    type: 'scatter',
+                    mode: 'markers',
+                    marker: { color: 'red' },
+                    showlegend: true,
+                    name: 'Estimated State'
+                }
+                const contours_est = generateGaussianEllipticalContours(x_est, P_est, color='red', name='Estimated State');
+                const traces = [center_true, center_est].concat(contours_est);
+                Plotly.react('full-kalman-filter-state-diagram', traces, layout);
+            }
     
             let t_prev;
             let KF_t_prev; // Kalman Filter runs at slower rate than true state
@@ -447,6 +452,8 @@
             }
     
             // Start the animation
+            updateStatePlot(x, x_est, P_est);
+            updatePupilPosition(450,170);
             requestAnimationFrame(animateRobot);
 
             })();
