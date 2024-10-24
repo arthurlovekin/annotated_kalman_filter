@@ -12,6 +12,7 @@
   <script src="../js/formula-element-definitions.js"></script>
   <script src="../js/mouse-effects-manager.js"></script>
   <script src="../js/gaussian-functions.js"></script>
+  <script src="../js/kalman-filter-functions.js"></script>
 
   <script>
       const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables)]);
@@ -205,83 +206,13 @@
             /////////////////////////////////////////////////////////////
             // Kalman Filter parameters + models
             const wheelRadius = 50; //px (didn't actually measure this)
-            const KF_dt_min = 0.2; //seconds (determines how often the Predict step runs)
-            const meas_dt_min = 0.5; //seconds (determines how often the Update step runs)
             const maxVelocity = 400; //px/sec
             const maxAngularAcceleration = 10; //rad/sec^2
+            const KF_dt_min = 0.2; //seconds (determines how often the Predict step runs)
+            const meas_dt_min = 0.5; //seconds (determines how often the Update step runs)
             const Q = [[20, 0], [0, 20]];
             const R = [[10]];
-
-            function trueStateModel(prev_x, dt, throttle) {
-                // x = nonlinear_F(x) + nonlinear_B(u) + non-gaussian noise
-                function nonlinear_F(x, dt) {
-                    const F = [[1, dt], [0, 1]];
-                    const Fx = matMul(F, x);
-                    return Fx;
-                }
-                function nonlinear_B(u, dt) {
-                    const a = [[u]];
-                    const B = [[wheelRadius*maxAngularAcceleration*dt*dt*0.5], 
-                                [wheelRadius*maxAngularAcceleration*dt]];
-                    const Bu = matMul(B, a);
-                    return Bu;
-                }
-
-                const noise = [[0], [(Math.random()-0.5) * 0.1]];
-
-                const new_x = matSum(nonlinear_F(prev_x, dt), nonlinear_B(throttle, dt), noise);
-                if(new_x[1][0] > maxVelocity) {
-                    new_x[1][0] = maxVelocity;
-                }
-                if(new_x[1][0] < -maxVelocity) {
-                    new_x[1][0] = -maxVelocity;
-                }
-                return new_x;
-            }
-
-            function trueMeasurementModel(x) {
-                // z = nonlinear_H(x) + non-gaussian noise
-                const noise = (Math.random()-0.5) * 0.1;
-                const z = [[x[0][0] + noise]];
-                return z;
-            }
-
-            function KalmanPredictStep(prev_x, prev_P, dt, throttle) {
-                // x = Fx + Bu
-                // P = FPF^T + Q
-                const F = [[1, dt], [0, 1]];
-                const B = [[wheelRadius*maxAngularAcceleration*dt*dt*0.5], 
-                            [wheelRadius*maxAngularAcceleration*dt]];
-                const new_x = matSum(matMul(F, prev_x), matMul(B, [[throttle]]));
-                const new_P = matSum(matMul(matMul(F, prev_P), matTranspose(F)), Q);
-
-                return [new_x, new_P];
-            }
-
-            function KalmanUpdateStep(prev_x, prev_P, z) {
-                // K = PH^T(HPH^T + R)^-1
-                // x = x + K(z - Hx)
-                // P = (I - KH)P(I - KH)^T + KRK^T
-                const H = [[1, 0]];
-                const K_numerator = matMul(prev_P, matTranspose(H));
-                const K_denominator = matSum(matMul(matMul(H, prev_P), matTranspose(H)), R);
-                // since the denominator is a scalar in this example, we do scalar division instead of inverse
-                let K = K_numerator;
-                for (let i = 0; i < K.length; i++) {
-                    for (let j = 0; j < K[0].length; j++) {
-                        K[i][j] /= K_denominator[0][0];
-                    }
-                }
-                const new_x = matSum(prev_x, matMul(K, matSubtract(z, matMul(H, prev_x))));
-                
-                // Joseph form
-                const ImKH = matSubtract([[1, 0], [0, 1]], matMul(K, H));
-                const new_P1 = matMul(matMul(ImKH, prev_P), matTranspose(ImKH));
-                const new_P2 = matMul(matMul(K, R), matTranspose(K));
-                const new_P = matSum(new_P1, new_P2);
-
-                return [new_x, new_P];
-            }
+            const H = [[1, 0]];
 
             // Truestate variables
             let wheelRotation = 0; //degrees (for svg wheel rotation)
@@ -423,11 +354,16 @@
                 const meas_dt = (timestamp - measurement_t_prev) / 1000;
                 if (KF_dt >= KF_dt_min) {
                     KF_t_prev = timestamp;
-                    [x_est, P_est] = KalmanPredictStep(x_est, P_est, KF_dt, throttle);
+                    const F = [[1, KF_dt], [0, 1]];
+                    const B = [[wheelRadius*maxAngularAcceleration*KF_dt*KF_dt*0.5], 
+                                [wheelRadius*maxAngularAcceleration*KF_dt]];
+                    const u = [[throttle]];
+                    [x_est, P_est] = KalmanPredictStep(x_est, P_est, F, B, u, Q);
+                    
                     if (meas_dt >= meas_dt_min) {
                         measurement_t_prev = timestamp;
-                        const measurement = trueMeasurementModel(x);
-                        [x_est, P_est] = KalmanUpdateStep(x_est, P_est, measurement);
+                        const z = trueMeasurementModel(x);
+                        [x_est, P_est] = KalmanUpdateStep(x_est, P_est, H, z, R);
                     }
                 }
 
@@ -435,7 +371,7 @@
                 const dt = (timestamp - t_prev) / 1000;
                 t_prev = timestamp;
 
-                x = trueStateModel(x, dt, throttle);
+                x = trueStateModel(x, dt, throttle, wheelRadius, maxVelocity, maxAngularAcceleration);
                 wheelRotation += x[1][0]*dt/wheelRadius * 180/Math.PI;  // Rotate wheels based on velocity
 
                 // Reset position when the robot reaches the right edge

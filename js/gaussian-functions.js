@@ -22,63 +22,6 @@ function univariateGaussianXYpts(mean, variance, xAbsMin=-4, xAbsMax=4, yAbsMax=
 }
 
 //// Multivariate Gaussian Functions ////
-
-function matMul(A, B) {
-    // Multiply two vectors/matrices, where A is m x n and B is n x p
-    // Check if dimensions match for matrix multiplication, and make sure they're 2D
-    if (!Array.isArray(A[0]) || !Array.isArray(B[0])) {
-        throw new Error("Input must be a 2D array");
-    }
-    if (A[0].length !== B.length) {
-        throw new Error("Matrix dimensions do not match for multiplication. A has " + A[0].length + " columns and B has " + B.length + " rows.");
-    }
-    const result = Array.from({length: A.length}, () => Array(B[0].length).fill(0));
-    for (let i = 0; i < A.length; i++) {
-        for (let j = 0; j < B[0].length; j++) {
-            for (let k = 0; k < B.length; k++) {
-                result[i][j] += A[i][k] * B[k][j];
-            }
-        }
-    }
-    return result;
-}
-
-function matSum(...vectors) {
-    // Perform element-wise addition of multiple 2D arrays
-    // Check if the input is a 2D array
-    if (!Array.isArray(vectors[0]) || !Array.isArray(vectors[0][0])) {
-        throw new Error("Input must be a 2D array");
-    }
-    const rows = vectors[0].length;
-    const cols = vectors[0][0].length;
-    const result = Array.from({ length: rows }, () => Array(cols).fill(0));
-
-    for (const vector of vectors) {
-        for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cols; j++) {
-                result[i][j] += Number(vector[i][j]);
-            }
-        }
-    }
-    return result;
-}
-
-function matSubtract(A, B) {
-    // Perform element-wise subtraction of two 2D arrays: A - B
-    if (!Array.isArray(A[0]) || !Array.isArray(B[0])
-        || A[0].length !== B[0].length || A.length !== B.length) {
-        throw new Error("Inputs must be 2D arrays with matching dimensions");
-    }
-    const result = Array.from(A, (row, i) => row.map((val, j) => val - B[i][j]));
-    return result;
-}
-
-function matTranspose(A) {
-    // Transpose a 2D array
-    const result = Array.from(A[0], (_, j) => A.map(row => row[j]));
-    return result;
-}
-
 function eigenvalues2x2(matrix) {
     // Fun fact: if you derive the eigenvalues of a general 2x2 matrix,
     // you can write it in terms of the trace and determinant
