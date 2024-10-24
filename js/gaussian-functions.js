@@ -63,6 +63,22 @@ function matSum(...vectors) {
     return result;
 }
 
+function matSubtract(A, B) {
+    // Perform element-wise subtraction of two 2D arrays: A - B
+    if (!Array.isArray(A[0]) || !Array.isArray(B[0])
+        || A[0].length !== B[0].length || A.length !== B.length) {
+        throw new Error("Inputs must be 2D arrays with matching dimensions");
+    }
+    const result = Array.from(A, (row, i) => row.map((val, j) => val - B[i][j]));
+    return result;
+}
+
+function matTranspose(A) {
+    // Transpose a 2D array
+    const result = Array.from(A[0], (_, j) => A.map(row => row[j]));
+    return result;
+}
+
 function eigenvalues2x2(matrix) {
     // Fun fact: if you derive the eigenvalues of a general 2x2 matrix,
     // you can write it in terms of the trace and determinant
