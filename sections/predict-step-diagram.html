@@ -13,6 +13,7 @@
     <script src="../js/formula-element.js"></script>
     <script src="../js/formula-element-definitions.js"></script>
     <script src="../js/mouse-effects-manager.js"></script>
+    <script src="../js/kalman-filter-functions.js"></script>
     <script>
         const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables)]);
     </script>
@@ -108,7 +109,7 @@
                             <table class="matrix-table">
                                 <tr>
                                     <td>
-                                        <draggable-number id="predict-step-u-0" min="0" max="1" step="0.01" value="0">0.00</draggable-number>
+                                        <draggable-number id="predict-step-u-0" min="-1" max="1" step="0.01" value="0">0.00</draggable-number>
                                     </td>
                                 </tr>
                             </table>
@@ -245,8 +246,8 @@
                 hovermode: 'closest',
             };
 
-            let traces_old = generateGaussianEllipticalContours(means[0], sigmas[0], color='blue', name='Current State');
-            let traces_new = generateGaussianEllipticalContours(means[1], sigmas[1], color='red', name='Next State');
+            let traces_old = generateGaussianEllipticalContours(means[0], sigmas[0], color='blue', name='Previous State');
+            let traces_new = generateGaussianEllipticalContours(means[1], sigmas[1], color='red', name='Current State');
             let traces = traces_old.concat(traces_new);
             Plotly.react('predict-step-plot', traces, layout);
         }
@@ -320,25 +321,19 @@
                 [P00.value, P01.value],
                 [P01.value, P11.value]
             ];
-
             const F = [
                 [F00.value, F01.value],
                 [F10.value, F11.value]
             ];
-            const F_transpose = [
-                [F00.value, F10.value],
-                [F01.value, F11.value]
+            const B = [[parseFloat(B00.textContent)], 
+                       [parseFloat(B10.textContent)]];
+            const u = [[u0.value]];
+            const Q = [
+                [Q00.value, Q01.value],
+                [Q01.value, Q11.value]
             ];
 
-            let new_state_mean = matMul(F, old_state_mean);
-            new_state_mean[0][0] += parseFloat(B00.textContent) * u0.value;
-            new_state_mean[1][0] += parseFloat(B10.textContent) * u0.value;
-
-            let new_state_cov = matMul(matMul(F, old_state_cov), F_transpose);
-            new_state_cov[0][0] += Q00.value;
-            new_state_cov[0][1] += Q01.value;
-            new_state_cov[1][0] += Q01.value;
-            new_state_cov[1][1] += Q11.value;
+            const [new_state_mean, new_state_cov] = KalmanPredictStep(old_state_mean, old_state_cov, F, B, u, Q);
 
             // Update all the new x,P
             newx0.textContent = new_state_mean[0][0].toFixed(2);
