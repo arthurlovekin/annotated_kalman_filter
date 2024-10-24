@@ -196,12 +196,22 @@
                     </table>
                 </td>
             </tr>
+            <tr>
+                <td>
+                    <button id="full-kalman-filter-start" class="start-stop-button">Start</button>
+                    <button id="full-kalman-filter-stop" class="start-stop-button">Stop</button>
+                    <button id="full-kalman-filter-reset" class="start-stop-button">Reset</button>
+                </td>
+            </tr>
         </table>
         <script>
             (function() {
             const robot = document.getElementById('full-kalman-filter-robot');
             const slider = document.getElementById('full-kalman-filter-animation-control-input');
             const container = document.getElementById('full-kalman-filter-animation-container');
+            const startButton = document.getElementById('full-kalman-filter-start');
+            const stopButton = document.getElementById('full-kalman-filter-stop');
+            const resetButton = document.getElementById('full-kalman-filter-reset');
 
             /////////////////////////////////////////////////////////////
             // Kalman Filter parameters + models
@@ -210,24 +220,27 @@
             const maxAngularAcceleration = 10; //rad/sec^2
             const KF_dt_min = 0.2; //seconds (determines how often the Predict step runs)
             const meas_dt_min = 0.5; //seconds (determines how often the Update step runs)
-            const Q = [[20, 0], [0, 20]];
-            const R = [[10]];
-            const H = [[1, 0]];
 
             // Truestate variables
-            let wheelRotation = 0; //degrees (for svg wheel rotation)
-            let throttle = parseFloat(slider.value);  // -1 to 1
-            let x = [[0], //px
-                     [50]]; //px/s
+            let throttle;  // -1 to 1
+            let x; //px/s
 
             // Estimated state variables
-            const initial_state_variance = 100;
-            let x_est = x;
-            let P_est = [[initial_state_variance,0],[0,initial_state_variance]];
-            function resetEstimatedState() {
+            let x_est;
+            let P_est;
+
+            function resetAllVariables() {
+                // Truestate variables
+                throttle = parseFloat(slider.value);  // -1 to 1
+                x = [[0], //px
+                    [50]]; //px/s
+
+                // Estimated state variables
+                const initial_state_variance = 100;
                 x_est = x;
                 P_est = [[initial_state_variance,0],[0,initial_state_variance]];
             }
+            resetAllVariables();
 
             /////////////////////////////////////////////////////////////
             /////////////////////////////////////////////////////////////
@@ -282,7 +295,7 @@
                 if (!Array.isArray(x) || x.length !== 2 || !Array.isArray(x[0]) || x[0].length !== 1 ||
                     !Array.isArray(x_est) || x_est.length !== 2 || !Array.isArray(x_est[0]) || x_est[0].length !== 1 ||
                     !Array.isArray(P_est) || P_est.length !== 2 || !Array.isArray(P_est[0]) || P_est[0].length !== 2) {
-                    console.error('Invalid input shapes for updateStatePlot');
+                    console.error(`Invalid input shapes for updateStatePlot: x: ${x}, x_est: ${x_est}, P_est: ${P_est}`);
                     return;
                 }
                 //get the max width of the container for the state-diagram plot
@@ -315,7 +328,7 @@
                     hovermode: 'closest',
                 }
                 const center_true = {
-                    x: [x[0][0]],
+                    x: [x[0][0] % (container.clientWidth + 2*robot.clientWidth)], // don't subtract robot.clientWidth so dot is at front or robot
                     y: [x[1][0]],
                     type: 'scatter',
                     mode: 'markers',
@@ -323,79 +336,42 @@
                     showlegend: true,
                     name: 'True State'
                 }
+                const x_est_mod = [[x_est[0][0] % (container.clientWidth + 2*robot.clientWidth)],
+                                    [x_est[1][0]]];
                 const center_est = {
-                    x: [x_est[0][0]],
-                    y: [x_est[1][0]],
+                    x: [x_est_mod[0][0]],
+                    y: [x_est_mod[1][0]],
                     type: 'scatter',
                     mode: 'markers',
                     marker: { color: 'red' },
                     showlegend: false,
                 }
-                const contours_est = generateGaussianEllipticalContours(x_est, P_est, color='red', name='Estimated State');
+                const contours_est = generateGaussianEllipticalContours(x_est_mod, P_est, color='red', name='Estimated State');
                 const traces = [center_true, center_est].concat(contours_est);
                 Plotly.react('full-kalman-filter-state-diagram', traces, layout);
             }
-    
-            let t_prev;
-            let KF_t_prev; // Kalman Filter runs at slower rate than true state
-            let measurement_t_prev; // Measurement update runs at slower rate than Kalman Filter
+            
+            let animationRunning = true;
+            startButton.addEventListener('click', () => {
+                animationRunning = true;
+                requestAnimationFrame(animateRobot);
+            });
+            stopButton.addEventListener('click', () => {
+                animationRunning = false;
+            });
+            resetButton.addEventListener('click', () => {
+                resetAllVariables();
+                renderAnimationAndPlot(x, x_est, P_est);
+            });
+
             // Function to animate the robot
-            function animateRobot(timestamp) {
-                if (timestamp === undefined) {
-                    console.error('animateRobot: timestamp is undefined. Ensure that animateRobot is being called by requestAnimationFrame or otherwise being passed a timestamp.');
-                }
-                if (t_prev === undefined) {
-                    t_prev = timestamp;
-                    KF_t_prev = timestamp;
-                    measurement_t_prev = timestamp;
-                }
-                // Kalman state
-                const KF_dt = (timestamp - KF_t_prev) / 1000; // ms to seconds
-                const meas_dt = (timestamp - measurement_t_prev) / 1000;
-                if (KF_dt >= KF_dt_min) {
-                    KF_t_prev = timestamp;
-                    const F = [[1, KF_dt], [0, 1]];
-                    const B = [[wheelRadius*maxAngularAcceleration*KF_dt*KF_dt*0.5], 
-                                [wheelRadius*maxAngularAcceleration*KF_dt]];
-                    const u = [[throttle]];
-                    [x_est, P_est] = KalmanPredictStep(x_est, P_est, F, B, u, Q);
-                    
-                    if (meas_dt >= meas_dt_min) {
-                        measurement_t_prev = timestamp;
-                        const z = trueMeasurementModel(x);
-                        [x_est, P_est] = KalmanUpdateStep(x_est, P_est, H, z, R);
-                    }
-                }
-
-                // True state
-                const dt = (timestamp - t_prev) / 1000;
-                t_prev = timestamp;
-
-                x = trueStateModel(x, dt, throttle, wheelRadius, maxVelocity, maxAngularAcceleration);
-                wheelRotation += x[1][0]*dt/wheelRadius * 180/Math.PI;  // Rotate wheels based on velocity
-
-                // Reset position when the robot reaches the right edge
-                let resetPupil = false;
-                if (x[0][0] > container.clientWidth) {
-                    x[0][0] = -robot.clientWidth;  // Reset to the left
-                    resetEstimatedState();
-                    resetPupil = true;
-                }
-                else if (x[0][0] < -robot.clientWidth) {
-                    x[0][0] = container.clientWidth;  // Reset to the right
-                    resetEstimatedState();
-                    resetPupil = true;
-                }
-                
-                if (wheelRotation > 360) {
-                    wheelRotation = 0;
-                }
-                else if (wheelRotation < 0) {
-                    wheelRotation = 360;
-                }
+            function renderAnimationAndPlot(x, x_est, P_est) {
+                const wheelRotation = (x[0][0]/wheelRadius * 180/Math.PI) % 360;
     
                 // Apply the new position and wheel rotation to the robot
-                robot.style.left = `${x[0][0]}px`;
+                const containerLeftX = container.getBoundingClientRect().left;
+                const pixel_position = x[0][0] % (container.clientWidth + 2*robot.clientWidth) - robot.clientWidth;
+                robot.style.left = `${pixel_position}px`;
                 // In the SVG the front wheel was originally drawn centered at 134.39388px 156.62283px
                 // then the whole front wheel was translated by -47.066795px, 7.9443462px
                 // We need to rotate the wheel about its translated center
@@ -407,19 +383,70 @@
                 // We need to rotate the wheel about its translated center
                 rearWheel.style.transformOrigin = `${134.39388 - 95}px ${156.62283 + 7.9443462}px`;
                 rearWheel.style.transform = `rotate(${wheelRotation}deg) translate(-95px, 7.9443462px)`;
-    
-                if (resetPupil) {
-                    updatePupilPosition(450,170);
-                }
 
                 updateStatePlot(x, x_est, P_est);
-    
-                // Use requestAnimationFrame for smooth animation
+            }
+
+            function propagateKalmanFilter(x_est, P_est,dt, throttle,wheelRadius, maxAngularAcceleration, x=undefined) {
+                const F = [[1, dt], [0, 1]];
+                const B = [[wheelRadius*maxAngularAcceleration*dt*dt*0.5], 
+                            [wheelRadius*maxAngularAcceleration*dt]];
+                const u = [[throttle]];
+                const Q = [[20, 0], [0, 20]];
+                const R = [[10]];
+                const H = [[1, 0]];
+
+                [x_est, P_est] = KalmanPredictStep(x_est, P_est, F, B, u, Q);
+
+                // if you can make a measurement using the true state, do so
+                if (x !== undefined) {
+                    const z = trueMeasurementModel(x);
+                    [x_est, P_est] = KalmanUpdateStep(x_est, P_est, H, z, R);
+                }
+                return [x_est, P_est];
+            }
+
+            let t_prev;
+            let KF_t_prev; // Kalman Filter runs at slower rate than true state
+            let measurement_t_prev; // Measurement update runs at slower rate than Kalman Filter
+
+            function animateRobot(timestamp) {
+                if (!animationRunning) {
+                    t_prev = undefined;
+                    return;
+                }
+                if (timestamp === undefined) {
+                    console.error('animateRobot: timestamp is undefined. Ensure that animateRobot is being called by requestAnimationFrame or otherwise being passed a timestamp.');
+                }
+                if (t_prev === undefined) {
+                    t_prev = timestamp;
+                    KF_t_prev = timestamp;
+                    measurement_t_prev = timestamp;
+                }
+                // True state
+                const dt = (timestamp - t_prev) / 1000;
+                t_prev = timestamp;
+                x = trueStateModel(x, dt, throttle, wheelRadius, maxVelocity, maxAngularAcceleration);
+
+                // Kalman state
+                const KF_dt = (timestamp - KF_t_prev) / 1000; // ms to seconds
+                const meas_dt = (timestamp - measurement_t_prev) / 1000;
+                if (KF_dt >= KF_dt_min) {
+                    KF_t_prev = timestamp;
+                    if (meas_dt >= meas_dt_min) {
+                        measurement_t_prev = timestamp;
+                        // Also provide the true state so there can be a measurement update
+                        [x_est, P_est] = propagateKalmanFilter(x_est, P_est, KF_dt, throttle, wheelRadius, maxAngularAcceleration, x);
+                    } else {
+                        [x_est, P_est] = propagateKalmanFilter(x_est, P_est, KF_dt, throttle, wheelRadius, maxAngularAcceleration);
+                    }
+                }
+
+                renderAnimationAndPlot(x, x_est, P_est);
                 requestAnimationFrame(animateRobot);
             }
     
             // Start the animation
-            updateStatePlot(x, x_est, P_est);
             updatePupilPosition(450,170);
             requestAnimationFrame(animateRobot);
 
