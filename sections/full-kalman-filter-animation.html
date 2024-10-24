@@ -197,10 +197,10 @@
                 </td>
             </tr>
             <tr>
-                <td>
-                    <button id="full-kalman-filter-start" class="start-stop-button">Start</button>
-                    <button id="full-kalman-filter-stop" class="start-stop-button">Stop</button>
-                    <button id="full-kalman-filter-reset" class="start-stop-button">Reset</button>
+                <td id="full-kalman-filter-buttons">
+                    <button class="start-button">Start</button>
+                    <button class="stop-button">Stop</button>
+                    <button class="reset-button">Reset</button>
                 </td>
             </tr>
         </table>
@@ -209,15 +209,16 @@
             const robot = document.getElementById('full-kalman-filter-robot');
             const slider = document.getElementById('full-kalman-filter-animation-control-input');
             const container = document.getElementById('full-kalman-filter-animation-container');
-            const startButton = document.getElementById('full-kalman-filter-start');
-            const stopButton = document.getElementById('full-kalman-filter-stop');
-            const resetButton = document.getElementById('full-kalman-filter-reset');
+            const buttons = document.getElementById('full-kalman-filter-buttons');
+            const startButton = buttons.querySelector('.start-button');
+            const stopButton = buttons.querySelector('.stop-button');
+            const resetButton = buttons.querySelector('.reset-button');
 
             /////////////////////////////////////////////////////////////
             // Kalman Filter parameters + models
             const wheelRadius = 50; //px (didn't actually measure this)
             const maxVelocity = 400; //px/sec
-            const maxAngularAcceleration = 10; //rad/sec^2
+            const maxAngularAcceleration = 5; //rad/sec^2
             const KF_dt_min = 0.2; //seconds (determines how often the Predict step runs)
             const meas_dt_min = 0.5; //seconds (determines how often the Update step runs)
 
@@ -244,8 +245,6 @@
 
             /////////////////////////////////////////////////////////////
             /////////////////////////////////////////////////////////////
-
-
 
             // Pupil animation
             const frontWheel = robot.querySelector('.front-wheel');
@@ -301,6 +300,7 @@
                 //get the max width of the container for the state-diagram plot
                 const containerLeftX = container.getBoundingClientRect().left;
                 const containerRightX = container.getBoundingClientRect().right;
+                const maxY = maxVelocity+100;
 
                 const layout = {
                     title: 'Kalman Filter State Space',
@@ -313,7 +313,7 @@
                     },
                     yaxis: {
                         title: 'Velocity (Pixels/Second)',
-                        range: [-maxVelocity-150,maxVelocity+150],
+                        range: [-maxY,maxY],
                     },
                     xaxis: {
                         title: 'Position (Pixels)',
@@ -328,7 +328,7 @@
                     hovermode: 'closest',
                 }
                 const center_true = {
-                    x: [x[0][0] % (container.clientWidth + 2*robot.clientWidth)], // don't subtract robot.clientWidth so dot is at front or robot
+                    x: [positiveModulo(x[0][0], container.clientWidth + 2*robot.clientWidth)], // don't subtract robot.clientWidth so dot is at front or robot
                     y: [x[1][0]],
                     type: 'scatter',
                     mode: 'markers',
@@ -336,19 +336,56 @@
                     showlegend: true,
                     name: 'True State'
                 }
-                const x_est_mod = [[x_est[0][0] % (container.clientWidth + 2*robot.clientWidth)],
+                const x_est_mod = [[positiveModulo(x_est[0][0], container.clientWidth + 2*robot.clientWidth)],
                                     [x_est[1][0]]];
-                const center_est = {
-                    x: [x_est_mod[0][0]],
-                    y: [x_est_mod[1][0]],
-                    type: 'scatter',
-                    mode: 'markers',
-                    marker: { color: 'red' },
-                    showlegend: false,
+                if (x_est_mod[1][0] > maxY+ 50) {
+                    // just draw an arrow indicating where it is
+                    const center_est_arrow = {
+                        x: [x_est_mod[0][0]],
+                        y: [maxY-30],
+                        type: 'scatter',
+                        mode: 'markers',
+                        marker: {
+                            symbol: 'triangle-up',
+                            size: 12,
+                            color: 'red'
+                        },
+                        showlegend: true,
+                        name: 'Estimated State',
+                    }
+                    const traces = [center_true, center_est_arrow];
+                    Plotly.react('full-kalman-filter-state-diagram', traces, layout);
                 }
-                const contours_est = generateGaussianEllipticalContours(x_est_mod, P_est, color='red', name='Estimated State');
-                const traces = [center_true, center_est].concat(contours_est);
-                Plotly.react('full-kalman-filter-state-diagram', traces, layout);
+                else if (x_est_mod[1][0] < -maxY-50) {
+                    const center_est_arrow = {
+                        x: [x_est_mod[0][0]],
+                        y: [-maxY+30],
+                        type: 'scatter',
+                        mode: 'markers',
+                        marker: {
+                            symbol: 'triangle-down',
+                            size: 12,
+                            color: 'red'
+                        },
+                        showlegend: true,
+                        name: 'Estimated State',
+                    }
+                    const traces = [center_true, center_est_arrow];
+                    Plotly.react('full-kalman-filter-state-diagram', traces, layout);
+                }
+                else {
+                    const center_est = {
+                        x: [x_est_mod[0][0]],
+                        y: [x_est_mod[1][0]],
+                        type: 'scatter',
+                        mode: 'markers',
+                        marker: { color: 'red' },
+                        showlegend: false,
+                    }
+                    const contours_est = generateGaussianEllipticalContours(x_est_mod, P_est, color='red', name='Estimated State');
+                    const traces = [center_true, center_est].concat(contours_est);
+                    Plotly.react('full-kalman-filter-state-diagram', traces, layout);
+                }
             }
             
             let animationRunning = true;
@@ -366,11 +403,11 @@
 
             // Function to animate the robot
             function renderAnimationAndPlot(x, x_est, P_est) {
-                const wheelRotation = (x[0][0]/wheelRadius * 180/Math.PI) % 360;
+                const wheelRotation = positiveModulo(x[0][0]/wheelRadius * 180/Math.PI, 360);
     
                 // Apply the new position and wheel rotation to the robot
                 const containerLeftX = container.getBoundingClientRect().left;
-                const pixel_position = x[0][0] % (container.clientWidth + 2*robot.clientWidth) - robot.clientWidth;
+                const pixel_position = positiveModulo(x[0][0], container.clientWidth + 2*robot.clientWidth) - robot.clientWidth;
                 robot.style.left = `${pixel_position}px`;
                 // In the SVG the front wheel was originally drawn centered at 134.39388px 156.62283px
                 // then the whole front wheel was translated by -47.066795px, 7.9443462px

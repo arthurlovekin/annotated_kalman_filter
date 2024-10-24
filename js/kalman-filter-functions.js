@@ -141,3 +141,6 @@ function matTranspose(A) {
     return result;
 }
 
+function positiveModulo(x, mod) {
+    return ((x % mod) + mod) % mod;
+}
