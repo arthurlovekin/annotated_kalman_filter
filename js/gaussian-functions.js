@@ -49,19 +49,14 @@ function matSum(...vectors) {
     if (!Array.isArray(vectors[0]) || !Array.isArray(vectors[0][0])) {
         throw new Error("Input must be a 2D array");
     }
-    let result = vectors[0];
-    for (let i = 1; i < vectors.length; i++) {
-        try {
-            for (let j = 0; j < result.length; j++) {
-                for (let k = 0; k < result[j].length; k++) {
-                    result[j][k] += vectors[i][j][k];
-                }
-            }
-        } catch (error) {
-            if (error instanceof TypeError) {
-                throw new Error("Mismatched dimensions in matSum: " + error.message);
-            } else {
-                throw error;
+    const rows = vectors[0].length;
+    const cols = vectors[0][0].length;
+    const result = Array.from({ length: rows }, () => Array(cols).fill(0));
+
+    for (const vector of vectors) {
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                result[i][j] += Number(vector[i][j]);
             }
         }
     }

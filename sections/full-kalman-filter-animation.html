@@ -184,7 +184,7 @@
         <div id="full-kalman-filter-state-diagram"></div>
         <table class="math-diagram-structure-table">
             <tr>
-                <td>Control the robot's velocity by dragging the number: \( \controlInput = \)</td>
+                <td>Control the robot's acceleration by dragging the number: \( \controlInput = \)</td>
                 <td>
                     <table class="matrix-table">
                         <tr>
@@ -242,6 +242,14 @@
                 // x: true state (2x1 array)
                 // x_est: estimated state (2x1 array)
                 // P_est: estimated covariance (2x2 array)
+                // Check input shapes
+                if (!Array.isArray(x) || x.length !== 2 || !Array.isArray(x[0]) || x[0].length !== 1 ||
+                    !Array.isArray(x_est) || x_est.length !== 2 || !Array.isArray(x_est[0]) || x_est[0].length !== 1 ||
+                    !Array.isArray(P_est) || P_est.length !== 2 || !Array.isArray(P_est[0]) || P_est[0].length !== 2) {
+                    console.error('Invalid input shapes for updateStatePlot');
+                    return;
+                }
+
                 const layout = {
                     title: 'Kalman Filter State Space',
                     legend: {
@@ -291,26 +299,36 @@
 
 
             // Kalman Filter parameters + models
-            const wheelRadius = 20; //px
+            const wheelRadius = 50; //px (didn't actually measure this)
             const KF_dt_min = 0.5; //seconds
-            const maxAngularVelocity = 8; //degrees per second
+            const maxVelocity = 600; //px/sec
+            const maxAngularAcceleration = 10; //rad/sec^2
             const Q = [[0.01, 0], [0, 0.01]];
             const R = [[0.1, 0], [0, 0.1]];
 
             function trueStateModel(prev_x, dt, throttle) {
                 // x = nonlinear_F(x) + nonlinear_B(u) + non-gaussian noise
                 function nonlinear_F(x, dt) {
-                    const new_x = [[x[0] + x[1]*dt], [x[1]]];
-                    return new_x;
+                    const F = [[1, dt], [0, 1]];
+                    const Fx = matMul(F, x);
+                    return Fx;
                 }
-                function nonlinear_B(u) {
-                    const dx = [[0], [u*maxAngularVelocity]];
-                    return dx;
+                function nonlinear_B(u, dt) {
+                    const a = [[u]];
+                    const B = [[wheelRadius*maxAngularAcceleration*dt*dt*0.5], [wheelRadius*maxAngularAcceleration*dt]];
+                    const Bu = matMul(B, a);
+                    return Bu;
                 }
 
-                const noise = [[Math.random() * 0.1], [Math.random() * 0.1]];
+                const noise = [[0], [(Math.random()-0.5) * 0.1]];
 
-                const new_x = matSum(nonlinear_F(prev_x, dt), nonlinear_B(throttle), noise);
+                const new_x = matSum(nonlinear_F(prev_x, dt), nonlinear_B(throttle, dt), noise);
+                if(new_x[1][0] > maxVelocity) {
+                    new_x[1][0] = maxVelocity;
+                }
+                if(new_x[1][0] < -maxVelocity) {
+                    new_x[1][0] = -maxVelocity;
+                }
                 return new_x;
             }
 
@@ -319,7 +337,7 @@
                 // P = FPF^T + Q
                 const F = [[1, dt], [0, 1]];
                 const FT = [[1, 0], [dt, 1]];
-                const B = [[0], [maxAngularVelocity*wheelRadius]];
+                const B = [[wheelRadius*maxAngularAcceleration*dt*dt*0.5], [wheelRadius*maxAngularAcceleration*dt]];
                 const new_x = matSum(matMul(F, prev_x), matMul(B, [[throttle]]));
                 const new_P = matSum(matMul(matMul(F, prev_P), FT), Q);
 
@@ -339,11 +357,10 @@
             }
 
             // Truestate variables
-            let wheelRotation = 0; //degrees
+            let wheelRotation = 0; //degrees (for svg wheel rotation)
             let throttle = parseFloat(slider.value);  // -1 to 1
-            let angularVelocity = throttle * maxAngularVelocity;
             let x = [[0], //px
-                     [angularVelocity * wheelRadius]]; //px/s
+                     [50]]; //px/s
 
             // Estimated state variables
             let x_est = x;
@@ -369,18 +386,19 @@
                     KF_t_prev = timestamp;
                 }
                 // Kalman state
-                const KF_dt = timestamp - KF_t_prev;
+                const KF_dt = (timestamp - KF_t_prev) / 1000; // ms to seconds
                 if (KF_dt >= KF_dt_min) {
                     KF_t_prev = timestamp;
                     [x_est, P_est] = KalmanStateModel(x_est, P_est, KF_dt, throttle);
                 }
 
                 // True state
-                const dt = timestamp - t_prev;
+                const dt = (timestamp - t_prev) / 1000;
                 t_prev = timestamp;
 
                 x = trueStateModel(x, dt, throttle);
-                wheelRotation += x[1][0]*dt/wheelRadius;  // Rotate wheels based on velocity
+                console.log(`x: ${x}`);
+                wheelRotation += x[1][0]*dt/wheelRadius * 180/Math.PI;  // Rotate wheels based on velocity
 
                 // Reset position when the robot reaches the right edge
                 let resetPupil = false;
@@ -421,6 +439,8 @@
                 if (resetPupil) {
                     updatePupilPosition(450,170);
                 }
+
+                updateStatePlot(x, x_est, P_est);
     
                 // Use requestAnimationFrame for smooth animation
                 requestAnimationFrame(animateRobot);
