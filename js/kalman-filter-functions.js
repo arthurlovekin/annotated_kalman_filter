@@ -65,6 +65,24 @@ function KalmanUpdateStep(prev_x, prev_P, H, z, R) {
     return [new_x, new_P];
 }
 
+function propagateKalmanFilter(x_est, P_est,dt, throttle,wheelRadius, maxAngularAcceleration, z=undefined) {
+    const F = [[1, dt], [0, 1]];
+    const B = [[wheelRadius*maxAngularAcceleration*dt*dt*0.5], 
+                [wheelRadius*maxAngularAcceleration*dt]];
+    const u = [[throttle]];
+    const Q = [[20, 0], [0, 20]];
+    const R = [[10]];
+    const H = [[1, 0]];
+
+    [x_est, P_est] = KalmanPredictStep(x_est, P_est, F, B, u, Q);
+
+    // if you can make a measurement using the true state, do so
+    if (z !== undefined) {
+        [x_est, P_est] = KalmanUpdateStep(x_est, P_est, H, z, R);
+    }
+    return [x_est, P_est];
+}
+
 //// Matrix Functions ////
 
 function matMul(A, B) {
