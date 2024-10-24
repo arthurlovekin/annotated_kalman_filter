@@ -205,11 +205,12 @@
             /////////////////////////////////////////////////////////////
             // Kalman Filter parameters + models
             const wheelRadius = 50; //px (didn't actually measure this)
-            const KF_dt_min = 0.5; //seconds
+            const KF_dt_min = 0.2; //seconds (determines how often the Predict step runs)
+            const meas_dt_min = 0.5; //seconds (determines how often the Update step runs)
             const maxVelocity = 400; //px/sec
             const maxAngularAcceleration = 10; //rad/sec^2
-            const Q = [[0.01, 0], [0, 0.01]];
-            const R = [[0.1, 0], [0, 0.1]];
+            const Q = [[20, 0], [0, 20]];
+            const R = [[10, 0], [0, 10]];
 
             function trueStateModel(prev_x, dt, throttle) {
                 // x = nonlinear_F(x) + nonlinear_B(u) + non-gaussian noise
@@ -237,6 +238,12 @@
                 return new_x;
             }
 
+            function trueMeasurementModel(x) {
+                const noise = (Math.random()-0.5) * 0.1;
+                const z = [[x[0][0] + noise]];
+                return z;
+            }
+
             function KalmanStateModel(prev_x, prev_P, dt, throttle) {
                 // x = Fx + Bu
                 // P = FPF^T + Q
@@ -254,10 +261,30 @@
                 // x = x + K(z - Hx)
                 // P = (I - KH)P
                 const H = [[1, 0]];
-                const S = matSum(matMul(matMul(H, prev_P), H.T), R);
-                const K = matMul(prev_P, H.T, inv(S));
-                const new_x = matSum(prev_x, matMul(K, matSum(z, matMul(H, prev_x))));
-                const new_P = matMul(matSum(eye(2), matMul(K, H)), prev_P);
+                const HT = [[1],[0]];
+                const HP = matMul(H, prev_P);
+                const HPHT = matMul(HP, HT);
+                const S = matSum(HPHT, R);
+                const K_numerator = matMul(prev_P, HT);
+                // since the denominator is a scalar in this example, we do scalar division instead of inverse
+                let K = K_numerator;
+                for (let i = 0; i < K.length; i++) {
+                    for (let j = 0; j < K[0].length; j++) {
+                        K[i][j] /= S[0][0];
+                    }
+                }
+                let neg_Hx = matMul(H, prev_x); // scalar (bcs in measurement space)
+                neg_Hx[0][0] = -neg_Hx[0][0];
+                const new_x = matSum(prev_x, matMul(K, matSum(z, neg_Hx)));
+                const KH = matMul(K, H);
+                const KHP = matMul(KH, prev_P);
+                let neg_KHP = KHP;
+                for (let i = 0; i < neg_KHP.length; i++) {
+                    for (let j = 0; j < neg_KHP[0].length; j++) {
+                        neg_KHP[i][j] = -neg_KHP[i][j];
+                    }
+                }
+                const new_P = matSum(prev_P, neg_KHP);
                 return [new_x, new_P];
             }
 
@@ -268,8 +295,13 @@
                      [50]]; //px/s
 
             // Estimated state variables
+            const initial_state_variance = 100;
             let x_est = x;
-            let P_est = [[1,0],[0,1]];
+            let P_est = [[initial_state_variance,0],[0,initial_state_variance]];
+            function resetEstimatedState() {
+                x_est = x;
+                P_est = [[initial_state_variance,0],[0,initial_state_variance]];
+            }
 
             /////////////////////////////////////////////////////////////
             /////////////////////////////////////////////////////////////
@@ -381,6 +413,7 @@
     
             let t_prev;
             let KF_t_prev; // Kalman Filter runs at slower rate than true state
+            let measurement_t_prev; // Measurement update runs at slower rate than Kalman Filter
             // Function to animate the robot
             function animateRobot(timestamp) {
                 if (timestamp === undefined) {
@@ -389,12 +422,23 @@
                 if (t_prev === undefined) {
                     t_prev = timestamp;
                     KF_t_prev = timestamp;
+                    measurement_t_prev = timestamp;
                 }
                 // Kalman state
                 const KF_dt = (timestamp - KF_t_prev) / 1000; // ms to seconds
+                const meas_dt = (timestamp - measurement_t_prev) / 1000;
                 if (KF_dt >= KF_dt_min) {
                     KF_t_prev = timestamp;
                     [x_est, P_est] = KalmanStateModel(x_est, P_est, KF_dt, throttle);
+                    if (meas_dt >= meas_dt_min) {
+                        measurement_t_prev = timestamp;
+                        const measurement = trueMeasurementModel(x);
+                        [x_est, P_est] = KalmanMeasurementModel(x_est, P_est, measurement);
+                    }
+                    // console.log(`x: ${x}`);
+                    // console.log(`x_est: ${x_est}`);
+                    // console.log(`P_est: ${P_est}`);
+
                 }
 
                 // True state
@@ -402,21 +446,18 @@
                 t_prev = timestamp;
 
                 x = trueStateModel(x, dt, throttle);
-                console.log(`x: ${x}`);
                 wheelRotation += x[1][0]*dt/wheelRadius * 180/Math.PI;  // Rotate wheels based on velocity
 
                 // Reset position when the robot reaches the right edge
                 let resetPupil = false;
                 if (x[0][0] > container.clientWidth) {
                     x[0][0] = -robot.clientWidth;  // Reset to the left
-                    x_est[0][0] = x[0][0];
-                    P_est = [[1,0],[0,1]];
+                    resetEstimatedState();
                     resetPupil = true;
                 }
                 else if (x[0][0] < -robot.clientWidth) {
                     x[0][0] = container.clientWidth;  // Reset to the right
-                    x_est[0][0] = x[0][0];
-                    P_est = [[1,0],[0,1]];
+                    resetEstimatedState();
                     resetPupil = true;
                 }
                 
