@@ -41,21 +41,22 @@ function KalmanPredictStep(prev_x, prev_P, F, B, u, Q) {
     return [new_x, new_P];
 }
 
+function KalmanGain(P, H, R) {
+    // K = PH^T(HPH^T + R)^-1
+    const K_numerator = matMul(P, matTranspose(H));
+    const K_denominator = matSum(matMul(matMul(H, P), matTranspose(H)), R);
+    // since the denominator is a scalar in this example, we do scalar division instead of inverse
+    const K_denominator_inv = [[1 / K_denominator[0][0]]];
+    const K = matMul(K_numerator, K_denominator_inv);
+    return K;
+}
+
 function KalmanUpdateStep(prev_x, prev_P, H, z, R) {
     // K = PH^T(HPH^T + R)^-1
     // x = x + K(z - Hx)
     // P = (I - KH)P(I - KH)^T + KRK^T
-    const K_numerator = matMul(prev_P, matTranspose(H));
-    const K_denominator = matSum(matMul(matMul(H, prev_P), matTranspose(H)), R);
-    // since the denominator is a scalar in this example, we do scalar division instead of inverse
-    let K = K_numerator;
-    for (let i = 0; i < K.length; i++) {
-        for (let j = 0; j < K[0].length; j++) {
-            K[i][j] /= K_denominator[0][0];
-        }
-    }
+    const K = KalmanGain(prev_P, H, R);
     const new_x = matSum(prev_x, matMul(K, matSubtract(z, matMul(H, prev_x))));
-    
     // Joseph form
     const ImKH = matSubtract([[1, 0], [0, 1]], matMul(K, H));
     const new_P1 = matMul(matMul(ImKH, prev_P), matTranspose(ImKH));

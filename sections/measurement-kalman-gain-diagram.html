@@ -13,6 +13,7 @@
     <script src="../js/formula-element.js"></script>
     <script src="../js/formula-element-definitions.js"></script>
     <script src="../js/mouse-effects-manager.js"></script>
+    <script src="../js/kalman-filter-functions.js"></script>
     <script>
         const mouseEffectsManager = new MouseEffectsManager([...Object.values(variables)]);
     </script>
@@ -364,40 +365,30 @@
 
         //// Update the matrices whenever one is changed
         function updateKalmanGainDiagram() {
+            const xtm1 = [[xtm1_0.value], [xtm1_1.value]];
             // Note: Ptm1_01 is always used instead of Ptm1_10 because the matrix is symmetric
-            const _Hx_0 = H_00 * xtm1_0.value + H_01 * xtm1_1.value;
-            const _HPH_00 = H_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) + H_01 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
-            const _VR_00 = _HPH_00 / (_HPH_00 + R_00.value);
-            // Use the kalman gain formula to update x since can't do H^{-1}
-            // K = P_{t|t-1} H^T (H P_{t|t-1} H^T + R)^{-1}
-            // x_{t|t} = x_{t|t-1} + K (z - H x_{t|t-1})
-            // P_{t|t} = (I - K H) P_{t|t-1}
-            const K_denominator = _HPH_00 + R_00.value;
-            let K_00 = 0;
-            let K_10 = 0;
-            if (K_denominator !== 0) {
-                K_00 = (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) / K_denominator;
-                K_10 = (Ptm1_01.value * H_00 + Ptm1_11.value * H_01) / K_denominator;
-            }
-            const _xt_0 = xtm1_0.value + K_00 * (z_0.value - _Hx_0);
-            const _xt_1 = xtm1_1.value + K_10 * (z_0.value - _Hx_0);
-            const _P_00 = Ptm1_00.value - K_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01);
-            const _P_01 = Ptm1_01.value - K_00 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
-            const _P_10 = Ptm1_01.value - K_10 * (Ptm1_00.value * H_00 + Ptm1_11.value * H_01);
-            const _P_11 = Ptm1_11.value - K_10 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
+            const Ptm1 = [[Ptm1_00.value, Ptm1_01.value], [Ptm1_01.value, Ptm1_11.value]];
+            const z = [[z_0.value]];
+            const R = [[R_00.value]];
+            const H = [[1,0]]; // TODO shrink figure above
+            const Hx = matMul(H, xtm1);
+            const HPH = matMul(matMul(H, Ptm1), matTranspose(H));
+            const K = KalmanGain(Ptm1, H, R);
+            const VR = matMul(H, K);
+            const [xt, Pt] = KalmanUpdateStep(xtm1, Ptm1, H, z, R);
 
-            updateKalmanGainPlot(_Hx_0, _HPH_00, z_0.value, R_00.value, _xt_0, _P_00);
-
-            Hx_0.textContent = _Hx_0.toFixed(2);
-            HPH_00.textContent = _HPH_00.toFixed(2);
-            VR_00.textContent = _VR_00.toFixed(2);
-            xt_0.textContent = _xt_0.toFixed(2);
-            xt_1.textContent = _xt_1.toFixed(2);
-            P_00.textContent = _P_00.toFixed(2);
-            P_01.textContent = _P_01.toFixed(2);
-            P_10.textContent = _P_10.toFixed(2);
-            P_11.textContent = _P_11.toFixed(2);
+            Hx_0.textContent = Hx[0][0].toFixed(2);
+            HPH_00.textContent = HPH[0][0].toFixed(2);
+            VR_00.textContent = VR[0][0].toFixed(2);
+            xt_0.textContent = xt[0][0].toFixed(2);
+            xt_1.textContent = xt[1][0].toFixed(2);
+            P_00.textContent = Pt[0][0].toFixed(2);
+            P_01.textContent = Pt[0][1].toFixed(2);
+            P_10.textContent = Pt[1][0].toFixed(2);
+            P_11.textContent = Pt[1][1].toFixed(2);
             Ptm1_10.textContent = Ptm1_01.value.toFixed(2);
+
+            updateKalmanGainPlot(Hx[0][0], HPH[0][0], z[0][0], R[0][0], xt[0][0], Pt[0][0]);
         }
 
         //// Generate a plot of the three univariate gausians: Hx_{t-1}, z, and Hx_{t}
