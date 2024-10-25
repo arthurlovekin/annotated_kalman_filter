@@ -28,6 +28,11 @@
         <table id="gaussian-3d-figure" class="math-diagram-structure-table">
             <tr>
                 <td>
+                    <div id="gaussian-3d-plot"></div>
+                </td>
+            </tr>
+            <tr>
+                <td>
                     <table class="math-diagram-structure-table">
                         <tr>
                             <td>\( \mathcal{N} \left( 
@@ -83,9 +88,6 @@
                         </tr>
                     </table>
                 </td>
-                <td>
-                    <div id="gaussian-3d-plot"></div>
-                </td>
             </tr>
         </table>
     </div>
@@ -112,16 +114,23 @@
         const plotLayout = {
             title: 'Bivariate Gaussian Distribution',
             scene: {
-                xaxis: { title: 'X' },
-                yaxis: { title: 'Y' },
-                zaxis: { title: 'Z' },
-                camera: {
-                    eye: { x: 0, y: 0, z: 2 },
-                    up: { x: 0, y: 1, z: 0 },
-                    center: { x: 0, y: 0, z: 0 }
-                }
+                xaxis: { 
+                    title: 'Position',
+                    range: [-3, 3]
+                },
+                yaxis: { 
+                    title: 'Velocity',
+                    range: [-3, 3]
+                },
+                zaxis: { 
+                    title: 'Probability',
+                },
+                // camera: {
+                //     eye: { x: 0, y: 0, z: 2 },
+                //     up: { x: 0, y: 1, z: 0 },
+                //     center: { x: 0, y: 0, z: 0 }
+                // }
             },
-            autosize: true,
         }
 
         function generateGaussianBasePts(mu, sigma, n_points, min, max) {

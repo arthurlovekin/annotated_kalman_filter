@@ -564,7 +564,166 @@
         $$ \stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
     </p>
 
-    <p>TODO: Add a diagram where you can see the 3D plot and 2D contours under it, controlled by X and P sliders.</p>
+    <div id="interactive-gaussian-3d-figure">
+        <div style="border: 1px solid #000; border-radius: 5px; padding: 2px;">
+            <table id="gaussian-3d-figure" class="math-diagram-structure-table">
+                <tr>
+                    <td>
+                        <div id="gaussian-3d-plot"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <table class="math-diagram-structure-table">
+                            <tr>
+                                <td>\( \mathcal{N} \left( 
+                                    \begin{eqnarray}
+                                    \\
+                                    \state\\
+                                    \\
+                                \end{eqnarray}
+                                \right. =\)
+                                <td>
+                                    <table class="matrix-table">
+                                        <tr>
+                                            <td>
+                                                <draggable-number class="draggable-x0" min="-3" max="3" step="0.01" value="1">1.0</draggable-number>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <draggable-number class="draggable-x1" min="-3" max="3" step="0.01" value="1">1.0</draggable-number>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td>, \( \stateCovariance = \)</td>
+                                <td>
+                                    <table class="matrix-table">
+                                        <tr>
+                                            <td>
+                                                <draggable-number class="draggable-P00" min="0.01" max="5" step="0.01" value="1">1.0</draggable-number>
+                                            </td>
+                                            <td>
+                                                <draggable-number class="draggable-P01" min="-5" max="5" step="0.01" value="0.0">0.0</draggable-number>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="dynamic-number-container draggable-P10">0.0</div>
+                                            </td>
+                                            <td>
+                                                <draggable-number class="draggable-P11" min="0.01" max="5" step="0.01" value="1">1.0</draggable-number>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td>\( \left. 
+                                        \begin{eqnarray}
+                                        \\
+                                        \\
+                                        \\
+                                    \end{eqnarray}
+                                    \right) \)
+    
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <script>
+            const figure = document.getElementById('gaussian-3d-figure');
+            const x0 = figure.querySelector('.draggable-x0');
+            const x1 = figure.querySelector('.draggable-x1');
+            const P00 = figure.querySelector('.draggable-P00');
+            const P01 = figure.querySelector('.draggable-P01');
+            const P10 = figure.querySelector('.draggable-P10');
+            const P11 = figure.querySelector('.draggable-P11');
+    
+            // Make the covariance be positive semi-definite and symmetric
+            P00.setValidityCondition((newValue) => {
+                return isPositiveSemiDefinite([[newValue, P01.value], [P01.value, P11.value]])
+            });
+            P01.setValidityCondition((newValue) => {
+                return isPositiveSemiDefinite([[P00.value, newValue], [newValue, P11.value]])
+            });
+            P11.setValidityCondition((newValue) => {
+                return isPositiveSemiDefinite([[P00.value, P01.value], [P01.value, newValue]])
+            });
+    
+            const plotLayout = {
+                title: 'Bivariate Gaussian Distribution',
+                scene: {
+                    xaxis: { 
+                        title: 'Position',
+                        range: [-3, 3]
+                    },
+                    yaxis: { 
+                        title: 'Velocity',
+                        range: [-3, 3]
+                    },
+                    zaxis: { 
+                        title: 'Probability',
+                    },
+                    // camera: {
+                    //     eye: { x: 0, y: 0, z: 2 },
+                    //     up: { x: 0, y: 1, z: 0 },
+                    //     center: { x: 0, y: 0, z: 0 }
+                    // }
+                },
+            }
+    
+            function generateGaussianBasePts(mu, sigma, n_points, min, max) {
+                // generate n_points that extend either to 3 sigma or to min and max 
+                return linspace(Math.min(min, mu-3*sigma), Math.max(max, mu+3*sigma), n_points);
+            }
+            const n_points = 41;
+            const xPts = linspace(-3,3,n_points); // generateGaussianBasePts(x0.value, P00.value, n_points, -3, 3);
+            const yPts = linspace(-3,3,n_points); //generateGaussianBasePts(x1.value, P11.value, n_points, -3, 3);
+    
+            function updateGaussian3dPlot() {
+                const x = [[x0.value], [x1.value]];
+                // Note: P01 used instead of P10 because the matrix is symmetric
+                const P = [[P00.value, P01.value], [P01.value, P11.value]];
+    
+                P10.textContent = P01.value.toFixed(2); //symmetric matrix
+                const zPts = generate3dGaussianSurface(x, P, xPts, yPts);
+                // const x_proj = univariateGaussianXYpts(x0.value, P00.value, xAbsMin=-3, xAbsMax=3, yAbsMax=1.5, numPts=80);
+                // const y_proj = univariateGaussianXYpts(x1.value, P11.value, xAbsMin=-3, xAbsMax=3, yAbsMax=1.5, numPts=80);
+    
+                let trace = {
+                    x: xPts,
+                    y: yPts,
+                    z: zPts,
+                    type: 'surface',
+                    showscale: false,  // This line removes the colorbar
+                    contours: {
+                        z: {
+                            show: true,
+                            usecolormap: true,
+                            project: {z: true}
+                        },
+                    },
+                    legend: {
+                        show: false
+                    },
+                    hovermode: false,
+                    hoverinfo: 'none',
+                    hoverlabel: {bgcolor: 'rgba(0,0,0,0)'},  // This makes hover labels transparent
+                    clickmode: 'none',
+                };
+    
+                Plotly.react("gaussian-3d-plot", [trace], plotLayout);
+            }
+            updateGaussian3dPlot();
+    
+            [x0, x1, P00, P01, P11].forEach((element) => {
+                element.addEventListener('input', updateGaussian3dPlot);
+            });
+    
+        </script>
+    </div>
 
     <p class="expandable-content-text" onclick="toggleExpandableContent('why-a-gaussian')">
         Why a gaussian?
