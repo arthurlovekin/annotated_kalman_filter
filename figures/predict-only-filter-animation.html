@@ -181,7 +181,7 @@
                         class="path45" /></g></g></g>
                 </svg>
         </div>
-        <div id="full-kalman-filter-state-diagram"></div>
+        <div id="predict-only-filter-plot"></div>
         <table class="math-diagram-structure-table">
             <tr>
                 <td>Control the robot's acceleration by dragging the number: \( \controlInput = \)</td>
@@ -189,7 +189,7 @@
                     <table class="matrix-table">
                         <tr>
                             <td>
-                                <draggable-number class="control-input-slider" min="-1" max="1" value="0.2" step="0.1"></draggable-number>
+                                <draggable-number class="control-input-slider" min="-1" max="1" value="0.0" step="0.1"></draggable-number>
                             </td>
                         </tr>
                     </table>
@@ -207,6 +207,7 @@
         <script>
             (function() {
             const diagram = document.getElementById('predict-only-filter-diagram');
+            // Also need to change the Plotly id
             const robot = diagram.querySelector('.animation-robot');
             const slider = diagram.querySelector('.control-input-slider');
             const container = diagram.querySelector('.animation-container');
@@ -234,7 +235,7 @@
                 // Truestate variables
                 throttle = parseFloat(slider.value);  // -1 to 1
                 x = [[0], //px
-                    [50]]; //px/s
+                    [100]]; //px/s
 
                 // Estimated state variables
                 const initial_state_variance = 100;
@@ -298,12 +299,11 @@
                     return;
                 }
                 //get the max width of the container for the state-diagram plot
-                const containerLeftX = container.getBoundingClientRect().left;
-                const containerRightX = container.getBoundingClientRect().right;
                 const maxY = maxVelocity+100;
-
+                const lMargin = 40;
+                const rMargin = 40;
                 const layout = {
-                    title: 'Predict-Only Filter State Space',
+                    title: 'Kalman Filter State Space',
                     legend: {
                         orientation: 'h',
                         yanchor: 'top',
@@ -317,18 +317,24 @@
                     },
                     xaxis: {
                         title: 'Position (Pixels)',
-                        range: [containerLeftX+50, containerRightX-50] // axis labels take some space
+                        range: [0,container.clientWidth-lMargin-rMargin], // axis labels take some space
                     },
                     margin: {
-                    l: 40,
-                    r: 40,
+                    l: lMargin,
+                    r: rMargin,
                     t: 50,
                     b: 40,
                     },
                     hovermode: 'closest',
                 }
+                function getPlotPosition(x) {
+                    return positiveModulo(x[0][0], container.clientWidth + 2*robot.clientWidth) - robot.clientWidth/2; //robot.clientWidth/2 is an offset so dot is at front or robot
+                }
+                // Apply the new position and wheel rotation to the robot
+                const pixel_position = getPlotPosition(x);
+
                 const center_true = {
-                    x: [positiveModulo(x[0][0], container.clientWidth + 2*robot.clientWidth)], // don't subtract robot.clientWidth so dot is at front or robot
+                    x: [pixel_position],
                     y: [x[1][0]],
                     type: 'scatter',
                     mode: 'markers',
@@ -336,7 +342,7 @@
                     showlegend: true,
                     name: 'True State'
                 }
-                const x_est_mod = [[positiveModulo(x_est[0][0], container.clientWidth + 2*robot.clientWidth)],
+                const x_est_mod = [[getPlotPosition(x_est)],
                                     [x_est[1][0]]];
                 if (x_est_mod[1][0] > maxY+ 50) {
                     // just draw an arrow indicating where it is
@@ -354,7 +360,7 @@
                         name: 'Estimated State',
                     }
                     const traces = [center_true, center_est_arrow];
-                    Plotly.react('full-kalman-filter-state-diagram', traces, layout);
+                    Plotly.react('predict-only-filter-plot', traces, layout);
                 }
                 else if (x_est_mod[1][0] < -maxY-50) {
                     const center_est_arrow = {
@@ -371,7 +377,7 @@
                         name: 'Estimated State',
                     }
                     const traces = [center_true, center_est_arrow];
-                    Plotly.react('full-kalman-filter-state-diagram', traces, layout);
+                    Plotly.react('predict-only-filter-plot', traces, layout);
                 }
                 else {
                     const center_est = {
@@ -384,21 +390,50 @@
                     }
                     const contours_est = generateGaussianEllipticalContours(x_est_mod, P_est, color='red', name='Estimated State');
                     const traces = [center_true, center_est].concat(contours_est);
-                    Plotly.react('full-kalman-filter-state-diagram', traces, layout);
+                    Plotly.react('predict-only-filter-plot', traces, layout);
                 }
             }
             
+            
+            ///// Animation Start/Stop Controls /////
+            // Stop running the animation when the user can't see it
             let animationRunning = true;
-            startButton.addEventListener('click', () => {
+            function startAnimation() {
                 animationRunning = true;
                 requestAnimationFrame(animateRobot);
-            });
-            stopButton.addEventListener('click', () => {
+            }
+            function stopAnimation() {
                 animationRunning = false;
-            });
-            resetButton.addEventListener('click', () => {
+            }
+            function resetAnimation() {
                 resetAllVariables();
                 renderAnimationAndPlot(x, x_est, P_est);
+            }
+            // Stop running when the user can't see the animation
+            function handleIntersection(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        startAnimation();
+                    } else {
+                        stopAnimation();
+                    }
+                });
+            }
+            const observer = new IntersectionObserver(handleIntersection, {
+                root: null, // Use the viewport as the root
+                threshold: 0.1 // Trigger when 10% of the element is visible
+            });
+            observer.observe(container);
+
+            // Start/Stop/Reset buttons
+            startButton.addEventListener('click', () => {
+                startAnimation();
+            });
+            stopButton.addEventListener('click', () => {
+                stopAnimation();
+            });
+            resetButton.addEventListener('click', () => {
+                resetAnimation();
             });
 
             // Function to animate the robot
@@ -406,7 +441,6 @@
                 const wheelRotation = positiveModulo(x[0][0]/wheelRadius * 180/Math.PI, 360);
     
                 // Apply the new position and wheel rotation to the robot
-                const containerLeftX = container.getBoundingClientRect().left;
                 const pixel_position = positiveModulo(x[0][0], container.clientWidth + 2*robot.clientWidth) - robot.clientWidth;
                 robot.style.left = `${pixel_position}px`;
                 // In the SVG the front wheel was originally drawn centered at 134.39388px 156.62283px
@@ -457,9 +491,7 @@
                     //     // Take a measurement if possible
                     //     const z = trueMeasurementModel(x);
                     //     [x_est, P_est] = propagateKalmanFilter(x_est, P_est, KF_dt, throttle, wheelRadius, maxAngularAcceleration, z);
-                    // } else {
-                    //     [x_est, P_est] = propagateKalmanFilter(x_est, P_est, KF_dt, throttle, wheelRadius, maxAngularAcceleration);
-                    // }
+                    // } 
                 }
 
                 renderAnimationAndPlot(x, x_est, P_est);

@@ -189,7 +189,7 @@
                     <table class="matrix-table">
                         <tr>
                             <td>
-                                <draggable-number class="control-input-slider" min="-1" max="1" value="0.2" step="0.1"></draggable-number>
+                                <draggable-number class="control-input-slider" min="-1" max="1" value="0.0" step="0.1"></draggable-number>
                             </td>
                         </tr>
                     </table>
@@ -207,6 +207,7 @@
         <script>
             (function() {
             const diagram = document.getElementById('full-kalman-filter-diagram');
+            // Also need to change the Plotly id
             const robot = diagram.querySelector('.animation-robot');
             const slider = diagram.querySelector('.control-input-slider');
             const container = diagram.querySelector('.animation-container');
@@ -233,10 +234,8 @@
             function resetAllVariables() {
                 // Truestate variables
                 throttle = parseFloat(slider.value);  // -1 to 1
-                // // full container extends 1 robot width on the left and right; want to start fully on 
-                // const initialPixelPosition = container.getBoundingClientRect().left + robot.clientWidth; 
                 x = [[0], //px
-                    [50]]; //px/s
+                    [100]]; //px/s
 
                 // Estimated state variables
                 const initial_state_variance = 100;
@@ -395,17 +394,45 @@
                 }
             }
             
+            ///// Animation Start/Stop Controls /////
+            // Stop running the animation when the user can't see it
             let animationRunning = true;
-            startButton.addEventListener('click', () => {
+            function startAnimation() {
                 animationRunning = true;
                 requestAnimationFrame(animateRobot);
-            });
-            stopButton.addEventListener('click', () => {
+            }
+            function stopAnimation() {
                 animationRunning = false;
-            });
-            resetButton.addEventListener('click', () => {
+            }
+            function resetAnimation() {
                 resetAllVariables();
                 renderAnimationAndPlot(x, x_est, P_est);
+            }
+            // Stop running when the user can't see the animation
+            function handleIntersection(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        startAnimation();
+                    } else {
+                        stopAnimation();
+                    }
+                });
+            }
+            const observer = new IntersectionObserver(handleIntersection, {
+                root: null, // Use the viewport as the root
+                threshold: 0.1 // Trigger when 10% of the element is visible
+            });
+            observer.observe(container);
+
+            // Start/Stop/Reset buttons
+            startButton.addEventListener('click', () => {
+                startAnimation();
+            });
+            stopButton.addEventListener('click', () => {
+                stopAnimation();
+            });
+            resetButton.addEventListener('click', () => {
+                resetAnimation();
             });
 
             // Function to animate the robot
