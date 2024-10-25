@@ -31,6 +31,9 @@
 
     <table class="math-diagram-structure-table">
         <tr class="kalman-gain-state-space">
+            <th colspan="2" style="font-size: 1.3rem; padding: 10px;">Update Step (Measurement Space)</th>
+        </tr>
+        <tr class="kalman-gain-state-space">
             <td>
                 <table class="math-diagram-structure-table">
                     <tr>
@@ -302,6 +305,9 @@
                 </table>
             </td>
         </tr>
+        <tr class="kalman-gain-state-space">
+            <td colspan="2" style="padding: 5px;"></td>
+        </tr>
     </table>
     <script>
         (function() { // Immediately Invoked Function Expression (IIFE)
@@ -407,7 +413,7 @@
                 name: 'Combination',
                 line: {color: 'red'},
             };
-            
+            const backgroundColor = getComputedStyle(document.querySelector('.kalman-gain-measurement-space')).backgroundColor;
             const layout = {
                 title: 'Kalman Gain Probability Densities (Measurement Space)',
                 legend: {
@@ -434,6 +440,8 @@
                     b: 40,
                 },
                 hovermode: 'closest',
+                plot_bgcolor: backgroundColor,
+                paper_bgcolor: backgroundColor
             };
             
             Plotly.react('measurement-kalman-gain-plot', [trace_Hx_tm1, trace_z, trace_Hx_t], layout);

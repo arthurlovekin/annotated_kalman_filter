@@ -32,6 +32,9 @@
 
     <table class="math-diagram-structure-table">
         <tr class="kalman-gain-state-space">
+            <th colspan="2" style="font-size: 1.3rem; padding: 10px;">Update Step (State Space)</th>
+        </tr>
+        <tr class="kalman-gain-state-space">
             <td>
                 <table class="math-diagram-structure-table">
                     <tr>
@@ -426,6 +429,9 @@
                 </table>
             </td>
         </tr>
+        <tr class="kalman-gain-state-space">
+            <td colspan="2" style="padding: 5px;"></td>
+        </tr>
     </table>
     <script>
     (function() { // Immediately Invoked Function Expression (IIFE)
@@ -531,6 +537,7 @@
 
             let traces = trace_xtm1.concat(trace_Hz).concat(trace_x_t);
             
+            const backgroundColor = getComputedStyle(document.querySelector('.kalman-gain-state-space')).backgroundColor;
             const layout = {
                 title: 'Kalman Gain Probability Density Contours (State Space)',
                 legend: {
@@ -555,8 +562,8 @@
                     b: 40,
                 },
                 hovermode: 'closest',
-                // plot_bgcolor: 'rgb(187, 187, 187)', // Match .kalman-gain-state-space background color
-                // paper_bgcolor: 'rgb(187, 187, 187)' // Match .kalman-gain-state-space background color
+                plot_bgcolor: backgroundColor,
+                paper_bgcolor: backgroundColor
             };
             
             Plotly.react('state-kalman-gain-plot', traces, layout);
