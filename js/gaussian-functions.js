@@ -201,3 +201,18 @@ function generateGaussianLinearContours(mu_0, sigma_00, color='blue', name='') {
     }
     return traces;
 }
+
+function generate3dGaussianSurface(mu, sigma, x, y) {
+    // Check that mu and sigma are 2D
+    if (!Array.isArray(mu) || !Array.isArray(mu[0])) {
+        throw new Error("mu must be a 2x1 array");
+    }
+    if (!Array.isArray(sigma) || !Array.isArray(sigma[0])) {
+        throw new Error("sigma must be a 2x2 array");
+    }
+    const z = x.map(xi => y.map(yi => {
+        const exponent = -(sigma[0][0]*(xi - mu[0][0]) ** 2 + 2*sigma[0][1]*(xi - mu[0][0])*(yi - mu[1][0]) + sigma[1][1]*(yi - mu[1][0]) ** 2);
+        return Math.exp(exponent) / Math.sqrt((2 * Math.PI)**2 * (sigma[0][0] * sigma[1][1] - sigma[0][1]*sigma[1][0]));
+    }));
+    return z;
+}
