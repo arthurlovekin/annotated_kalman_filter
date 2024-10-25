@@ -1749,6 +1749,9 @@
         <div id="measurement-kalman-gain-diagram">
             <table class="math-diagram-structure-table">
                 <tr class="kalman-gain-state-space">
+                    <th colspan="2" style="font-size: 1.3rem; padding: 10px;">Update Step (Measurement Space)</th>
+                </tr>
+                <tr class="kalman-gain-state-space">
                     <td>
                         <table class="math-diagram-structure-table">
                             <tr>
@@ -1813,28 +1816,8 @@
                 </tr>
                 <tr class="kalman-gain-intermediate-space">
                     <td>
-                        <table  class="math-diagram-structure-table">
-                            <tr>
-                                Convert to Measurement Space with
-                            </tr>
-                            <tr >
-                                <td>
-                                    \( \measurementMatrix = \)
-                                </td>
-                                <td>
-                                    <table class="matrix-table">
-                                        <tr>
-                                            <td>
-                                                <div id="kalman-gain-measurement-matrix-00">1.0</div>
-                                            </td>
-                                            <td>
-                                                <div id="kalman-gain-measurement-matrix-01">0.0</div>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
+                        Convert to Measurement Space with
+                        \( \measurementMatrix = \begin{bmatrix} 1 & 0 \end{bmatrix} \)
                     </td>
                     <td></td>
                 </tr>
@@ -2040,6 +2023,9 @@
                         </table>
                     </td>
                 </tr>
+                <tr class="kalman-gain-state-space">
+                    <td colspan="2" style="padding: 5px;"></td>
+                </tr>
             </table>
             <script>
                 (function() { // Immediately Invoked Function Expression (IIFE)
@@ -2065,10 +2051,6 @@
                 const P_10 = document.getElementById("kalman-gain-new-state-covariance-10");
                 const P_11 = document.getElementById("kalman-gain-new-state-covariance-11");
                 
-                // constants
-                const H_00 = parseFloat(document.getElementById("kalman-gain-measurement-matrix-00").textContent);
-                const H_01 = parseFloat(document.getElementById("kalman-gain-measurement-matrix-01").textContent);
-                
                 //// Make the old state covariance be positive semi-definite and symmetric
                 Ptm1_00.setValidityCondition((newValue) => {
                     return isPositiveSemiDefinite([[newValue, Ptm1_01.value], [Ptm1_01.value, Ptm1_11.value]])
@@ -2083,40 +2065,31 @@
         
                 //// Update the matrices whenever one is changed
                 function updateKalmanGainDiagram() {
+                    const xtm1 = [[xtm1_0.value], [xtm1_1.value]];
                     // Note: Ptm1_01 is always used instead of Ptm1_10 because the matrix is symmetric
-                    const _Hx_0 = H_00 * xtm1_0.value + H_01 * xtm1_1.value;
-                    const _HPH_00 = H_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) + H_01 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
-                    const _VR_00 = _HPH_00 / (_HPH_00 + R_00.value);
-                    // Use the kalman gain formula to update x since can't do H^{-1}
-                    // K = P_{t|t-1} H^T (H P_{t|t-1} H^T + R)^{-1}
-                    // x_{t|t} = x_{t|t-1} + K (z - H x_{t|t-1})
-                    // P_{t|t} = (I - K H) P_{t|t-1}
-                    const K_denominator = _HPH_00 + R_00.value;
-                    let K_00 = 0;
-                    let K_10 = 0;
-                    if (K_denominator !== 0) {
-                        K_00 = (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) / K_denominator;
-                        K_10 = (Ptm1_01.value * H_00 + Ptm1_11.value * H_01) / K_denominator;
-                    }
-                    const _xt_0 = xtm1_0.value + K_00 * (z_0.value - _Hx_0);
-                    const _xt_1 = xtm1_1.value + K_10 * (z_0.value - _Hx_0);
-                    const _P_00 = Ptm1_00.value - K_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01);
-                    const _P_01 = Ptm1_01.value - K_00 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
-                    const _P_10 = Ptm1_01.value - K_10 * (Ptm1_00.value * H_00 + Ptm1_11.value * H_01);
-                    const _P_11 = Ptm1_11.value - K_10 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
-        
-                    updateKalmanGainPlot(_Hx_0, _HPH_00, z_0.value, R_00.value, _xt_0, _P_00);
-        
-                    Hx_0.textContent = _Hx_0.toFixed(2);
-                    HPH_00.textContent = _HPH_00.toFixed(2);
-                    VR_00.textContent = _VR_00.toFixed(2);
-                    xt_0.textContent = _xt_0.toFixed(2);
-                    xt_1.textContent = _xt_1.toFixed(2);
-                    P_00.textContent = _P_00.toFixed(2);
-                    P_01.textContent = _P_01.toFixed(2);
-                    P_10.textContent = _P_10.toFixed(2);
-                    P_11.textContent = _P_11.toFixed(2);
+                    const Ptm1 = [[Ptm1_00.value, Ptm1_01.value], [Ptm1_01.value, Ptm1_11.value]];
+                    const z = [[z_0.value]];
+                    const R = [[R_00.value]];
+                    const H = [[1,0]]; // TODO shrink figure above
+                    const Hx = matMul(H, xtm1);
+                    const HPH = matMul(matMul(H, Ptm1), matTranspose(H));
+                    const K = KalmanGain(Ptm1, H, R);
+                    // VRz is exactly the same as VRx but the order of multiplication is flipped
+                    const VRz = matMul(H, K);
+                    const [xt, Pt] = KalmanUpdateStep(xtm1, Ptm1, H, z, R);
+                    
+                    VR_00.textContent = VRz[0][0].toFixed(2);
+                    Hx_0.textContent = Hx[0][0].toFixed(2);
+                    HPH_00.textContent = HPH[0][0].toFixed(2);
+                    xt_0.textContent = xt[0][0].toFixed(2);
+                    xt_1.textContent = xt[1][0].toFixed(2);
+                    P_00.textContent = Pt[0][0].toFixed(2);
+                    P_01.textContent = Pt[0][1].toFixed(2);
+                    P_10.textContent = Pt[1][0].toFixed(2);
+                    P_11.textContent = Pt[1][1].toFixed(2);
                     Ptm1_10.textContent = Ptm1_01.value.toFixed(2);
+        
+                    updateKalmanGainPlot(Hx[0][0], HPH[0][0], z[0][0], R[0][0], xt[0][0], Pt[0][0]);
                 }
         
                 //// Generate a plot of the three univariate gausians: Hx_{t-1}, z, and Hx_{t}
@@ -2158,7 +2131,7 @@
                         name: 'Combination',
                         line: {color: 'red'},
                     };
-                    
+                    const backgroundColor = getComputedStyle(document.querySelector('.kalman-gain-measurement-space')).backgroundColor;
                     const layout = {
                         title: 'Kalman Gain Probability Densities (Measurement Space)',
                         legend: {
@@ -2185,6 +2158,8 @@
                             b: 40,
                         },
                         hovermode: 'closest',
+                        plot_bgcolor: backgroundColor,
+                        paper_bgcolor: backgroundColor
                     };
                     
                     Plotly.react('measurement-kalman-gain-plot', [trace_Hx_tm1, trace_z, trace_Hx_t], layout);
@@ -2331,6 +2306,9 @@
         <div id="state-kalman-gain-diagram">
             <table class="math-diagram-structure-table">
                 <tr class="kalman-gain-state-space">
+                    <th colspan="2" style="font-size: 1.3rem; padding: 10px;">Update Step (State Space)</th>
+                </tr>
+                <tr class="kalman-gain-state-space">
                     <td>
                         <table class="math-diagram-structure-table">
                             <tr>
@@ -2395,28 +2373,8 @@
                 </tr>
                 <tr class="kalman-gain-intermediate-space">
                     <td>
-                        <table  class="math-diagram-structure-table">
-                            <tr>
-                                Convert to Measurement Space with
-                            </tr>
-                            <tr >
-                                <td>
-                                    \( \measurementMatrix = \)
-                                </td>
-                                <td>
-                                    <table class="matrix-table">
-                                        <tr>
-                                            <td>
-                                                <div id="xkalman-gain-measurement-matrix-00">1.0</div>
-                                            </td>
-                                            <td>
-                                                <div id="xkalman-gain-measurement-matrix-01">0.0</div>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
+                        Convert to Measurement Space with
+                        \( \measurementMatrix = \begin{bmatrix} 1 & 0 \end{bmatrix} \)
                     </td>
                     <td></td>
                 </tr>
@@ -2633,8 +2591,8 @@
                                         <tr>
                                             <td>
                                                 \( \varianceRatioState 
-                                                    = \frac{\stateCovariance}{\stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T} 
-                                                    = \stateCovariance \measurementMatrix^T \left[ \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right]^{-1} \measurementMatrix =
+                                                      = \frac{\stateCovariance}{\stateCovariance + \measurementMatrix^{-1} \measurementNoiseCovariance (\measurementMatrix^{-1})^T} 
+                                                      = \stateCovariance \measurementMatrix^T \left[ \measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance \right]^{-1} \measurementMatrix =
                                                 \)
                                             </td>
                                             <td>
@@ -2745,6 +2703,9 @@
                         </table>
                     </td>
                 </tr>
+                <tr class="kalman-gain-state-space">
+                    <td colspan="2" style="padding: 5px;"></td>
+                </tr>
             </table>
             <script>
             (function() { // Immediately Invoked Function Expression (IIFE)
@@ -2781,10 +2742,6 @@
                 const Hz_0 = document.getElementById("xkalman-gain-Hz-0");
                 const HRH_00 = document.getElementById("xkalman-gain-HRH-00");
         
-                // constants
-                const H_00 = parseFloat(document.getElementById("xkalman-gain-measurement-matrix-00").textContent);
-                const H_01 = parseFloat(document.getElementById("xkalman-gain-measurement-matrix-01").textContent);
-                
                 //// Make the old state covariance be positive semi-definite and symmetric
                 Ptm1_00.setValidityCondition((newValue) => {
                     return isPositiveSemiDefinite([[newValue, Ptm1_01.value], [Ptm1_01.value, Ptm1_11.value]])
@@ -2799,71 +2756,37 @@
         
                 //// Update the matrices whenever one is changed
                 function updateKalmanGainDiagramX() {
+                    const xtm1 = [[xtm1_0.value], [xtm1_1.value]];
                     // Note: Ptm1_01 is always used instead of Ptm1_10 because the matrix is symmetric
-                    const _Hx_0 = H_00 * xtm1_0.value + H_01 * xtm1_1.value;
-                    const _HPH_00 = H_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) + H_01 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
-                    
-                    // Use the kalman gain formula (same as in measurement space) to update x since can't do H^{-1}
-                    // K = P_{t|t-1} H^T (H P_{t|t-1} H^T + R)^{-1}
-                    // x_{t|t} = x_{t|t-1} + K (z - H x_{t|t-1})
-                    // P_{t|t} = (I - K H) P_{t|t-1}
-                    const K_denominator = _HPH_00 + R_00.value;
-                    let K_00 = 0;
-                    let K_10 = 0;
-                    if (K_denominator !== 0) {
-                        K_00 = (Ptm1_00.value * H_00 + Ptm1_01.value * H_01) / K_denominator;
-                        K_10 = (Ptm1_01.value * H_00 + Ptm1_11.value * H_01) / K_denominator;
-                    }
-                    const _xt_0 = xtm1_0.value + K_00 * (z_0.value - _Hx_0);
-                    const _xt_1 = xtm1_1.value + K_10 * (z_0.value - _Hx_0);
-                    const _P_00 = Ptm1_00.value - K_00 * (Ptm1_00.value * H_00 + Ptm1_01.value * H_01);
-                    const _P_01 = Ptm1_01.value - K_00 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
-                    const _P_10 = Ptm1_01.value - K_10 * (Ptm1_00.value * H_00 + Ptm1_11.value * H_01);
-                    const _P_11 = Ptm1_11.value - K_10 * (Ptm1_01.value * H_00 + Ptm1_11.value * H_01);
+                    const Ptm1 = [[Ptm1_00.value, Ptm1_01.value], [Ptm1_01.value, Ptm1_11.value]];
+                    const z = [[z_0.value]];
+                    const R = [[R_00.value]];
+                    const H = [[1,0]]; // TODO shrink figure above
+                    const Hx = matMul(H, xtm1);
+                    const HPH = matMul(matMul(H, Ptm1), matTranspose(H));
+                    const K = KalmanGain(Ptm1, H, R);
+                    // VRz is exactly the same as VRx but the order of multiplication is flipped
+                    const VRx = matMul(K, H);
+                    const [xt, Pt] = KalmanUpdateStep(xtm1, Ptm1, H, z, R);
+                    const Hinvz_0 = z[0][0] / H[0][0];
+                    const HinvR_00 = R_00.value / H[0][0] / H[0][0];
         
-                    // Find the Variance Ratio
-                    // Assuming H[1] is 0, then H^T H = [[H[0]*H[0],0],[0,0]]
-                    // Also, R and HPH^T are scalars, so can just divide
-                    let _VR_00 = Ptm1_00.value;
-                    let _VR_10 = Ptm1_01.value;
-                    let _VR_01 = Ptm1_01.value;
-                    let _VR_11 = Ptm1_11.value;
-                    if (K_denominator !== 0) {
-                        const HT_HPHT_R_H_00 = H_00*H_00/ K_denominator;
-                        _VR_00 *= HT_HPHT_R_H_00;
-                        _VR_10 *= HT_HPHT_R_H_00;
-                        _VR_01 *= HT_HPHT_R_H_00;
-                        _VR_11 *= HT_HPHT_R_H_00;
-                    }
-                    // TODO: Handle the case where both covariances are 0
-        
-        
-                    VR_00.textContent = _VR_00.toFixed(2);
-                    VR_10.textContent = _VR_10.toFixed(2);
-                    VR_01.textContent = _VR_01.toFixed(2);
-                    VR_11.textContent = _VR_11.toFixed(2);
-                    Hx_0.textContent = _Hx_0.toFixed(2);
-                    HPH_00.textContent = _HPH_00.toFixed(2);
-                    xt_0.textContent = _xt_0.toFixed(2);
-                    xt_1.textContent = _xt_1.toFixed(2);
-                    P_00.textContent = _P_00.toFixed(2);
-                    P_01.textContent = _P_01.toFixed(2);
-                    P_10.textContent = _P_10.toFixed(2);
-                    P_11.textContent = _P_11.toFixed(2);
+                    VR_00.textContent = VRx[0][0].toFixed(2);
+                    VR_10.textContent = VRx[1][0].toFixed(2);
+                    VR_01.textContent = VRx[0][1].toFixed(2);
+                    VR_11.textContent = VRx[1][1].toFixed(2);
+                    Hx_0.textContent = Hx[0][0].toFixed(2);
+                    HPH_00.textContent = HPH[0][0].toFixed(2);
+                    xt_0.textContent = xt[0][0].toFixed(2);
+                    xt_1.textContent = xt[1][0].toFixed(2);
+                    P_00.textContent = Pt[0][0].toFixed(2);
+                    P_01.textContent = Pt[0][1].toFixed(2);
+                    P_10.textContent = Pt[1][0].toFixed(2);
+                    P_11.textContent = Pt[1][1].toFixed(2);
                     Ptm1_10.textContent = Ptm1_01.value.toFixed(2);
-                    
-                    let _Hz_0 = 0;
-                    let _HRH_00 = 0;
-                    if (H_00 !== 0) {
-                        _Hz_0 = z_0.value / H_00;
-                        Hz_0.textContent = _Hz_0.toFixed(2);
-                        _HRH_00 = R_00.value / H_00 / H_00;
-                        HRH_00.textContent = _HRH_00.toFixed(2);
-                    }
-                    else {
-                        Hz_0.textContent = "-";
-                        HRH_00.textContent = "-";
-                    }
+                    Hz_0.textContent = Hinvz_0.toFixed(2);
+                    HRH_00.textContent = HinvR_00.toFixed(2);
+                    // duplicates
                     xtm1_0_d.textContent = xtm1_0.value.toFixed(2);
                     xtm1_1_d.textContent = xtm1_1.value.toFixed(2);
                     Ptm1_00_d.textContent = Ptm1_00.value.toFixed(2);
@@ -2871,11 +2794,7 @@
                     Ptm1_10_d.textContent = Ptm1_01.value.toFixed(2);
                     Ptm1_11_d.textContent = Ptm1_11.value.toFixed(2);
         
-                    const x_tm1_mean = [xtm1_0.value, xtm1_1.value];
-                    const x_tm1_var = [[Ptm1_00.value, Ptm1_01.value], [Ptm1_01.value, Ptm1_11.value]];
-                    const x_t_mean = [_xt_0, _xt_1];
-                    const x_t_var = [[_P_00, _P_01], [_P_10, _P_11]];
-                    updateKalmanGainPlotX(x_tm1_mean, x_tm1_var, _Hz_0, _HRH_00, x_t_mean, x_t_var);
+                    updateKalmanGainPlotX(xtm1, Ptm1, Hinvz_0, HinvR_00, xt, Pt);
                 }
         
                 //// Generate a plot of the three univariate gausians: Hx_{t-1}, z, and Hx_{t}
@@ -2892,6 +2811,7 @@
         
                     let traces = trace_xtm1.concat(trace_Hz).concat(trace_x_t);
                     
+                    const backgroundColor = getComputedStyle(document.querySelector('.kalman-gain-state-space')).backgroundColor;
                     const layout = {
                         title: 'Kalman Gain Probability Density Contours (State Space)',
                         legend: {
@@ -2916,8 +2836,8 @@
                             b: 40,
                         },
                         hovermode: 'closest',
-                        // plot_bgcolor: 'rgb(187, 187, 187)', // Match .kalman-gain-state-space background color
-                        // paper_bgcolor: 'rgb(187, 187, 187)' // Match .kalman-gain-state-space background color
+                        plot_bgcolor: backgroundColor,
+                        paper_bgcolor: backgroundColor
                     };
                     
                     Plotly.react('state-kalman-gain-plot', traces, layout);
