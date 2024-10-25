@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Full Kalman Filter Animation</title>
+  <title>Intro Animation</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <script src="https://unpkg.com/@popperjs/core@2"></script>
   <script src="https://unpkg.com/tippy.js@6"></script>
@@ -24,7 +24,7 @@
 <link rel="stylesheet" href="../css/svg-animation-style.css">
 </head>
 <body>
-    <div id="full-kalman-filter-diagram">    
+    <div id="intro-animation">    
         <div class="animation-container">
             <!-- SVG Robot -->
             <svg
@@ -181,7 +181,6 @@
                         class="path45" /></g></g></g>
                 </svg>
         </div>
-        <div id="full-kalman-filter-state-diagram"></div>
         <table class="math-diagram-structure-table">
             <tr>
                 <td>Control the robot's acceleration by dragging the number: \( \controlInput = \)</td>
@@ -189,7 +188,7 @@
                     <table class="matrix-table">
                         <tr>
                             <td>
-                                <draggable-number class="control-input-slider" min="-1" max="1" value="0.0" step="0.1"></draggable-number>
+                                <draggable-number class="control-input-slider" min="-1" max="1" value="0.1" step="0.1"></draggable-number>
                             </td>
                         </tr>
                     </table>
@@ -206,7 +205,7 @@
     </div>
         <script>
             (function() {
-            const diagram = document.getElementById('full-kalman-filter-diagram');
+            const diagram = document.getElementById('intro-animation');
             // Also need to change the Plotly id
             const robot = diagram.querySelector('.animation-robot');
             const slider = diagram.querySelector('.control-input-slider');
@@ -285,115 +284,6 @@
                 throttle = parseFloat(slider.value);
             });
 
-            // State-space plot
-            function updateStatePlot(x, x_est, P_est) {
-                // Inputs:
-                // x: true state (2x1 array)
-                // x_est: estimated state (2x1 array)
-                // P_est: estimated covariance (2x2 array)
-                // Check input shapes
-                if (!Array.isArray(x) || x.length !== 2 || !Array.isArray(x[0]) || x[0].length !== 1 ||
-                    !Array.isArray(x_est) || x_est.length !== 2 || !Array.isArray(x_est[0]) || x_est[0].length !== 1 ||
-                    !Array.isArray(P_est) || P_est.length !== 2 || !Array.isArray(P_est[0]) || P_est[0].length !== 2) {
-                    console.error(`Invalid input shapes for updateStatePlot: x: ${x}, x_est: ${x_est}, P_est: ${P_est}`);
-                    return;
-                }
-                //get the max width of the container for the state-diagram plot
-                const maxY = maxVelocity+100;
-                const lMargin = 40;
-                const rMargin = 40;
-                const layout = {
-                    title: 'Kalman Filter State Space',
-                    legend: {
-                        orientation: 'h',
-                        yanchor: 'top',
-                        xanchor: 'center',
-                        y: 1.05,
-                        x: 0.5,
-                    },
-                    yaxis: {
-                        title: 'Velocity (Pixels/Second)',
-                        range: [-maxY,maxY],
-                    },
-                    xaxis: {
-                        title: 'Position (Pixels)',
-                        range: [0,container.clientWidth-lMargin-rMargin], // axis labels take some space
-                    },
-                    margin: {
-                    l: lMargin,
-                    r: rMargin,
-                    t: 50,
-                    b: 40,
-                    },
-                    hovermode: 'closest',
-                }
-                function getPlotPosition(x) {
-                    return positiveModulo(x[0][0], container.clientWidth + 2*robot.clientWidth) - robot.clientWidth/2; //robot.clientWidth/2 is an offset so dot is at front or robot
-                }
-                // Apply the new position and wheel rotation to the robot
-                const pixel_position = getPlotPosition(x);
-
-                const center_true = {
-                    x: [pixel_position],
-                    y: [x[1][0]],
-                    type: 'scatter',
-                    mode: 'markers',
-                    marker: { color: 'black' },
-                    showlegend: true,
-                    name: 'True State'
-                }
-                const x_est_mod = [[getPlotPosition(x_est)],
-                                    [x_est[1][0]]];
-                if (x_est_mod[1][0] > maxY+ 50) {
-                    // just draw an arrow indicating where it is
-                    const center_est_arrow = {
-                        x: [x_est_mod[0][0]],
-                        y: [maxY-30],
-                        type: 'scatter',
-                        mode: 'markers',
-                        marker: {
-                            symbol: 'triangle-up',
-                            size: 12,
-                            color: 'red'
-                        },
-                        showlegend: true,
-                        name: 'Estimated State',
-                    }
-                    const traces = [center_true, center_est_arrow];
-                    Plotly.react('full-kalman-filter-state-diagram', traces, layout);
-                }
-                else if (x_est_mod[1][0] < -maxY-50) {
-                    const center_est_arrow = {
-                        x: [x_est_mod[0][0]],
-                        y: [-maxY+30],
-                        type: 'scatter',
-                        mode: 'markers',
-                        marker: {
-                            symbol: 'triangle-down',
-                            size: 12,
-                            color: 'red'
-                        },
-                        showlegend: true,
-                        name: 'Estimated State',
-                    }
-                    const traces = [center_true, center_est_arrow];
-                    Plotly.react('full-kalman-filter-state-diagram', traces, layout);
-                }
-                else {
-                    const center_est = {
-                        x: [x_est_mod[0][0]],
-                        y: [x_est_mod[1][0]],
-                        type: 'scatter',
-                        mode: 'markers',
-                        marker: { color: 'red' },
-                        showlegend: false,
-                    }
-                    const contours_est = generateGaussianEllipticalContours(x_est_mod, P_est, color='red', name='Estimated State');
-                    const traces = [center_true, center_est].concat(contours_est);
-                    Plotly.react('full-kalman-filter-state-diagram', traces, layout);
-                }
-            }
-            
             ///// Animation Start/Stop Controls /////
             // Stop running the animation when the user can't see it
             let animationRunning = true;
@@ -406,7 +296,7 @@
             }
             function resetAnimation() {
                 resetAllVariables();
-                renderAnimationAndPlot(x, x_est, P_est);
+                renderAnimation(x);
             }
             // Stop running when the user can't see the animation
             function handleIntersection(entries) {
@@ -437,7 +327,7 @@
 
             function renderAnimation(x) {
                 const wheelRotation = positiveModulo(x[0][0]/wheelRadius * 180/Math.PI, 360);
-                
+    
                 // Apply the new position and wheel rotation to the robot
                 const pixel_position = positiveModulo(x[0][0], container.clientWidth + 2*robot.clientWidth) - robot.clientWidth;
                 robot.style.left = `${pixel_position}px`;
@@ -446,7 +336,7 @@
                 // We need to rotate the wheel about its translated center
                 frontWheel.style.transformOrigin = `${134.39388 - 47.066795}px ${156.62283 + 7.9443462}px`;
                 frontWheel.style.transform = `rotate(${wheelRotation}deg) translate(-47.066795px, 7.9443462px)`;
-
+    
                 // In the SVG the rear wheel was originally drawn centered at 134.39388px 156.62283px
                 // then the whole rear wheel was translated by -95px, 7.9443462px
                 // We need to rotate the wheel about its translated center
@@ -454,16 +344,7 @@
                 rearWheel.style.transform = `rotate(${wheelRotation}deg) translate(-95px, 7.9443462px)`;
             }
 
-            // Function to animate the robot
-            function renderAnimationAndPlot(x, x_est, P_est) {
-                renderAnimation(x);
-                updateStatePlot(x, x_est, P_est);
-            }
-
             let t_prev;
-            let KF_t_prev; // Kalman Filter runs at slower rate than true state
-            let measurement_t_prev; // Measurement update runs at slower rate than Kalman Filter
-
             function animateRobot(timestamp) {
                 if (!animationRunning) {
                     t_prev = undefined;
@@ -474,30 +355,13 @@
                 }
                 if (t_prev === undefined) {
                     t_prev = timestamp;
-                    KF_t_prev = timestamp;
-                    measurement_t_prev = timestamp;
                 }
                 // True state
                 const dt = (timestamp - t_prev) / 1000;
                 t_prev = timestamp;
                 x = trueStateModel(x, dt, throttle, wheelRadius, maxVelocity, maxAngularAcceleration);
 
-                // Kalman state
-                const KF_dt = (timestamp - KF_t_prev) / 1000; // ms to seconds
-                const meas_dt = (timestamp - measurement_t_prev) / 1000;
-                if (KF_dt >= KF_dt_min) {
-                    KF_t_prev = timestamp;
-                    if (meas_dt >= meas_dt_min) {
-                        measurement_t_prev = timestamp;
-                        // Take a measurement if possible
-                        const z = trueMeasurementModel(x);
-                        [x_est, P_est] = propagateKalmanFilter(x_est, P_est, KF_dt, throttle, wheelRadius, maxAngularAcceleration, z);
-                    } else {
-                        [x_est, P_est] = propagateKalmanFilter(x_est, P_est, KF_dt, throttle, wheelRadius, maxAngularAcceleration);
-                    }
-                }
-
-                renderAnimationAndPlot(x, x_est, P_est);
+                renderAnimation(x);
                 requestAnimationFrame(animateRobot);
             }
     
