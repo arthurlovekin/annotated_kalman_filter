@@ -24,15 +24,14 @@
 <link rel="stylesheet" href="../css/svg-animation-style.css">
 </head>
 <body>
-    <div>    
-        <div id="full-kalman-filter-animation-container" class="animation-container">
+    <div id="full-kalman-filter-diagram">    
+        <div class="animation-container">
             <!-- SVG Robot -->
             <svg
                 width="78.827438mm"
                 height="90.709648mm"
                 viewBox="0 0 78.827438 90.709648"
                 version="1.1"
-                id="full-kalman-filter-robot"
                 class="animation-robot"
                 xml:space="preserve"
                 xmlns="http://www.w3.org/2000/svg"
@@ -190,29 +189,30 @@
                     <table class="matrix-table">
                         <tr>
                             <td>
-                                <draggable-number id="full-kalman-filter-animation-control-input" min="-1" max="1" value="0.2" step="0.1"></draggable-number>
+                                <draggable-number class="control-input-slider" min="-1" max="1" value="0.2" step="0.1"></draggable-number>
                             </td>
                         </tr>
                     </table>
                 </td>
             </tr>
             <tr>
-                <td id="full-kalman-filter-buttons">
+                <td>
                     <button class="start-button">Start</button>
                     <button class="stop-button">Stop</button>
                     <button class="reset-button">Reset</button>
                 </td>
             </tr>
         </table>
+    </div>
         <script>
             (function() {
-            const robot = document.getElementById('full-kalman-filter-robot');
-            const slider = document.getElementById('full-kalman-filter-animation-control-input');
-            const container = document.getElementById('full-kalman-filter-animation-container');
-            const buttons = document.getElementById('full-kalman-filter-buttons');
-            const startButton = buttons.querySelector('.start-button');
-            const stopButton = buttons.querySelector('.stop-button');
-            const resetButton = buttons.querySelector('.reset-button');
+            const diagram = document.getElementById('full-kalman-filter-diagram');
+            const robot = diagram.querySelector('.animation-robot');
+            const slider = diagram.querySelector('.control-input-slider');
+            const container = diagram.querySelector('.animation-container');
+            const startButton = diagram.querySelector('.start-button');
+            const stopButton = diagram.querySelector('.stop-button');
+            const resetButton = diagram.querySelector('.reset-button');
 
             /////////////////////////////////////////////////////////////
             // Kalman Filter parameters + models
@@ -471,6 +471,5 @@
 
             })();
         </script>
-    </div>
 </body>
 </html>
