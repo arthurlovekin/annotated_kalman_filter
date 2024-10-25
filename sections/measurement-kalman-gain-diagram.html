@@ -350,12 +350,13 @@
             const Hx = matMul(H, xtm1);
             const HPH = matMul(matMul(H, Ptm1), matTranspose(H));
             const K = KalmanGain(Ptm1, H, R);
-            const VR = matMul(H, K);
+            // VRz is exactly the same as VRx but the order of multiplication is flipped
+            const VRz = matMul(H, K);
             const [xt, Pt] = KalmanUpdateStep(xtm1, Ptm1, H, z, R);
-
+            
+            VR_00.textContent = VRz[0][0].toFixed(2);
             Hx_0.textContent = Hx[0][0].toFixed(2);
             HPH_00.textContent = HPH[0][0].toFixed(2);
-            VR_00.textContent = VR[0][0].toFixed(2);
             xt_0.textContent = xt[0][0].toFixed(2);
             xt_1.textContent = xt[1][0].toFixed(2);
             P_00.textContent = Pt[0][0].toFixed(2);
