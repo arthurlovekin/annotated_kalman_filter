@@ -109,9 +109,6 @@
             return isPositiveSemiDefinite([[P00.value, P01.value], [P01.value, newValue]])
         });
 
-        const n_points = 41;
-        const xPts = linspace(-3, 3, n_points);
-        const yPts = linspace(-3, 3, n_points);
         const plotLayout = {
             title: 'Bivariate Gaussian Distribution',
             scene: {
@@ -127,6 +124,14 @@
             autosize: true,
         }
 
+        function generateGaussianBasePts(mu, sigma, n_points, min, max) {
+            // generate n_points that extend either to 3 sigma or to min and max 
+            return linspace(Math.min(min, mu-3*sigma), Math.max(max, mu+3*sigma), n_points);
+        }
+        const n_points = 41;
+        const xPts = linspace(-3,3,n_points); // generateGaussianBasePts(x0.value, P00.value, n_points, -3, 3);
+        const yPts = linspace(-3,3,n_points); //generateGaussianBasePts(x1.value, P11.value, n_points, -3, 3);
+
         function updateGaussian3dPlot() {
             const x = [[x0.value], [x1.value]];
             // Note: P01 used instead of P10 because the matrix is symmetric
@@ -134,14 +139,31 @@
 
             P10.textContent = P01.value.toFixed(2); //symmetric matrix
             const zPts = generate3dGaussianSurface(x, P, xPts, yPts);
+            // const x_proj = univariateGaussianXYpts(x0.value, P00.value, xAbsMin=-3, xAbsMax=3, yAbsMax=1.5, numPts=80);
+            // const y_proj = univariateGaussianXYpts(x1.value, P11.value, xAbsMin=-3, xAbsMax=3, yAbsMax=1.5, numPts=80);
 
             let trace = {
                 x: xPts,
                 y: yPts,
                 z: zPts,
                 type: 'surface',
-                showscale: false  // This line removes the colorbar
-            }
+                showscale: false,  // This line removes the colorbar
+                contours: {
+                    z: {
+                        show: true,
+                        usecolormap: true,
+                        project: {z: true}
+                    },
+                },
+                legend: {
+                    show: false
+                },
+                hovermode: false,
+                hoverinfo: 'none',
+                hoverlabel: {bgcolor: 'rgba(0,0,0,0)'},  // This makes hover labels transparent
+                clickmode: 'none',
+            };
+
             Plotly.react("gaussian-3d-plot", [trace], plotLayout);
         }
         updateGaussian3dPlot();
