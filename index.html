@@ -382,7 +382,7 @@
         of a simple robot. The goal will be to estimate the position and velocity
         of the robot so that it can navigate without crashing. On its back, the 
         robot carries an ultrasonic sensor that can measure the distance to the 
-        nearest wall, and you as the operator will be able to control the speed.
+        nearest wall, and you as the operator will be able to control the acceleration.
     </p>
     <div style="text-align: center;">
         <img src="./assets/Robot.svg" alt="A simple robot" style="width: 15%;">
@@ -476,7 +476,7 @@
     <p>
         The linear model we derived above is great, but it's not very realistic.
         In the real world, the robot might slip and bounce over the terrain, the motors might not
-        exactly reach the commanded speed. In other words, there is random noise introduced by the 
+        exactly reach the commands. In other words, there is random noise introduced by the 
         messiness of the environment, which in turn makes our state estimate less certain.
     </p>
     <p>
@@ -918,7 +918,7 @@
         </script>
     </div>
     
-    <p> Let's try running this algorithm in state space!</p>
+    <h3> Let's try running this Predict-Only Filter in state space!</h3>
     <div>
         <div id="predict-only-filter-diagram">    
             <div class="animation-container">
@@ -1199,7 +1199,7 @@
                     const lMargin = 40;
                     const rMargin = 40;
                     const layout = {
-                        title: 'Kalman Filter State Space',
+                        title: 'Predict-Only Filter State Space',
                         legend: {
                             orientation: 'h',
                             yanchor: 'top',
