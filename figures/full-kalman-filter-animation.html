@@ -233,6 +233,8 @@
             function resetAllVariables() {
                 // Truestate variables
                 throttle = parseFloat(slider.value);  // -1 to 1
+                // // full container extends 1 robot width on the left and right; want to start fully on 
+                // const initialPixelPosition = container.getBoundingClientRect().left + robot.clientWidth; 
                 x = [[0], //px
                     [50]]; //px/s
 
@@ -298,10 +300,9 @@
                     return;
                 }
                 //get the max width of the container for the state-diagram plot
-                const containerLeftX = container.getBoundingClientRect().left;
-                const containerRightX = container.getBoundingClientRect().right;
                 const maxY = maxVelocity+100;
-
+                const lMargin = 40;
+                const rMargin = 40;
                 const layout = {
                     title: 'Kalman Filter State Space',
                     legend: {
@@ -317,18 +318,24 @@
                     },
                     xaxis: {
                         title: 'Position (Pixels)',
-                        range: [containerLeftX+50, containerRightX-50] // axis labels take some space
+                        range: [0,container.clientWidth-lMargin-rMargin], // axis labels take some space
                     },
                     margin: {
-                    l: 40,
-                    r: 40,
+                    l: lMargin,
+                    r: rMargin,
                     t: 50,
                     b: 40,
                     },
                     hovermode: 'closest',
                 }
+                function getPlotPosition(x) {
+                    return positiveModulo(x[0][0], container.clientWidth + 2*robot.clientWidth) - robot.clientWidth/2; //robot.clientWidth/2 is an offset so dot is at front or robot
+                }
+                // Apply the new position and wheel rotation to the robot
+                const pixel_position = getPlotPosition(x);
+
                 const center_true = {
-                    x: [positiveModulo(x[0][0], container.clientWidth + 2*robot.clientWidth)], // don't subtract robot.clientWidth so dot is at front or robot
+                    x: [pixel_position],
                     y: [x[1][0]],
                     type: 'scatter',
                     mode: 'markers',
@@ -336,7 +343,7 @@
                     showlegend: true,
                     name: 'True State'
                 }
-                const x_est_mod = [[positiveModulo(x_est[0][0], container.clientWidth + 2*robot.clientWidth)],
+                const x_est_mod = [[getPlotPosition(x_est)],
                                     [x_est[1][0]]];
                 if (x_est_mod[1][0] > maxY+ 50) {
                     // just draw an arrow indicating where it is
@@ -406,7 +413,6 @@
                 const wheelRotation = positiveModulo(x[0][0]/wheelRadius * 180/Math.PI, 360);
     
                 // Apply the new position and wheel rotation to the robot
-                const containerLeftX = container.getBoundingClientRect().left;
                 const pixel_position = positiveModulo(x[0][0], container.clientWidth + 2*robot.clientWidth) - robot.clientWidth;
                 robot.style.left = `${pixel_position}px`;
                 // In the SVG the front wheel was originally drawn centered at 134.39388px 156.62283px
