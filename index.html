@@ -379,7 +379,9 @@
     <h2>Building a model</h2>
     <p>To understand the details of the Kalman Filter, we'll use the example
         of a simple robot. The goal will be to estimate the position and velocity
-        of the robot so that it can navigate without crashing.
+        of the robot so that it can navigate without crashing. On its back, the 
+        robot carries an ultrasonic sensor that can measure the distance to the 
+        nearest wall, and you as the operator will be able to control the speed.
     </p>
     <div style="text-align: center;">
         <img src="./assets/Robot.svg" alt="A simple robot" style="width: 15%;">
@@ -414,16 +416,19 @@
     </p>
     <p>
         Now we have a simple dynamical model of our robot, but it fails to include one
-        common thing: a way to control the speed. In the interactive demo above, you
-        (as the operator) are able to control the throttle command \(u\), which is 
-        programmed to control the angular speed of the wheels, which in turn dictates
-        the robot's linear velocity. If we assume that the wheel 
-        has radius \(r\), the maximum angular speed
-        is \(\omega_{max} \) (and that the wheel speed perfectly matches the control 
-        command), then we have the following relationship between the throttle command 
-        \(u\) and the velocity \(v\) of the robot:
-
-        $$ v = r \omega_{max} u $$
+        common thing: a way to control the robot. In the interactive demo above, you
+        (as the operator) are able to control the linear acceleration \(a\) via the control input
+        vector \(\controlInput\). This [-1,1] throttle input doesn't directly control the 
+        linear acceleration, but rather dictates the angular acceleration of the wheels. 
+        If we assume that the wheel has radius \(r\), the maximum angular acceleration 
+        is \( \alpha_{\text{max}} \), and that the wheel perfectly tracks the control 
+        command, then we can extend our kinematics equation to include the control input:
+        $$ \begin{alignat}{3}
+        a &= r \alpha_{\text{max}} u \\
+        p_{\discreteTime} &= p_{\discreteTime-1} &+& \Delta t &v_{\discreteTime-1} &+& \frac{1}{2} (r \alpha_{\text{max}} u) \Delta t^2 \\
+        v_{\discreteTime} &= 0                   &+&          &v_{\discreteTime-1} &+& (r \alpha_{\text{max}} u ) \Delta t \\
+        \end{alignat}
+        $$
 
         As with the state equation, we'll package this up in matrix form by defining
         the control matrix \(\controlMatrix\), which determines how the input 
@@ -433,7 +438,7 @@
 
         $$ \text{Control Input Vector } \controlInput = \begin{bmatrix} u \end{bmatrix} $$
 
-        $$ \text{Control Matrix } \controlMatrix = \begin{bmatrix} 0 \\ r \omega_{max} \end{bmatrix} $$
+        $$ \text{Control Matrix } \controlMatrix = \begin{bmatrix} \frac{1}{2} r \alpha_{\text{max}} \Delta t^2 \\ r \alpha_{\text{max}} \Delta t \end{bmatrix} $$
         
         Combining this with our dynamics model, our complete dynamical model looks like this:
 
@@ -444,6 +449,26 @@
         In summary, we <it>predict</it> the new state by applying the dynamics model to the previous state estimate, and adding 
         a correction term for known influences like the control input. 
     </p>
+
+    <p class="expandable-content-text" onclick="toggleExpandableContent('controlling-velocity')">
+        What if I'm controlling something other than the acceleration (like the velocity)?
+    </p>
+    <div class="expanded-content" id="controlling-velocity"> 
+        The model above is there for your convenience, but if your system is different you should 
+        feel free to modify it!
+        For example, a velocity controller might assume that the control input directly 
+        dictates the velocity, which would give you the following matrices:
+        $$ \text{Control Input Vector } \controlInput = \begin{bmatrix} v \end{bmatrix} $$
+        $$ \text{Control Matrix } \controlMatrix = \begin{bmatrix} 0 \\ 1 \end{bmatrix} $$
+        $$ \text{State Transition Matrix } \stateTransition = \begin{bmatrix} 1 & \Delta t \\ 0 & 0 \end{bmatrix} $$
+    (Note that \(\stateTransition\) now has zeros in the bottom row because it is more reliable 
+    to assume that the controller dictates the new velocity than that the velocity remains constant.)
+    There are other possibilities: you could get rid of \( \controlMatrix \) entirely and 
+    make \(\stateTransition_{11} = \frac{u}{v}\), or you could even treat the 
+    control input as a sensor and incorporate it in the Update step (see below). I don't know what is best, 
+    but you should experiment with what makes sense!
+    
+    </div>
 
     <p> TODO: Play around with our state-space representation of the robot!</p>
  
@@ -459,6 +484,10 @@
         and the random noise introduced by the environment is to assign each of them a 
         probability distribution. For simplicity, we assume that both of these distributions are gaussian.
     </p>
+    <p> So now, instead of representing our state estimate with a single vector, we'll say that our state estimate 
+        is a normal distribution parametrized by a mean \(\state\) and a covariance \(\stateCovariance\).
+        $$ \stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
+    </p>
 
     <p class="expandable-content-text" onclick="toggleExpandableContent('why-a-gaussian')">
         Why a gaussian?
@@ -468,17 +497,14 @@
         <ol>
             <li>We can parametrize the distribution with just the mean and variance, so it is numerically easy to update</li>
             <li>When we combine two independent gaussians into one estimate, the result is also a gaussian</li>
-            <li>Mathematicians have proven (the Central Limit Theorem)that the combined effect of many random processes (even if individually they are non-gaussian)
+            <li>Mathematicians have proven (the Central Limit Theorem) that the combined effect of many random processes (even if individually they are non-gaussian)
                 will result in a gaussian distribution</li>
         </ol>
 
         Take heed: we choose a gaussian mostly because it is numerically convenient, but in practice many things (even something as simple
         as a \( \sin \theta \) term in the dynamics model introduced by turning around), will make the distribution non-gaussian.
     </div>
-    <p> So now, instead of representing our state estimate with a single vector, we'll say that our state estimate 
-        is a normal distribution parametrized by a mean \(\state\) and a covariance \(\stateCovariance\).
-        $$ \stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
-    </p>
+
     <p>
         Hopefully you're already familiar with a 1D normal distribution, which is usually parametrized by 
         its mean \(\mu\) and variance \(\sigma^2\). The multivariate version is similar, except now the 
@@ -488,8 +514,6 @@
         $$ \text{State Covariance Matrix } \stateCovariance = \begin{bmatrix} \text{Var}(p) & \text{Cov}(p,v) \\ \text{Cov}(v,p) & \text{Var}(v) \end{bmatrix} $$
     </p>
     
-    <p> TODO: Diagram: Play around with a single gaussian: Covariance, mean</p>
-
     <p>Now comes an important point: In our dynamics equation above we know how to apply the matrix \(\stateTransition\) 
         to the state estimate \( \stateEstimate \) when it was a single vector. But now our estimate is a gaussian,
         so we need to apply \(\stateTransition\) to the whole distribution. Fortunately, the mean is a single point,
@@ -2377,10 +2401,10 @@
     <table style="width: 100%; text-align: left;">
         <tr>
             <th>
-                Predict(\( \controlInput_{\discreteTime}, \space \state_{\discreteTime-1}, \space \stateCovariance_{\discreteTime-1} \)):
+                Predict(\( \state_{\discreteTime-1}, \space \stateCovariance_{\discreteTime-1}, \space \stateTransition, \space \controlMatrix, \space \controlInput_{\discreteTime}, \space \processNoiseCovariance \)):
             </th>
             <th>
-                Update(\( \measurement_{\discreteTime}, \space \state_{\discreteTime-1}, \space \stateCovariance_{\discreteTime-1} \)):
+                Update(\( \state_{\discreteTime-1}, \space \stateCovariance_{\discreteTime-1}, \space \measurementMatrix, \space \measurement_{\discreteTime}, \space \measurementNoiseCovariance \)):
             </th>
         </tr>
         <tr>
@@ -2433,9 +2457,29 @@
                 vary with time (they even may change nonlinearly as time progresses).
             </li>
             <li>We use the longer form of the covariance update formula (also known 
-                as the Joseph Form) because it is numerically more stable.
+                as the Joseph Form) because it is numerically more stable (though on 
+                a modern computer running for short time periods, the difference is negligible).
             </li>
         </ol>
+    </p>
+
+    <p>TODO: Let's see the full algorithm in action!</p>
+
+    <p class="expandable-content-text" onclick="toggleExpandableContent('why-not-perfect')">
+        Why is this not perfect?
+    </p>
+    <p class="expanded-content" id="why-not-perfect">
+        Despite all the proofs of theoretical optimality, there are still some 
+        fundamental limitations to the Kalman Filter. In this example, we see 
+        that the Kalman Filter doesn't track the maximum velocity very well, because 
+        the filter is only using the throttle value to predict the velocity, and
+        has no way of recognizing that the real robot in fact has a maximum 
+        velocity.  Also, running the filter at a slow rate causes the state estimate 
+        to lag the true state by a significant amount most of the time.  
+        These are errors that we encounter for a system that is actually linear with minimal noise!
+        When you implement a Kalman Filter for systems in the wild, you'll likely
+        have to manually account for these types of errors in order to get 
+        good performance.
     </p>
 
     <h2>Summary</h2>
