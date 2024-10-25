@@ -386,6 +386,8 @@
     <div style="text-align: center;">
         <img src="./assets/Robot.svg" alt="A simple robot" style="width: 15%;">
     </div>
+    <p> TODO: Play around with our state-space representation of the robot!</p>
+
     <p>The first step in building an engineering model is to define a state vector.
         For our robot, this will be a two-dimensional vector containing the \(p\) 
         and velocity \(v\). In general, the state vector simply contains the minimum set
@@ -432,9 +434,7 @@
 
         As with the state equation, we'll package this up in matrix form by defining
         the control matrix \(\controlMatrix\), which determines how the input 
-        vector \(\controlInput \) impacts the state. Note that although the throttle
-        has no direct effect on the position, we need our control matrix to output a 
-        2-dimensional state vector, so we'll set the first row of \(\controlMatrix\) to zero.
+        vector \(\controlInput \) impacts the state.
 
         $$ \text{Control Input Vector } \controlInput = \begin{bmatrix} u \end{bmatrix} $$
 
@@ -470,7 +470,6 @@
     
     </div>
 
-    <p> TODO: Play around with our state-space representation of the robot!</p>
  
     <h2>Bringing Uncertainty into the Model</h2>
     <p>
@@ -488,6 +487,8 @@
         is a normal distribution parametrized by a mean \(\state\) and a covariance \(\stateCovariance\).
         $$ \stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
     </p>
+
+    <p>TODO: Add a diagram where you can see the 3D plot and 2D contours under it, controlled by X and P sliders.</p>
 
     <p class="expandable-content-text" onclick="toggleExpandableContent('why-a-gaussian')">
         Why a gaussian?
@@ -966,8 +967,8 @@
     <p>
         Most ultrasonic sensors do not directly provide a distance. Instead, they measure 
         the time (in microseconds, \( \mu s \)) it takes for a pulse of sound to travel to the wall and back. In order to convert from \( \mu s \)
-        to meters, we need to multiply by a factor of \( \frac{2 \times 10^6 }{c} \), where \(c\) is the speed of sound in air (343 m/s), 
-        there are \( 10^6 \mu s\) per second, and the factor of 2 accounts for the sound traveling double the distance (to the wall, and then back).
+        to meters, we need to multiply by a factor of \( \frac{2 \times 10^6 }{c} \), where \(c\) is the speed of sound in air (343 \( m/s \)), 
+        there are \( 10^6 \mu s \) per second, and the factor of 2 accounts for the sound traveling double the distance (to the wall, and then back).
         Thus to convert from the measurement vector to the state vector, the measurement matrix would be:
         $$ \text{Measurement Matrix } \measurementMatrix = \begin{bmatrix} \frac{2 \times 10^6 }{c} & 0 \end{bmatrix} $$
     </p>
