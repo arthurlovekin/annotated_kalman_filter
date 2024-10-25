@@ -95,28 +95,8 @@
         </tr>
         <tr class="kalman-gain-intermediate-space">
             <td>
-                <table  class="math-diagram-structure-table">
-                    <tr>
-                        Convert to Measurement Space with
-                    </tr>
-                    <tr >
-                        <td>
-                            \( \measurementMatrix = \)
-                        </td>
-                        <td>
-                            <table class="matrix-table">
-                                <tr>
-                                    <td>
-                                        <div id="kalman-gain-measurement-matrix-00">1.0</div>
-                                    </td>
-                                    <td>
-                                        <div id="kalman-gain-measurement-matrix-01">0.0</div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                </table>
+                Convert to Measurement Space with
+                \( \measurementMatrix = \begin{bmatrix} 1 & 0 \end{bmatrix} \)
             </td>
             <td></td>
         </tr>
@@ -346,10 +326,6 @@
         const P_01 = document.getElementById("kalman-gain-new-state-covariance-01");
         const P_10 = document.getElementById("kalman-gain-new-state-covariance-10");
         const P_11 = document.getElementById("kalman-gain-new-state-covariance-11");
-        
-        // constants
-        const H_00 = parseFloat(document.getElementById("kalman-gain-measurement-matrix-00").textContent);
-        const H_01 = parseFloat(document.getElementById("kalman-gain-measurement-matrix-01").textContent);
         
         //// Make the old state covariance be positive semi-definite and symmetric
         Ptm1_00.setValidityCondition((newValue) => {
