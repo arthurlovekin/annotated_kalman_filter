@@ -417,9 +417,10 @@
     and how fast you're going before you can intelligently turn the steering
     wheel. If you're controlling the central heating in an office building, it
     is helpful to know the temperature in each room. If you're designing a
-    brain-computer interface for paralyzed people, your entire aim might be to
-    estimate the intended position of a cursor on a screen based on their noisy
-    neural signals.
+    brain-computer interface for paralyzed people 
+    [<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3638087/" target="_blank" rel="noopener noreferrer">4</a>],
+    your entire aim might be to estimate the intended position of a cursor on a screen
+    based on their noisy neural signals.
     </p>
     <p>
     In all of these cases, there are multiple sources of information that we
@@ -730,14 +731,22 @@
     <div class="expanded-content" id="why-a-gaussian"> 
         There are a few really compelling reasons to choose a gaussian: 
         <ol>
-            <li>We can parametrize the distribution with just the mean and variance, so it is numerically easy to update</li>
-            <li>When we combine two independent gaussians into one estimate, the result is also a gaussian</li>
-            <li>Mathematicians have proven (the Central Limit Theorem) that the combined effect of many random processes (even if individually they are non-gaussian)
-                will result in a gaussian distribution</li>
+            <li>We can parametrize the distribution with just the mean and variance,
+                so it is numerically easy to update</li>
+            <li>When we combine two independent gaussians into one estimate, the
+                result is also a gaussian</li>
+            <li>Mathematicians have proven (the Central Limit Theorem) that the
+                combined effect of many random processes (even if individually they
+                are non-gaussian) will result in a gaussian distribution. See 
+                <a href="https://www.youtube.com/watch?v=zeJD6dqJ5lo" target="_blank"
+                rel="noopener noreferrer">3b1b's explanation</a> for why.
+            </li>
         </ol>
 
-        Take heed: we choose a gaussian mostly because it is numerically convenient, but in practice many things (even something as simple
-        as a \( \sin \theta \) term in the dynamics model introduced by turning around), will make the distribution non-gaussian.
+        Take heed: we choose a gaussian mostly because it is numerically convenient,
+        but in practice many things (even something as simple as a \( \sin \theta \)
+        term in the dynamics model introduced by turning around), will make the
+        distribution non-gaussian.
     </div>
 
     <p>
@@ -1797,19 +1806,21 @@
             Wait, you can write a matrix inverse like a fraction?!
         </p>
         <p class="expanded-content" id="matrix-fractions-explanation">
-            Technically, writing a matrix fraction is not legitimate because matrices (unlike scalars) 
-            very much care whether the numerator is multiplied on the left or right of the denominator, 
-            but the fraction form does not contain this information. That being said, the insight that 
-            this is a simple ratio is hieghtened by the fractional notation, so I ask that you simply 
-            remember that the inverse goes on the right. 
+            Technically, writing a matrix fraction is not legitimate because,
+            unlike scalars, the order in which you multiply the numerator and
+            denominator greatly matters, but the fraction form does not contain
+            this information. That being said, the insight that this is a simple
+            ratio is heightened by the fractional notation, so I ask that you
+            simply remember that the inverse goes on the right.
         </p>
         
         <p class="expandable-content-text" onclick="toggleExpandableContent('bayes-rule-explanation')">
             Is there a deeper mathematical reason why we use the variance ratio?
         </p>
         <p class="expanded-content" id="bayes-rule-explanation"> 
-            Yes! You may have learned about Bayes' Rule, which describes how to update your beliefs 
-            in light of new information. In particular, it says that 
+            Yes! You may have learned about 
+            <a href="https://www.youtube.com/watch?v=HZGCoVF3YvM" target="_blank" rel="noopener noreferrer">Bayes' Rule</a>, 
+            which describes how to update your beliefs in light of new information. In particular, it says that 
     
             $$ P( A | B ) = \frac{P( B | A ) P( A )}{P( B )}$$
             $$ \text{Posterior} = \frac{\text{Likelihood} \times \text{Prior}}{\text{Normalizing constant}} $$
@@ -3594,62 +3605,73 @@
         Why is this not perfect?
     </p>
     <p class="expanded-content" id="why-not-perfect">
-        Despite all the proofs of theoretical optimality, there are still some 
-        fundamental limitations to the Kalman Filter. In this example, we see 
-        that the Kalman Filter doesn't track the maximum velocity very well, because 
-        the filter is only using the throttle value to predict the velocity, and
-        has no way of recognizing that the real robot is limited to a maximum 
-        velocity.  Also, running the filter at a slow rate causes the state estimate 
-        to lag the true state by a significant amount most of the time.  
-        These are errors that we encounter for a system that is actually linear with minimal noise!
-        When you implement a Kalman Filter for systems in the wild, you'll likely
-        have to manually account for these types of errors in order to get 
-        good performance.
+        Despite proofs of theoretical optimality, the Kalman Filter has limitations.
+        In this example, it struggles to track maximum velocity accurately because it
+        only uses throttle to predict velocity, unaware of the robot's speed limit.
+        Running the filter at a slow rate also causes the state estimate 
+        to lag the true state most of the time.
+        These issues arise even in a linear system with minimal noise! When applying
+        Kalman Filters to real-world systems, you'll likely need to manually address
+        such errors to achieve good performance.
     </p>
 
     <h2>Summary</h2>
     <p>
-        The <strong>Kalman Filter</strong> is an algorithmic blueprint for incorporating different sources 
-        of information into a unified probailistic state estimate. It outlines two ways to 
-        propagate the current state estimate to the next:
+        The <strong>Kalman Filter</strong> is an algorithmic blueprint for
+        incorporating different sources of information into a unified probabilistic
+        state estimate. It outlines two ways to propagate the current state estimate
+        to the next:
         <ol>
-            <li>Predict: Incorporate information about the default dynamics of the system</li>
-            <li>Update: Fuse sensor information with the most recent state estimate 
+            <li>Predict: Incorporate information about the default dynamics of the
+                system</li>
+            <li>Update: Fuse sensor information with the most recent state estimate
                 using the Kalman Gain</li>
         </ol>
-        The <strong>Kalman Gain</strong> is an operator that takes vectors in the 
-        measurement space as input, and outputs the weighted contribution of that measurement 
-        vector to the total state estimate. This operation can be interpreted as having two 
-        steps (in either order):
+        The <strong>Kalman Gain</strong> is an operator that takes vectors in the
+        measurement space as input, and outputs the weighted contribution of that
+        measurement vector to the total state estimate. This operation can be
+        interpreted as having two steps (in either order):
         <ul>
-            <li>Convert from the space of measurements to the space of states using \( \measurementMatrix^{-1} \)</li>
-            <li>Weight the contribution of the measurement to the state estimate in proportion
-                to the inverse of its variance (either \( \varianceRatio \) or \( \varianceRatioState \))</li>
+            <li>Convert from the space of measurements to the space of states using
+                \( \measurementMatrix^{-1} \)</li>
+            <li>Weight the contribution of the measurement to the state estimate in
+                proportion to the inverse of its variance (either \( \varianceRatio \)
+                or \( \varianceRatioState \))</li>
         </ul>
-        In practice the measurement matrix is not invertible, but by bundling these two steps together
-        we can define the Kalman Gain without ever using \( \measurementMatrix^{-1} \).
+        In practice the measurement matrix is not invertible, but by bundling these
+        two steps together we can define the Kalman Gain without ever using
+        \( \measurementMatrix^{-1} \).
     </p>
     <p>
-        My aim with this article was to give you an intuitive understanding of how the Kalman Filter 
-        works, but from here there is a lot of beatiful math that proves the Filter's optimality under certain 
-        conditions, and also provides insight on how to handle situations that don't quite match this precise setup. 
-        Hopefully while exploring this article you realized that there are many obvious 
-        shortcomings. For example, 
-        What if your model isn't linear? What if you don't know the covariance matrix for your sensors? How do small changes 
-        in parameters like the timestep (or accumulation of numerical error) affect the filter's behavior? 
+        My aim with this article was to give you an intuitive understanding of how
+        the Kalman Filter works, but from here there is a lot of beautiful math that
+        proves the Filter's optimality under certain conditions, and also provides
+        insight on how to handle different physical systems. Hopefully while exploring 
+        this article you realized that there are
+        many obvious shortcomings. For example, What if your model isn't linear?
+        What if you don't know the covariance matrix for your sensors? How do small
+        changes in parameters like the timestep (or accumulation of numerical error)
+        affect the filter's behavior? 
+    </p>
+    <p>If you would like to see how the Kalman Filter is implemented under the hood,
+        my <a href="https://github.com/arthurlovekin/annotated_kalman_filter/blob/master/js/kalman-filter-functions.js" 
+        target="_blank" rel="noopener noreferrer">github repo</a> has a javascript
+        implementation.
     </p>
     <p>
-        As far as dealing with non-linearities, there are several different algorithms you should look into:
-        the Particle Filter, the Unscented Kalman Filter (UKF), and the Extended Kalman Filter (EKF). All three of these 
-        are similar in that they combine probabilistic state and measurement information, but they differ in 
-        how they incorporate non-linear process models and how they represent the state estimate distribution. 
+        As far as dealing with non-linearities, there are several different
+        algorithms you should look into: the Particle Filter, the Unscented Kalman
+        Filter (UKF), and the Extended Kalman Filter (EKF). All three of these are
+        similar in that they combine probabilistic state and measurement
+        information, but they differ in how they incorporate non-linear process
+        models and how they represent the state estimate distribution. 
     </p>
     <p>
-        In total I've thrown you 17 variables -- that can be a lot to keep track of! 
-        I've collected them all here so you have a single reference, though clicking 
-        on the variables throughout the article will give the same information.
-        You can also choose the naming convention using the dropdown menu above, 
-        which should make it easier to learn across multiple sources.
+        In total I've thrown you 17 variables -- that can be a lot to keep track of!
+        I've collected them all here so you have a single reference, though clicking
+        on the variables throughout the article will give the same information. Also
+        remember that you can choose the naming convention using the dropdown menu 
+        at the top of the article.
     </p>
     <table id="variable-description-table">
         <thead>
@@ -3694,11 +3716,122 @@
     </script>
 
     <h2>References</h2>
-    <p>
-        Gilja V, et.al. A high-performance neural prosthesis enabled by control algorithm design. 
-        Nat Neurosci. 2012 Dec;15(12):1752-7. doi: 10.1038/nn.3265. Epub 2012 Nov 18. PMID: 23160043; PMCID: PMC3638087.
-        https://pmc.ncbi.nlm.nih.gov/articles/PMC3638087/#S8 
+    <h3>Websites I found helpful while writing this article</h3>
+    <ol>
+        <li>
+            Babb, T. (2015, August 11). How a Kalman filter works, in pictures | Bzarg. 
+            <a href="https://www.bzarg.com/p/how-a-kalman-filter-works-in-pictures/" target="_blank" rel="noopener noreferrer">
+                https://www.bzarg.com/p/how-a-kalman-filter-works-in-pictures/</a>
+        </li>
+        <li>
+            Becker, A. (2023). Kalman Filter from the Ground Up. 
+            <a href="https://www.kalmanfilter.net/default.aspx" target="_blank" rel="noopener noreferrer">
+                https://www.kalmanfilter.net/default.aspx</a>
+        </li>
+        <li>
+            Fox, D. et.al. Markov Localization for Mobile Robots
+            in Dynamic Environments. Journal of Artificial Intelligence Research. 
+            1999 Nov;  pp. 391-427
+            <a href="https://www.cs.cmu.edu/afs/cs/project/jair/pub/volume11/fox99a-html/jair-localize.html" target="_blank" rel="noopener noreferrer">
+                https://www.cs.cmu.edu/afs/cs/project/jair/pub/volume11/fox99a-html/jair-localize.html</a>
+        </li>
+        <li>
+            Gilja V, et.al. A high-performance neural prosthesis enabled by control 
+            algorithm design. Nat Neurosci. 2012 Dec;15(12):1752-7. 
+            doi: 10.1038/nn.3265. Epub 2012 Nov 18. PMID: 23160043; PMCID: PMC3638087.
+            <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3638087/" target="_blank" rel="noopener noreferrer">
+                https://pmc.ncbi.nlm.nih.gov/articles/PMC3638087/</a>
+        </li>
+        <li>
+            Labbe, R. (2024). Kalman and Bayesian Filters in Python. 
+            <a href="https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python" target="_blank" rel="noopener noreferrer">
+                https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python</a>
+        </li>
+        <li>
+            Why variances Add—And Why it Matters – AP Central | College Board. (n.d.). 
+            <a href="https://apcentral.collegeboard.org/courses/ap-statistics/classroom-resources/why-variances-add-and-why-it-matters" target="_blank" rel="noopener noreferrer">
+                https://apcentral.collegeboard.org/courses/ap-statistics/classroom-resources/why-variances-add-and-why-it-matters</a>
+        </li>
+        <li>
+            Wikipedia contributors. (2024, October 23). Kalman filter. Wikipedia.
+            <a href="https://en.wikipedia.org/wiki/Kalman_filter" target="_blank" rel="noopener noreferrer">
+                https://en.wikipedia.org/wiki/Kalman_filter</a>
+        </li>
+    </ol>
+    <h3>Excellent videos related to Filtering and Probability</h3>
+    <ul>
+        <li>3Blue1Brown. (2019, December 22). Bayes theorem, the geometry of 
+            changing beliefs [Video]. YouTube. 
+            <a href="https://www.youtube.com/watch?v=HZGCoVF3YvM" target="_blank" rel="noopener noreferrer">
+                https://www.youtube.com/watch?v=HZGCoVF3YvM</a>
+        </li>
+        <li>
+            3Blue1Brown. (2023, March 14). But what is the Central Limit Theorem? 
+            [Video]. YouTube. 
+            <a href="https://www.youtube.com/watch?v=zeJD6dqJ5lo" target="_blank" rel="noopener noreferrer">
+                https://www.youtube.com/watch?v=zeJD6dqJ5lo</a>
+        </li>
+        <li>
+            Robonyx. (2024, April 2). How To Use Ultrasonic Sensors with Arduino! 
+            + Project Idea! [Video]. YouTube. 
+            <a href="https://www.youtube.com/watch?v=KGwtit2bFyo" target="_blank" rel="noopener noreferrer">
+                https://www.youtube.com/watch?v=KGwtit2bFyo</a>
+        </li>
+        <li>
+            Steve Brunton. (2017, February 7). The Kalman Filter [Control Bootcamp] 
+            [Video]. YouTube. 
+            <a href="https://www.youtube.com/watch?v=s_9InuQAx-g" target="_blank" rel="noopener noreferrer">
+                https://www.youtube.com/watch?v=s_9InuQAx-g</a>
+        </li>
+        <li>Visually Explained. (2021, January 28). Visually explained: Kalman filters 
+            [Video]. YouTube. 
+            <a href="https://www.youtube.com/watch?v=IFeCIbljreY" target="_blank" rel="noopener noreferrer">
+                https://www.youtube.com/watch?v=IFeCIbljreY</a>
+        </li>
+    </ul>
+    <h3>Articles that inspired this level of interactivity</h3>
+    <ul>
+        <li>
+            Case, N. (2016, Dec). To Build a Better Ballot. 
+            An Interactive Guide to Alternative Voting Systems. 
+            <a href="https://ncase.me/ballot/" target="_blank" rel="noopener noreferrer">
+                https://ncase.me/ballot/</a>
+        </li>
+        <li>
+            <a href="https://distill.pub/" target="_blank" rel="noopener noreferrer">Distill Journal</a>
+        </li>
+        <li>
+            Victor, B. (2011, March 10). Explorable Explanations. 
+            <a href="https://worrydream.com/ExplorableExplanations/" target="_blank" rel="noopener noreferrer">
+                https://worrydream.com/ExplorableExplanations/</a>
+        </li>
+    </ul>
+
+    <h3>Updates and Corrections</h3>
+    <p>If you see mistakes or want to suggest change, please create an 
+        <a href="https://github.com/arthurlovekin/annotated_kalman_filter/issues" target="_blank" rel="noopener noreferrer">issue on Github</a>.
+        I would like my writing and visual style to be as good as it can be, but it 
+        also takes a lot of work to create and maintain this type of content, so I 
+        may or may not make the change.
     </p>
+    <h3>Citation</h3>
+    <p>
+        If you use this article in an academic context, please cite it as:
+        <br>
+        <blockquote>
+            Lovekin, A. "The Interactive Kalman Filter." 2024. 
+            <a href="https://arthurlovekin.com/interactive-kalman-filter/" target="_blank" rel="noopener noreferrer">
+                https://arthurlovekin.com/interactive-kalman-filter/</a>
+        </blockquote>
+    </p>
+    <p>Bibtex Citation:</p>
+    <blockquote style="white-space: pre;">@misc{lovekin2024interactivekalman,
+        author = {Lovekin, Arthur},
+        title = {The Interactive Kalman Filter},
+        year = {2024},
+        note = {https://arthurlovekin.com/interactive-kalman-filter/},
+    }
+    </blockquote>
 </body>
 <script>
     activateButtonsAndContent(['option1-button'], ['update-step-option1'], ['option2-button'], ['update-step-option2']);
