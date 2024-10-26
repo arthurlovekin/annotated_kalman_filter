@@ -9,7 +9,7 @@ const variables = {
         "\\state",
         "Mean State Vector",
         "Represents the mean of the estimated state of the system", 
-        "The position and velocity of a robot", 
+        "The mean position and velocity of a robot", 
         '(state_dim,)',
         red_highlight
     ),
@@ -17,7 +17,7 @@ const variables = {
         "\\stateEstimate",
         "State Estimate",
         "Represents our belief of the state of the system", 
-        "The position and velocity of a robot", 
+        "The estimated position and velocity of a robot", 
         '(state_dim,)',
         red_highlight
     ),
@@ -33,7 +33,7 @@ const variables = {
         "\\stateCovariance",
         "State Covariance Matrix", 
         "Describes the amount of uncertainty in the state estimate", 
-        "The uncertainty in the state estimate",
+        "Describes the amount of uncertainty in the state estimate",
         '(state_dim, state_dim)',
         red_highlight
     ),
@@ -41,7 +41,7 @@ const variables = {
         "\\stateTransition",
         "State Transition Matrix", 
         "Transforms the current state estimate to the next state estimate", 
-        "The dynamics of the robot system, expressed in matrix form. Each state depends on the pwhere each ",
+        "The dynamics of the robot system, expressed in matrix form.",
         '(state_dim, state_dim)',
         blue_highlight
     ),
@@ -49,7 +49,7 @@ const variables = {
         "\\controlInput",
         "Control Input Vector",
         "Contains the user-supplied input to the system", 
-        "A throttle input from [0,1] for the robot",
+        "A throttle input from [-1,1] for the robot",
         '(control_dim,)',
         blue_highlight
     ),
@@ -96,7 +96,7 @@ const variables = {
     kalman_gain: new FormulaElement("kalman-gain",
         "\\kalmanGain",
         "Kalman Gain",
-        "The gain that transforms the measurement space to the state space",
+        "Transforms the measurements to the state space and weighs them according to the variance ratio",
         "The gain that transforms the measurement space to the state space",
         '(state_dim, measurement_dim)',
         yellow_highlight

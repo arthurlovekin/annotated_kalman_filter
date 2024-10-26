@@ -758,7 +758,7 @@
     <p> We'll introduce a very useful rule for multiplying a gaussian distribution 
         \(\gaussian \left( \mathbf{\bar{\mu}}, \mathbf{\Sigma} \right) \) by a matrix \( \mathbf{A} \):
     </p>
-    <p id="gaussian-multiplication-rule">
+    <p id="gaussian-multiplication-rule" style="border: 1px solid #000; border-radius: 5px; padding: 2px;">
         $$
         \begin{align}
             \text{If you linearly transform the mean: } &
@@ -1636,7 +1636,12 @@
     </div>
     
     <h2>Sensing the environment</h2>
-    <img class="expanded-content" src="./assets/ultrasonic-sensor-HC-SR04-mouser.png" alt="Picture of an ultrasonic distance sensor" id="ultrasonic-sensor-picture">
+    <img class="expanded-content" 
+        src="./assets/ultrasonic-sensor-HC-SR04-mouser.png" 
+        alt="Picture of an ultrasonic distance sensor" 
+        id="ultrasonic-sensor-picture"
+        style="width: 25%; margin-left: auto; margin-right: auto;"
+    >
     <p>Ok so the state ... isn't terrible, but it's not great either, and the variance is exploding (which is reasonable considering the 
         dynamics equation has no feedback).
         Fortunately, we have endowed this robot with an 
@@ -3100,7 +3105,7 @@
         </ol>
     </p>
 
-    <p>Let's see the full algorithm in action!</p>
+    <h3>Let's see the full algorithm in action!</h3>
 
     <div>
         <div id="full-kalman-filter-diagram">    
@@ -3593,7 +3598,7 @@
         fundamental limitations to the Kalman Filter. In this example, we see 
         that the Kalman Filter doesn't track the maximum velocity very well, because 
         the filter is only using the throttle value to predict the velocity, and
-        has no way of recognizing that the real robot in fact has a maximum 
+        has no way of recognizing that the real robot is limited to a maximum 
         velocity.  Also, running the filter at a slow rate causes the state estimate 
         to lag the true state by a significant amount most of the time.  
         These are errors that we encounter for a system that is actually linear with minimal noise!
