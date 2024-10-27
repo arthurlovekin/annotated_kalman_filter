@@ -11,7 +11,7 @@ The entirety of the article - text and figures - is contained in index.html.
 During development I would make all the figures separately in the "figures"
 folder, then copy-paste them into the article. The "js" folder contains some
 javascript related to interactive elements (like "draggable-number" and
-"mathjax-dynamic-initialization"), while other files (like
+"mouse-effects-manager"), while other files (like
 "kalman-filter-functions") contain the meat of the code driving the Kalman
 Filter. I also made proof-of-concepts for the different interactive elements I
 wanted to make, and I have left these in "interaction_examples". Finally, the

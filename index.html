@@ -404,8 +404,9 @@
     <div style="text-align: center;">
         Choose your naming convention: 
         <select id="naming-convention-dropdown">
-            <option value="wikipedia">Wikipedia</option>
-            <option value="kalmanfilterdotnet">KalmanFilter.net</option>
+            <option value="matlab">\( x=Ax+Bu, \space y=Cx \)</option>
+            <option value="wikipedia">\( x=Fx+Bu, \space z=Hx \)</option>
+            <option value="kalmanfilterdotnet">\( x=Fx+Gu, \space z=Hx \) </option>
         </select>
     </div>
 
@@ -1799,7 +1800,8 @@
             by the inverse of its variance, so the distribution with less uncertainty (ie. smaller variance) will play more of a role.
             To write this mathematically, we first define the variance ratio (in the space of measurements):
             $$ \varianceRatio = 
-            \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}{\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance} =
+            \frac{\measurementMatrix \stateCovariance \measurementMatrix^T}
+            {\measurementMatrix \stateCovariance \measurementMatrix^T + \measurementNoiseCovariance} =
             \frac{\text{Uncertainty from state estimate}}{\text{Total uncertainty from the state estimate and sensor noise}} $$
         </p>
         <p class="expandable-content-text" onclick="toggleExpandableContent('matrix-fractions-explanation')">
@@ -3716,7 +3718,7 @@
     </script>
 
     <h2>References</h2>
-    <h3>Websites I found helpful while writing this article</h3>
+    <h3>Documents I found helpful while writing this article</h3>
     <ol>
         <li>
             Babb, T. (2015, August 11). How a Kalman filter works, in pictures | Bzarg. 
@@ -3746,6 +3748,9 @@
             Labbe, R. (2024). Kalman and Bayesian Filters in Python. 
             <a href="https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python" target="_blank" rel="noopener noreferrer">
                 https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python</a>
+        </li>
+        <li>
+            Thrun, S., Burgard, W., & Fox, D. (2005). Probabilistic robotics. MIT Press.
         </li>
         <li>
             Why variances Add—And Why it Matters – AP Central | College Board. (n.d.). 
