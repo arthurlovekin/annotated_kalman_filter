@@ -551,17 +551,24 @@
     <h2>Bringing Uncertainty into the Model</h2>
     <p>
         The linear model we derived above is great, but it's not very realistic.
-        In the real world, the robot might slip and bounce over the terrain, the motors might not
-        exactly reach the commands. In other words, there is random noise introduced by the 
-        messiness of the environment, which in turn makes our state estimate less certain.
+        In the real world, the robot might slip and bounce over the terrain, the
+        motors might not exactly reach the commands, and so on. In other words, 
+        there is random noise introduced by the messiness of the environment, 
+        which in turn makes our state estimate less certain.
     </p>
     <p>
         One method that can represent both the uncertainty in our state estimate 
-        and the random noise introduced by the environment is to assign each of them a 
-        probability distribution. For simplicity, we assume that both of these distributions are gaussian.
+        and the random noise introduced by the environment is to assign each of 
+        them a probability distribution. Essentially, we acknowledge that at a 
+        given instant we do not know the precise value of the state, but 
+        we can still assign a probability to the state lying within a given 
+        range (where that probability is the area under the probability 
+        distribution). For simplicity, we assume that both the state and noise
+        distributions are gaussian.
     </p>
-    <p> So now, instead of representing our state estimate with a single vector, we'll say that our state estimate 
-        is a normal distribution parametrized by a mean \(\state\) and a covariance \(\stateCovariance\).
+    <p> So now, instead of representing our state estimate with a single vector, 
+        we'll say that our state estimate is a normal distribution parametrized 
+        by a mean \(\state\) and a covariance \(\stateCovariance\).
         $$ \stateEstimate \sim \gaussian \left( \state, \stateCovariance \right) $$
     </p>
 
